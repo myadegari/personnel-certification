@@ -1,0 +1,31 @@
+import CoursesClient from "@/components/admin/CoursesClient";
+import Link from 'next/link';
+import { Button } from "@/components/ui/button";
+
+async function getCourses() {
+  try {
+    // Fetching from the absolute URL is important in Server Components
+    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/courses`, { cache: 'no-store' });
+    if (!res.ok) return [];
+    return res.json();
+  } catch (error) {
+    console.error("Failed to fetch courses:", error);
+    return [];
+  }
+}
+
+export default async function CoursesManagementPage() {
+  const initialCourses = await getCourses();
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">مدیریت دوره‌ها</h1>
+        <Button asChild variant="outline">
+          <Link href="/admin">بازگشت به داشبورد مدیریت</Link>
+        </Button>
+      </div>
+      <CoursesClient initialCourses={initialCourses} />
+    </div>
+  );
+}
