@@ -1,9 +1,8 @@
-// File: app/api/auth/forgot-password/route.js
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-import crypto from "crypto";
-// In a real app, you would use a mailer library like nodemailer
-// import nodemailer from "nodemailer";
+// import crypto from "crypto";
+import otpGenerator from 'otp-generator';
+import nodemailer from "nodemailer"; // Import nodemailer
 
 export async function POST(request) {
   await dbConnect();
@@ -13,43 +12,55 @@ export async function POST(request) {
     const user = await User.findOne({ email });
 
     if (!user) {
-      // We send a generic success message even if the user is not found
-      // to prevent email enumeration attacks.
-      return new Response(JSON.stringify({ message: "اگر ایمیل شما در سیستم موجود باشد، لینک بازنشانی برایتان ارسال خواهد شد." }), { status: 200 });
+      return new Response(JSON.stringify({ message: "اگر این ایمیل ثبت‌شده باشد، لینک بازنشانی ارسال خواهد شد." }), { status: 200 });
     }
 
-    // --- Generate a secure token ---
-    const resetToken = crypto.randomBytes(20).toString('hex');
+    
+    // --- NEW: Generate a secure 6-digit OTP ---
+    const resetToken = otpGenerator.generate(6, { 
+      digits: true, 
+      lowerCaseAlphabets: true, 
+      upperCaseAlphabets: false, 
+      specialChars: false 
+    });
+
     user.resetPasswordToken = resetToken;
-    // Set token to expire in 1 hour
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour in milliseconds
+    user.resetPasswordExpires = Date.now() + 600000; // 10 minutes
 
     await user.save();
 
-    // --- Send the email (Simulated) ---
-    // In a real application, you would configure and use a mail service here.
+    // --- NODEMAILER IMPLEMENTATION ---
     const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${resetToken}`;
 
-    console.log("--- PASSWORD RESET EMAIL (SIMULATED) ---");
-    console.log(`To: ${user.email}`);
-    console.log(`Subject: درخواست بازنشانی رمز عبور`);
-    console.log(`برای بازنشانی رمز عبور خود، روی لینک زیر کلیک کنید:`);
-    console.log(resetUrl);
-    console.log(`کد بازنشانی شما (OTP): ${resetToken}`);
-    console.log("-----------------------------------------");
+    // 1. Create a transporter object using Gmail SMTP
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_EMAIL,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
+
+    // 2. Define the email options
+    const mailOptions = {
+      from: `"سامانه کارمندان" <${process.env.GMAIL_EMAIL}>`,
+      to: user.email,
+      subject: 'درخواست بازنشانی رمز عبور',
+      html: `
+        <h1>درخواست بازنشانی رمز عبور</h1>
+        <p>شما درخواست بازنشانی رمز عبور داده‌اید. لطفاً از توکن زیر برای بازنشانی رمز عبور خود استفاده کنید:</p>
+        <h2>${resetToken}</h2>
+        <p>این توکن در 10 دقیقه منقضی خواهد شد.</p>
+      `,
+    };
+
+    // 3. Send the email
+    await transporter.sendMail(mailOptions);
     
-    // For a real implementation with Nodemailer:
-    // const transporter = nodemailer.createTransport({ ... });
-    // await transporter.sendMail({
-    //   to: user.email,
-    //   subject: 'Password Reset Request',
-    //   html: `Click <a href="${resetUrl}">here</a> to reset your password.`,
-    // });
-    
-    return new Response(JSON.stringify({ message: "اگر ایمیل شما در سیستم موجود باشد، لینک بازنشانی برایتان ارسال خواهد شد." }), { status: 200 });
+    return new Response(JSON.stringify({ message: "اگر این ایمیل ثبت شده باشد، یک لینک بازنشانی ارسال خواهد شد." }), { status: 200 });
 
   } catch (error) {
     console.error("Forgot Password Error:", error);
-    return new Response(JSON.stringify({ message: "خطایی در سرور رخ داد." }), { status: 500 });
+    return new Response(JSON.stringify({ message: "خطا در ارسال ایمیل." }), { status: 500 });
   }
 }

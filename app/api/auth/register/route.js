@@ -15,11 +15,12 @@ export async function POST(request) {
       firstName, 
       lastName, 
       nationalId, 
-      email 
+      email,
+      gender 
     } = body;
 
     // --- Input Validation ---
-    if (!personnelNumber || !password || !firstName || !lastName || !nationalId || !email) {
+    if (!personnelNumber || !password || !firstName || !lastName || !nationalId || !email || !gender) {
       return new Response(JSON.stringify({ message: "لطفاً تمام فیلدهای الزامی را پر کنید." }), { status: 400 });
     }
 
@@ -54,6 +55,7 @@ export async function POST(request) {
       lastName,
       nationalId,
       email,
+      gender,
       // Optional fields like profileImage and signatureImage can be added later
     });
 

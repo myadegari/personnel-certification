@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 export default function SignupPage() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -18,6 +18,7 @@ export default function SignupPage() {
     lastName: '',
     nationalId: '',
     email: '',
+    gender: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -128,6 +129,25 @@ export default function SignupPage() {
                   <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
                 </div>
               </div>
+              <div className="space-y-2">
+  <Label>جنسیت</Label>
+  <RadioGroup
+    name="gender"
+    value={formData.gender}
+    onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
+    className="flex gap-4"
+    required
+  >
+    <div className="flex items-center space-x-2">
+      <RadioGroupItem value="Male" id="Male" />
+      <Label htmlFor="Male" className="mr-2 cursor-pointer">آقا</Label>
+    </div>
+    <div className="flex items-center space-x-2">
+      <RadioGroupItem value="Female" id="Female" />
+      <Label htmlFor="Female" className="mr-2 cursor-pointer">خانم</Label>
+    </div>
+  </RadioGroup>
+</div>
               <div>
                 <Label htmlFor="nationalId">کد ملی</Label>
                 <Input id="nationalId" name="nationalId" value={formData.nationalId} onChange={handleChange} required />

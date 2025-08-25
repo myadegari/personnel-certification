@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fa" dir="rtl">
+    <html lang="fa" dir="rtl"  suppressHydrationWarning="true" data-lt-installed="true">
       <body className={vazirmatn.className}>
         <AuthProvider>
           <div className="flex flex-col min-h-screen bg-gray-50">
