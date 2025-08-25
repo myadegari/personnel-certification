@@ -40,6 +40,8 @@ export const authOptions = {
           name: `${user.firstName} ${user.lastName}`,
           email: user.email,
           role: user.role || 'USER', // Make sure you have a role field in your User model
+          profileImage: user.profileImage,
+          position: user.position,
         };
       },
     }),
@@ -50,6 +52,9 @@ export const authOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.profileImage = user.profileImage; // <-- این خط را اضافه کنید
+        token.position = user.position; // <-- این خط را اضافه کنید
+      
       }
       return token;
     },
@@ -58,6 +63,8 @@ export const authOptions = {
       if (token) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.profileImage = token.profileImage; // <-- این خط را اضافه کنید
+        session.user.position = token.position; // <-- این خط را اضافه کنید
       }
       return session;
     },

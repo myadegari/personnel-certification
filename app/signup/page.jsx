@@ -100,18 +100,18 @@ export default function SignupPage() {
           {step === 1 && (
             <form onSubmit={handleCheckPersonnelNumber} className="space-y-4">
               <div>
-                <Label htmlFor="personnelNumber">شماره پرسنلی</Label>
+                <Label htmlFor="personnelNumber" className="mb-2">شماره پرسنلی</Label>
                 <Input id="personnelNumber" name="personnelNumber" value={formData.personnelNumber} onChange={handleChange} required />
               </div>
               <div>
-                <Label htmlFor="password">رمز عبور</Label>
+                <Label htmlFor="password" className="mb-2">رمز عبور</Label>
                 <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required />
               </div>
               <div>
-                <Label htmlFor="confirmPassword">تکرار رمز عبور</Label>
+                <Label htmlFor="confirmPassword" className="mb-2">تکرار رمز عبور</Label>
                 <Input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                 {isLoading ? 'در حال بررسی...' : 'ادامه'}
               </Button>
             </form>
@@ -121,21 +121,22 @@ export default function SignupPage() {
             <form onSubmit={handleFinalSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">نام</Label>
+                  <Label htmlFor="firstName" className="mb-2">نام</Label>
                   <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
                 </div>
                 <div>
-                  <Label htmlFor="lastName">نام خانوادگی</Label>
+                  <Label htmlFor="lastName" className="mb-2">نام خانوادگی</Label>
                   <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-4">
+              <div className=" flex items-center mt-4">
   <Label>جنسیت</Label>
   <RadioGroup
     name="gender"
     value={formData.gender}
     onValueChange={(value) => setFormData(prev => ({ ...prev, gender: value }))}
-    className="flex gap-4"
+    className="flex gap-4 mr-5"
     required
   >
     <div className="flex items-center space-x-2">
@@ -149,14 +150,15 @@ export default function SignupPage() {
   </RadioGroup>
 </div>
               <div>
-                <Label htmlFor="nationalId">کد ملی</Label>
+                <Label htmlFor="nationalId" className="mb-2">کد ملی</Label>
                 <Input id="nationalId" name="nationalId" value={formData.nationalId} onChange={handleChange} required />
               </div>
+              </div>
               <div>
-                <Label htmlFor="email">ایمیل</Label>
+                <Label htmlFor="email" className="mb-2">ایمیل</Label>
                 <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                 {isLoading ? 'در حال ثبت‌نام...' : 'تکمیل ثبت‌نام'}
               </Button>
             </form>

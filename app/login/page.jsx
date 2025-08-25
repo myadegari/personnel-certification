@@ -60,7 +60,7 @@ export default function LoginPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
               {isLoading ? 'در حال ورود...' : 'ورود'}
             </Button>
           </form>

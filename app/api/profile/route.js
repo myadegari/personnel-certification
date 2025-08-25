@@ -5,10 +5,17 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 
 // GET function remains the same...
-export async function GET() {
-  // ... (no changes here)
-}
 
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session) return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+
+  await dbConnect();
+  const user = await User.findById(session.user.id).select('-password -resetPasswordToken -resetPasswordExpires');
+  if (!user) return new Response(JSON.stringify({ message: "User not found" }), { status: 404 });
+
+  return new Response(JSON.stringify(user), { status: 200 });
+}
 // UPDATE THE PUT FUNCTION
 export async function PUT(request) {
   const session = await getServerSession(authOptions);
