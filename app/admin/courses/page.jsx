@@ -1,13 +1,15 @@
 import CoursesClient from "@/components/admin/CoursesClient";
 import Link from 'next/link';
+import axios from 'axios';
 import { Button } from "@/components/ui/button";
 
 async function getCourses() {
   try {
     // Fetching from the absolute URL is important in Server Components
-    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/courses`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    return res.json();
+    
+    const res = await axios.get(`${process.env.NEXTAUTH_URL}/api/admin/courses`);
+    if (res.status !== 200) return []; // Corrected the condition to use !==
+    return res.data;
   } catch (error) {
     console.error("Failed to fetch courses:", error);
     return [];

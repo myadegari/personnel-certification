@@ -1,31 +1,27 @@
 'use client';
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from '@/lib/axios';
 import { Button } from "./ui/button";
 
-export default function EnrollButton({ courseId, status }) {
-  const [currentStatus, setCurrentStatus] = useState(status);
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
+const enrollInCourse = (courseId) => axios.post('/enrollments', { courseId });
 
-  const handleEnroll = async () => {
-    setIsLoading(true);
-    setMessage('');
-    try {
-      const res = await fetch('/api/enrollments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      
-      setCurrentStatus('PENDING'); // Update the UI immediately
-      setMessage(data.message);
-    } catch (error) {
-      setMessage(error.message);
-    } finally {
-      setIsLoading(false);
+export default function EnrollButton({ courseId, status }) {
+  const queryClient = useQueryClient();
+  const [currentStatus, setCurrentStatus] = useState(status);
+  // const [message, setMessage] = useState('');
+
+  const mutation = useMutation({
+    mutationFn: enrollInCourse,
+    onSuccess: () => {
+        setCurrentStatus('PENDING');
+        // Invalidate the main courses query to refetch and update statuses
+        queryClient.invalidateQueries({ queryKey: ['courses'] });
     }
+});
+  
+const handleEnroll = () => {
+    mutation.mutate(courseId);
   };
   
   if (currentStatus === 'APPROVED') {
@@ -38,10 +34,10 @@ export default function EnrollButton({ courseId, status }) {
 
   return (
     <div className="w-full">
-      <Button onClick={handleEnroll} disabled={isLoading} className="w-full">
-        {isLoading ? 'در حال ارسال...' : 'ثبت‌نام در دوره'}
-      </Button>
-      {message && <p className="text-xs text-center mt-2">{message}</p>}
+    <Button onClick={handleEnroll} disabled={mutation.isPending}>
+      {mutation.isPending ? 'در حال ارسال...' : 'ثبت‌نام در دوره'}
+    </Button>
+      {/* {message && <p className="text-xs text-center mt-2">{message}</p>} */}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 
 // --- کامپوننت برای حالت بارگذاری (اسکلت) ---
 const HeaderSkeleton = () => (
-  <div className="flex items-center gap-4 animate-pulse">
+  <div className="flex items-center gap-4 animate-pulse flex-row-reverse">
     <div className="h-8 w-24 rounded-md bg-gray-200"></div>
     <div className="h-8 w-8 rounded-full bg-gray-200"></div>
   </div>

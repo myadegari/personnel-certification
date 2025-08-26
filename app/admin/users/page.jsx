@@ -1,15 +1,16 @@
 import UserManagementClient from "@/components/admin/UserManagementClient";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
+import axios from 'axios';
 
 // Helper function to fetch data on the server
 async function getUsers(page = 1, limit = 10) {
+  const cookie = headers().get('cookie');
   try {
-    const res = await fetch(`${process.env.NEXTAUTH_URL}/api/admin/users?page=${page}&limit=${limit}`, {
-      cache: 'no-store', // Ensure fresh data
+    const { data } = await axios.get(`${process.env.NEXTAUTH_URL}/api/admin/users?page=${page}&limit=${limit}`, {
+        headers: { 'Cookie': cookie }
     });
-    if (!res.ok) return { users: [], pagination: {} };
-    return res.json();
+    return data;
   } catch (error) {
     console.error("Failed to fetch users:", error);
     return { users: [], pagination: {} };

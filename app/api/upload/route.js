@@ -33,16 +33,18 @@ export async function POST(request) {
 
   // --- NEW FILENAME LOGIC ---
   // Get the original file extension
-  const fileExtension = path.extname(file.name);
-  // Construct the new filename
-  const filename = `${user.personnelNumber}-${fileType}${fileExtension}`;
+  const userUploadDir = path.join(process.cwd(), 'public/uploads', user.personnelNumber);
 
-  const uploadsDir = path.join(process.cwd(), 'public/uploads');
-  const filePath = path.join(uploadsDir, filename);
+  // 2. ساختن نام فایل جدید و ساده
+  const fileExtension = path.extname(file.name);
+  const filename = `${fileType}${fileExtension}`; // مثلا: profile.png یا signature.png
+
+  // 3. تعریف مسیر کامل فایل
+  const filePath = path.join(userUploadDir, filename);
 
   try {
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
+    if (!existsSync(userUploadDir)) {
+      await mkdir(userUploadDir, { recursive: true });
     }
     await writeFile(filePath, buffer);
   } catch (error) {
@@ -50,6 +52,6 @@ export async function POST(request) {
     return NextResponse.json({ error: "Failed to save file" }, { status: 500 });
   }
 
-  const publicUrl = `/uploads/${filename}`;
+  const publicUrl = `/uploads/${user.personnelNumber}/${filename}`;
   return NextResponse.json({ url: publicUrl });
 }

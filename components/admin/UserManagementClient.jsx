@@ -7,35 +7,60 @@ import {
   getPaginationRowModel,
   flexRender,
 } from '@tanstack/react-table';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from '@/lib/axios';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 // You will need to create this modal component
 import UserFormModal from './UserFormModal'; 
 
+const fetchUsers = async ({ queryKey }) => {
+  const [_key, { page, limit }] = queryKey;
+  const { data } = await axios.get(`/admin/users?page=${page}&limit=${limit}`);
+  return data;
+};
+const deleteUsers = (userIds) => axios.delete('/admin/users', { data: { userIds } });
+
 export default function UserManagementClient({ initialData }) {
-  const [data, setData] = useState(initialData.users);
+  const queryClient = useQueryClient();
+  // const [data, setData] = useState(initialData.users);
   const [pagination, setPagination] = useState({
     pageIndex: initialData.pagination.currentPage - 1,
     pageSize: 10,
   });
-  const [pageCount, setPageCount] = useState(initialData.pagination.pageCount);
+  // const [pageCount, setPageCount] = useState(initialData.pagination.pageCount);
   const [rowSelection, setRowSelection] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  // Fetch data from API when pagination changes
-  useEffect(() => {
-    async function fetchData() {
-      const page = pagination.pageIndex + 1;
-      const limit = pagination.pageSize;
-      const res = await fetch(`/api/admin/users?page=${page}&limit=${limit}`);
-      const newData = await res.json();
-      setData(newData.users);
-      setPageCount(newData.pagination.pageCount);
+  const { data } = useQuery({
+    queryKey: ['adminUsers', { page: pagination.pageIndex + 1, limit: pagination.pageSize }],
+    queryFn: fetchUsers,
+    initialData,
+    keepPreviousData: true,
+  });
+  
+  const deleteMutation = useMutation({
+    mutationFn: deleteUsers,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      table.resetRowSelection();
     }
-    fetchData();
-  }, [pagination]);
+  });
+ 
+  // Fetch data from API when pagination changes
+  // useEffect(() => {
+  //   async function fetchData() {
+  //     const page = pagination.pageIndex + 1;
+  //     const limit = pagination.pageSize;
+  //     const res = await fetch(`/api/admin/users?page=${page}&limit=${limit}`);
+  //     const newData = await res.json();
+  //     setData(newData.users);
+  //     setPageCount(newData.pagination.pageCount);
+  //   }
+  //   fetchData();
+  // }, [pagination]);
 
   // Define table columns
   const columns = useMemo(() => [
@@ -75,7 +100,7 @@ export default function UserManagementClient({ initialData }) {
   ], []);
 
   const table = useReactTable({
-    data,
+    data:tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -99,22 +124,28 @@ export default function UserManagementClient({ initialData }) {
     setEditingUser(null);
     setIsModalOpen(true);
   };
-  
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     const selectedIds = table.getSelectedRowModel().rows.map(row => row.original._id);
-    if (selectedIds.length === 0) return;
-    
-    if (confirm(`آیا از حذف ${selectedIds.length} کاربر اطمینان دارید؟`)) {
-      await fetch('/api/admin/users', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: selectedIds }),
-      });
-      // Refetch data
-      table.resetRowSelection();
-      setPagination(prev => ({ ...prev })); // Trigger useEffect
+    if (selectedIds.length > 0 && confirm(`آیا از حذف ${selectedIds.length} کاربر اطمینان دارید؟`)) {
+      deleteMutation.mutate(selectedIds);
     }
+    table.resetRowSelection();
   };
+  // const handleBulkDelete = async () => {
+  //   const selectedIds = table.getSelectedRowModel().rows.map(row => row.original._id);
+  //   if (selectedIds.length === 0) return;
+    
+  //   if (confirm(`آیا از حذف ${selectedIds.length} کاربر اطمینان دارید؟`)) {
+  //     await fetch('/api/admin/users', {
+  //       method: 'DELETE',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ userIds: selectedIds }),
+  //     });
+  //     // Refetch data
+  //     table.resetRowSelection();
+  //     setPagination(prev => ({ ...prev })); // Trigger useEffect
+  //   }
+  // };
 
   return (
     <div>

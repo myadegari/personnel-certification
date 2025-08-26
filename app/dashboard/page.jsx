@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
+import axios from 'axios'; // <-- Use the main axios library for server-side
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
@@ -20,16 +21,19 @@ async function getDashboardStats(userId) {
 // This function gets the initial data for the first page of the table
 async function getInitialCourses() {
   // --- این بخش اصلاح شده است ---
-  const requestHeaders = new Headers(headers()); // هدرهای درخواست ورودی را بگیرید
+  const headersList = headers();
+  const cookie = headersList.get('cookie');
   
-  const res = await fetch(`${process.env.NEXTAUTH_URL}/api/my-courses?page=1&limit=5`, { 
-    cache: 'no-store',
-    headers: requestHeaders, // هدرها را به درخواست fetch اضافه کنید
-  });
-  // --- پایان اصلاح ---
-
-  if (!res.ok) return { enrollments: [], pagination: { pageCount: 0, currentPage: 1 } };
-  return res.json();
+  try {
+    // Use axios for the server-side fetch, passing the cookie for authentication
+    const { data } = await axios.get(`${process.env.NEXTAUTH_URL}/api/my-courses?page=1&limit=5`, {
+      headers: { 'Cookie': cookie },
+    });
+    return data;
+  } catch (error) {
+    console.error("Failed to fetch initial courses:", error.message);
+    return { enrollments: [], pagination: { pageCount: 0, currentPage: 1 } };
+  }
 }
 
 export default async function DashboardPage() {

@@ -19,6 +19,7 @@ export default function SignupPage() {
     nationalId: '',
     email: '',
     gender: '',
+    position: '',
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -130,7 +131,23 @@ export default function SignupPage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-              <div className=" flex items-center mt-4">
+              
+              <div>
+                <Label htmlFor="nationalId" className="mb-2">کد ملی</Label>
+                <Input id="nationalId" name="nationalId" value={formData.nationalId} onChange={handleChange} required />
+              </div>
+              <div>
+                  <Label htmlFor="position" className="mb-2">سمت</Label>
+                  <Input id="position" name="position" type="text" value={formData.position} onChange={handleChange} required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                
+                <div>
+                  <Label htmlFor="email" className="mb-2">ایمیل</Label>
+                  <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
+                </div>
+                <div className=" flex items-center mt-4">
   <Label>جنسیت</Label>
   <RadioGroup
     name="gender"
@@ -149,14 +166,6 @@ export default function SignupPage() {
     </div>
   </RadioGroup>
 </div>
-              <div>
-                <Label htmlFor="nationalId" className="mb-2">کد ملی</Label>
-                <Input id="nationalId" name="nationalId" value={formData.nationalId} onChange={handleChange} required />
-              </div>
-              </div>
-              <div>
-                <Label htmlFor="email" className="mb-2">ایمیل</Label>
-                <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
               </div>
               <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                 {isLoading ? 'در حال ثبت‌نام...' : 'تکمیل ثبت‌نام'}
