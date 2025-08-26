@@ -18,7 +18,7 @@ export default async function AdminDashboardPage() {
   const { userCount, courseCount, pendingEnrollments } = await getStats();
 
   return (
-    <div>
+    <div className="pt-4">
       <h1 className="text-3xl font-bold mb-6">داشبورد مدیریت</h1>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>

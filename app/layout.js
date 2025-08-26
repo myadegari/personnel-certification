@@ -14,13 +14,13 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fa" dir="rtl">
+    <html lang="fa" dir="rtl" suppressHydrationWarning="true" data-lt-installed="true">
       <body className={vazirmatn.className}>
         <AuthProvider>
           <Providers> {/* <-- Wrap your app with the provider */}
             <div className="flex flex-col min-h-screen bg-gray-50">
-              <Header />
-              <main className="flex-grow container mx-auto px-4 py-8">
+              {/* <Header /> */}
+              <main className="flex-grow container mx-auto px-4">
                 {children}
               </main>
             </div>
