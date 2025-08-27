@@ -39,9 +39,18 @@ import {
    };
    const pathname = usePathname();
 
-   const getLinkClassName = (path) => {
-  return clsx('py-2 px-4 rounded-md transition-colors', pathname === path ? 'bg-blue-600 text-white cursor-auto' : 'bg-slate-100 hover:bg-slate-200 duration-200 text-gray-700 hover:text-gray-900');
-  };
+   const getLinkClassName = (path) => { 
+    let isActive;
+  
+  if (path === '/admin') {
+    // Only active if exactly on /admin
+    isActive = pathname === '/admin';
+  } else {
+    // Active if exact match or starts with path + '/'
+    isActive = pathname === path || pathname.startsWith(path + '/');
+  }
+    
+    return clsx('py-2 px-4 rounded-md transition-colors', isActive ? 'bg-blue-600 text-white cursor-auto' : 'bg-slate-100 hover:bg-slate-200 duration-200 text-gray-700 hover:text-gray-900'); };
     return (
       <Sidebar side="right">
         <SidebarHeader>

@@ -29,12 +29,12 @@ export default function UserManagementClient({ initialData }) {
     pageIndex: initialData.pagination.currentPage - 1,
     pageSize: 10,
   });
-  // const [pageCount, setPageCount] = useState(initialData.pagination.pageCount);
+  const [pageCount, setPageCount] = useState(initialData.pagination.pageCount);
   const [rowSelection, setRowSelection] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  const { data } = useQuery({
+  const { data:tableData } = useQuery({
     queryKey: ['adminUsers', { page: pagination.pageIndex + 1, limit: pagination.pageSize }],
     queryFn: fetchUsers,
     initialData,
@@ -100,7 +100,7 @@ export default function UserManagementClient({ initialData }) {
   ], []);
 
   const table = useReactTable({
-    data:tableData,
+    data: tableData?.users,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),

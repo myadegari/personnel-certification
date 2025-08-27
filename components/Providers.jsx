@@ -3,6 +3,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 // This component provides the TanStack Query client to all child components.
 export default function Providers({ children }) {
@@ -20,6 +21,7 @@ export default function Providers({ children }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
+      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }

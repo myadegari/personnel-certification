@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect,useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import axios from '@/lib/axios';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,8 +13,14 @@ import Image from 'next/image';
 import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
+import CertificatePatternCombobox from './CertificatePatternCombobox'; // <-- کامپوننت جدید را import کنید
 
 // --- کامپوننت جستجوی کاربر ---
+const fetchCertificateSequences = async () => {
+  const { data } = await axios.get('/api/admin/certificate-sequences');
+  return data;
+};
+
 function UserSearchCombobox({ selectedUser, onSelectUser }) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,6 +83,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
     unitManager2: null, position2: '',
     certificateNumberPattern: '',
   });
+  const refStampFile1 = useRef(null);
   const [selectedManager1, setSelectedManager1] = useState(null);
   const [selectedManager2, setSelectedManager2] = useState(null);
   const [stampFile1, setStampFile1] = useState(null);
@@ -85,6 +94,13 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
   const [error, setError] = useState('');
 
   const isEditing = !!courseData;
+  const { data: sequences = [] } = useQuery({
+    queryKey: ['certificateSequences'],
+    queryFn: fetchCertificateSequences,
+    enabled: isOpen, // فقط زمانی که مودال باز است، داده‌ها را بگیر
+  });
+  const currentPattern = formData.certificateNumberPattern;
+  const currentSequence = sequences.find(s => s.pattern === currentPattern);
 
   useEffect(() => {
     if (isOpen) {
@@ -203,14 +219,15 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'ویرایش دوره' : 'ایجاد دوره جدید'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 grid grid-cols-2 gap-4">
+        <div className="col-span-1 p-4 border rounded-md space-y-2">
+        <h4 className="font-semibold mb-2">اطلاعات دوره</h4>
           <Input name="name" placeholder="نام دوره" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
           <div>
-            <Label>تاریخ برگزاری</Label>
             <DatePicker
               calendar={persian}
               locale={persian_fa}
@@ -218,6 +235,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
               onChange={(dateObject) => {
                 setFormData({ ...formData, date: dateObject?.toDate?.() || null });
               }}
+              placeholder='تاریخ برگزاری'
               inputClass="w-full px-3 py-2 border rounded-md h-10" // Style to match other inputs
               containerClassName="w-full"
             />
@@ -245,19 +263,54 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
               </div>
             )}
           </div> */}
-          <Input name="organizingUnit" placeholder="واحد برگزار کننده" className="col-span-2" required />
-          <Input name="certificateNumberPattern" placeholder="الگوی شماره گواهی (مثلا: 404/الف)" className="col-span-2" required />
-
-          {/* امضاکننده اول */}
-          <div className="col-span-1 p-4 border rounded-md">
+          <Input name="organizingUnit" placeholder="واحد برگزار کننده" className="col-span-2" value={formData.organizingUnit} onChange={e => setFormData({...formData, organizingUnit: e.target.value})} required  />
+          {/* <Input name="certificateNumberPattern" placeholder="الگوی شماره گواهی (مثلا: 404/الف)" className="col-span-2" required /> */}
+          <CertificatePatternCombobox
+              value={formData.certificateNumberPattern}
+              onChange={(newValue) => {
+                setFormData(prev => ({ ...prev, certificateNumberPattern: newValue }));
+              }}
+            />
+  </div>
+     {/* امضاکننده اول */}
+     <div className="col-span-1 p-4 border rounded-md">
             <h4 className="font-semibold mb-2">امضاکننده اول</h4>
             <div className="space-y-4">
               <UserSearchCombobox selectedUser={selectedManager1} onSelectUser={(user) => { setSelectedManager1(user); setFormData({...formData, unitManager: user._id}); }} />
-              <Input name="position1" placeholder="سمت امضاکننده اول" required />
-              <Input type="file" name="stamp1" onChange={handleFile1Change} />
-              {stampPreview1 && <Image src={stampPreview1} alt="مهر ۱" width={80} height={80} />}
+              <div className="w-full space-y-2 flex justify-between">
+                <Label>تصویر مهر</Label>
+                <Input
+                  ref={refStampFile1}
+                  id="stamp1"
+                  name="stamp1"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFile1Change}
+                  onClick={(e) => (e.target.value = null)}
+                  className="hidden" // --- ورودی فایل را مخفی کنید ---
+                  />
+                <Button type="button" variant="outline" onClick={() => refStampFile1.current?.click()}>
+                  {stampPreview1 ? 'تغییر تصویر' : 'بارگذاری تصویر'}
+                </Button>
+              </div>
+                  {stampPreview1 && <div className="p-2 border rounded-md bg-gray-50 flex justify-center"><img src={stampPreview1} alt="مهر ۱" width={80} height={80} /></div>}
             </div>
           </div>
+ 
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>انصراف</Button>
+            <Button type="submit" disabled={isLoading}>{isLoading ? 'در حال ذخیره...' : 'ذخیره'}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+`
+      
 
           {/* امضاکننده دوم */}
           <div className="col-span-1 p-4 border rounded-md">
@@ -270,14 +323,4 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
             </div>
           </div>
           
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>انصراف</Button>
-            <Button type="submit" disabled={isLoading}>{isLoading ? 'در حال ذخیره...' : 'ذخیره'}</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
+`

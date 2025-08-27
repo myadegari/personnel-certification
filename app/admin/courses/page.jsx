@@ -23,9 +23,6 @@ export default async function CoursesManagementPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">مدیریت دوره‌ها</h1>
-        <Button asChild variant="outline">
-          <Link href="/admin">بازگشت به داشبورد مدیریت</Link>
-        </Button>
       </div>
       <CoursesClient initialCourses={initialCourses} />
     </div>

@@ -3,6 +3,8 @@ import dbConnect from '@/lib/dbConnect';
 import Enrollment from '@/models/Enrollment';
 import User from '@/models/User';
 import Course from '@/models/Course';
+import CertificateSequence from '@/models/CertificateSequence'; // <-- مدل جدید را import کنید
+
 
 // --- شبیه‌سازی فراخوانی میکروسرویس صدور گواهی ---
 async function generateCertificate(enrollmentData) {
@@ -35,14 +37,28 @@ export async function PUT(request, { params }) {
     if (status === 'APPROVED' && previousStatus !== 'APPROVED') {
       const user = await User.findById(enrollment.user).lean();
       const course = await Course.findById(enrollment.course).lean();
-      
-      const certificateData = await generateCertificate({ user, course });
+      const pattern = course.certificateNumberPattern;
+      const sequence = await CertificateSequence.findOneAndUpdate(
+        { pattern: pattern },
+        { $inc: { lastNumber: 1 },$setOnInsert: { lastNumber: 99 }  },
+        { upsert: true, new: true }
+      );
+       // بررسی رسیدن به سقف مجاز
+    if (sequence.lastNumber > 999) {
+      // شماره به سقف رسیده، عملیات را برگردان (Rollback) و خطا بده
+      await CertificateSequence.updateOne({ pattern: pattern }, { $inc: { lastNumber: -1 } });
+      return NextResponse.json({ error: `ظرفیت شماره گواهی برای الگوی "${pattern}" به پایان رسیده است.` }, { status: 400 });
+    }
+
+      const certNumber = `${pattern}/${sequence.lastNumber}`;
+      enrollment.certificateNumber = certNumber; // <-- Add certificate number to enrollment
+      const certificateData = await generateCertificate({ user, course,certNumber });
       
       enrollment.certificateUrl = certificateData.certificateUrl;
       enrollment.certificateUniqueId = certificateData.certificateUniqueId;
       enrollment.issuedAt = new Date();
     }
-
+    enrollment.status = status;
     const updatedEnrollment = await enrollment.save();
 
     return NextResponse.json(updatedEnrollment);

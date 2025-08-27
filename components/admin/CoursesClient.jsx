@@ -9,6 +9,7 @@ import CourseFormModal from './CourseFormModal'; // We will create this
 import { DateObject } from 'react-multi-date-picker';
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
+import axios from 'axios';
 
 export default function CoursesClient({ initialCourses }) {
   const [courses, setCourses] = useState(initialCourses);
@@ -16,14 +17,15 @@ export default function CoursesClient({ initialCourses }) {
   const [editingCourse, setEditingCourse] = useState(null);
 
   const refetchCourses = async () => {
-    const res = await fetch('/api/admin/courses');
-    const data = await res.json();
+    const {data} = await axios.get('/admin/courses');
+    // const res = await fetch('/api/admin/courses');
+    // const data = await res.json();
     setCourses(data);
   };
 
   const handleDelete = async (courseId) => {
     if (confirm('آیا از حذف این دوره اطمینان دارید؟')) {
-      await fetch(`/api/admin/courses/${courseId}`, { method: 'DELETE' });
+      await axios.delete(`/admin/courses/${courseId}`);
       refetchCourses();
     }
   };

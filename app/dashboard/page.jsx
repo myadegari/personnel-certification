@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import UserCoursesTable from "@/components/UserCoursesTable";
 import { headers } from "next/headers"; // <-- این را import کنید
+import Logout from "@/components/Logout";
+
 
 // This function now gets the totals for the stat cards
 async function getDashboardStats(userId) {
@@ -53,6 +55,7 @@ export default async function DashboardPage() {
         <div className="flex gap-4">
           <Link href="/profile" passHref><Button variant="outline" className="cursor-pointer">پروفایل کاربری</Button></Link>
           <Link href="/courses" passHref><Button className="cursor-pointer">مشاهده و ثبت‌نام دوره‌ها</Button></Link>
+          <Logout/>
         </div>
       </div>
 

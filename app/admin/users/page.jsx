@@ -2,6 +2,7 @@ import UserManagementClient from "@/components/admin/UserManagementClient";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import axios from 'axios';
+import { headers } from "next/headers";
 
 // Helper function to fetch data on the server
 async function getUsers(page = 1, limit = 10) {
@@ -24,9 +25,7 @@ export default async function UserManagementPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">مدیریت کاربران</h1>
-        <Button asChild variant="outline">
-          <Link href="/admin">بازگشت به داشبورد مدیریت</Link>
-        </Button>
+        
       </div>
       <UserManagementClient initialData={initialData} />
     </div>
