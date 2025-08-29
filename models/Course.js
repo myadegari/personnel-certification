@@ -16,11 +16,11 @@ const CourseSchema = new mongoose.Schema({
     required: true,
   },
    // --- امضاکننده اول ---
-  unitManager: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  signatory: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   unitStamp: { type: String }, // مهر اول
 
   // --- امضاکننده دوم (اختیاری) ---
-  unitManager2: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  signatory2: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   unitStamp2: { type: String }, // مهر دوم
 
   // --- اطلاعات گواهی ---

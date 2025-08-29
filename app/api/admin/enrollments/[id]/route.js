@@ -4,17 +4,43 @@ import Enrollment from '@/models/Enrollment';
 import User from '@/models/User';
 import Course from '@/models/Course';
 import CertificateSequence from '@/models/CertificateSequence'; // <-- مدل جدید را import کنید
+import axios from 'axios';
+import { DateObject } from 'react-multi-date-picker';
+import persian from 'react-date-object/calendars/persian';
+import persian_fa from 'react-date-object/locales/persian_fa';
 
 
 // --- شبیه‌سازی فراخوانی میکروسرویس صدور گواهی ---
 async function generateCertificate(enrollmentData) {
   console.log("Calling certificate microservice with:", enrollmentData);
   // In a real app, this would be an actual HTTP request to your FastAPI service
-  await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
-  return {
-    certificateUrl: `/certificates/cert-${enrollmentData.user.personnelNumber}-${Date.now()}.pdf`,
-    certificateUniqueId: `404/گ/${Math.floor(Math.random() * 1000)}`,
+  const formattedData = {
+    user: {
+      firstName: enrollmentData.user.firstName,
+      lastName: enrollmentData.user.lastName,
+      personnelNumber: enrollmentData.user.personnelNumber,
+      nationalId: enrollmentData.user.nationalId
+    },
+    course: {
+      name: enrollmentData.course.name,
+      organizingUnit: enrollmentData.course.organizingUnit,
+      date: new DateObject({ calendar: persian, locale: persian_fa, date: new Date(enrollmentData.course.date*1000) }).format()
+    },
+    certificateNumber: enrollmentData.certNumber
   };
+
+  try {
+    const { data } = await axios.post('http://localhost:8000/', formattedData);
+    console.log("Certificate microservice response:", data);
+    
+    return {
+      certificateUrl: data.certificateUrl || `/certificates/cert-${formattedData.user.personnelNumber}-${Date.now()}.pdf`,
+      certificateUniqueId: data.certificateUniqueId || `404/گ/${Math.floor(Math.random() * 1000)}`,
+    };
+  } catch (error) {
+    console.error("Certificate generation error:", error.response?.data || error.message);
+    throw new Error('Failed to generate certificate');
+  }
 }
 
 export async function PUT(request, { params }) {
@@ -38,11 +64,21 @@ export async function PUT(request, { params }) {
       const user = await User.findById(enrollment.user).lean();
       const course = await Course.findById(enrollment.course).lean();
       const pattern = course.certificateNumberPattern;
-      const sequence = await CertificateSequence.findOneAndUpdate(
-        { pattern: pattern },
-        { $inc: { lastNumber: 1 },$setOnInsert: { lastNumber: 99 }  },
-        { upsert: true, new: true }
-      );
+      let sequence = await CertificateSequence.findOne({ pattern: pattern });
+
+if (!sequence) {
+  // If no sequence exists, create a new one starting at 100
+  const newSequence = await CertificateSequence.create({
+    pattern: pattern,
+    lastNumber: 100
+  });
+  sequence = newSequence;
+} else {
+  // If sequence exists, increment the number
+  sequence.lastNumber += 1;
+  await sequence.save();
+}
+
        // بررسی رسیدن به سقف مجاز
     if (sequence.lastNumber > 999) {
       // شماره به سقف رسیده، عملیات را برگردان (Rollback) و خطا بده
