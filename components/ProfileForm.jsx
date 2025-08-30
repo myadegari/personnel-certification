@@ -23,7 +23,7 @@ const uploadFile = async ({ file, fileType }) => {
 };
 
 const updateProfile = async (profileData) => {
-  const { data } = await axios.put('/profile', profileData);
+  const { data } = await axios.put('/dashboard/profile', profileData);
   return data;
 };
 
@@ -143,7 +143,7 @@ export default function ProfileForm({ user }) {
           
           
           {/* Text Inputs */}
-          <div className="space-y-4">
+          <div className="space-y-4 grid grid-cols-2 gap-x-2 border-b-1 [&>div>Label]:mb-2 ">
             <div>
               <Label htmlFor="firstName">نام</Label>
               <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleTextChange} />

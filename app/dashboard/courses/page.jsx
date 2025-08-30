@@ -1,6 +1,6 @@
 // File: app/courses/page.jsx
 import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+import { authOptions } from "../../api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import Course from "@/models/Course";
 import Enrollment from "@/models/Enrollment";
@@ -32,9 +32,9 @@ export default async function CoursesPage() {
       {/* --- بخش جدید: هدر صفحه --- */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-gray-800">لیست دوره‌های آموزشی</h1>
-        <Link href="/dashboard" passHref>
+        {/* <Link href="/dashboard" passHref>
           <Button variant="outline">بازگشت به داشبورد</Button>
-        </Link>
+        </Link> */}
       </div>
       {/* --- پایان بخش جدید --- */}
 

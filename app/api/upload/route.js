@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
+// import { buffer } from 'node:stream/consumers'; 
 
 export async function POST(request) {
   const session = await getServerSession(authOptions);
@@ -28,30 +29,33 @@ export async function POST(request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  // const bytes = await file.arrayBuffer();
+  // const buffer = Buffer.from(bytes);
+  // const bufferData = await buffer(file.stream());
   const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
+  const bufferData = Buffer.from(bytes);
   // --- NEW FILENAME LOGIC ---
   // Get the original file extension
-  const userUploadDir = path.join(process.cwd(), 'public/uploads', user.personnelNumber);
+   // Make user upload directory
+   const userUploadDir = path.join(process.cwd(), 'public/uploads', user.personnelNumber);
+   if (!existsSync(userUploadDir)) {
+     await mkdir(userUploadDir, { recursive: true });
+   }
 
-  // 2. ساختن نام فایل جدید و ساده
-  const fileExtension = path.extname(file.name);
-  const filename = `${fileType}${fileExtension}`; // مثلا: profile.png یا signature.png
+   // Keep original extension
+   const fileExtension = path.extname(file.name || '');
+   const filename = `${fileType}${fileExtension}`;
+   
+   // 3. تعریف مسیر کامل فایل
+   const filePath = path.join(userUploadDir, filename); 
 
-  // 3. تعریف مسیر کامل فایل
-  const filePath = path.join(userUploadDir, filename);
-
-  try {
-    if (!existsSync(userUploadDir)) {
-      await mkdir(userUploadDir, { recursive: true });
-    }
-    await writeFile(filePath, buffer);
+   try {
+    await writeFile(filePath, bufferData);
   } catch (error) {
     console.error("Error saving file:", error);
     return NextResponse.json({ error: "Failed to save file" }, { status: 500 });
   }
 
   const publicUrl = `/uploads/${user.personnelNumber}/${filename}`;
-  return NextResponse.json({ url: publicUrl });
+  return NextResponse.json({ url: publicUrl, message: "File uploaded successfully" });
 }

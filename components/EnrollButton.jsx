@@ -34,7 +34,7 @@ const handleEnroll = () => {
 
   return (
     <div className="w-full">
-    <Button onClick={handleEnroll} disabled={mutation.isPending}>
+    <Button onClick={handleEnroll} className="w-full" disabled={mutation.isPending}>
       {mutation.isPending ? 'در حال ارسال...' : 'ثبت‌نام در دوره'}
     </Button>
       {/* {message && <p className="text-xs text-center mt-2">{message}</p>} */}
