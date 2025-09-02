@@ -111,7 +111,7 @@ import {
                         )}
                       </div>
                         
-                        <Button variant="destructive" size="sm" className='cursor-pointer rounded- w-10/12 px-8 hover:bg-red-700' onClick={() => signOut()}>
+                        <Button variant="destructive" size="sm" className='cursor-pointer w-10/12 px-8 hover:bg-red-700' onClick={() => signOut()}>
 <LogOut className="h-4 w-4" /> خروج از سامانه
                         </Button>
                       </>
