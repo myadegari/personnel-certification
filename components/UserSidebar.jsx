@@ -13,6 +13,7 @@ import {
   import { usePathname } from 'next/navigation';
   import { clsx } from "clsx";
   import { LayoutDashboard,GraduationCap,Settings } from "lucide-react";
+  import { useUser } from '@/hooks/useUser';
 
   const HeaderSkeleton = () => (
     <div className="flex items-center gap-4 animate-pulse flex-row-reverse">
@@ -29,6 +30,8 @@ import {
   
   export function UserSidebar() {
     const { data: session, status } = useSession();
+    const { data:userData } = useUser();
+    const profileImage = userData?.profileImage || session?.user?.profileImage;
     const getUserSubtitle = () => {
      if (!session?.user) return '';
      // اگر کاربر سمت خود را وارد کرده باشد، آن را نمایش بده
@@ -103,9 +106,9 @@ import {
                           <div className="text-xs text-muted-foreground">{getUserSubtitle()}</div>
                         </div>
           
-                        {session.user.profileImage ? (
+                        {profileImage ? (
                           <img
-                            src={session.user.profileImage}
+                            src={profileImage}
                             alt="Profile Picture"
                             width={45}
                             height={45}

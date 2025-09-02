@@ -9,23 +9,24 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ImageCropper from './ImageCropper';
+import { useUploadFile, useUpdateProfile } from '@/hooks/useProfileMutations';
 
 // API function for uploading a file
-const uploadFile = async ({ file, fileType }) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('fileType', fileType);
+// const uploadFile = async ({ file, fileType }) => {
+//   const formData = new FormData();
+//   formData.append('file', file);
+//   formData.append('fileType', fileType);
 
-  const { data } = await axios.post('/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data.url;
-};
+//   const { data } = await axios.post('/upload', formData, {
+//     headers: { 'Content-Type': 'multipart/form-data' },
+//   });
+//   return data.url;
+// };
 
-const updateProfile = async (profileData) => {
-  const { data } = await axios.put('/dashboard/profile', profileData);
-  return data;
-};
+// const updateProfile = async (profileData) => {
+//   const { data } = await axios.put('/profile', profileData);
+//   return data;
+// };
 
 export default function ProfileForm({ user }) {
   const queryClient = useQueryClient();
@@ -50,6 +51,8 @@ export default function ProfileForm({ user }) {
   const profileInputRef = useRef(null);
   const signatureInputRef = useRef(null);
 
+  const uploadFileMutation = useUploadFile();
+  const updateProfileMutation = useUpdateProfile();
 
   const handleTextChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -74,18 +77,18 @@ export default function ProfileForm({ user }) {
     setIsCropperOpen(false); // Close the modal
     setImageToCrop(null); // Clear the source image
   };
-  const mutation = useMutation({
-    mutationFn: updateProfile,
-    onSuccess: () => {
-      setMessage('پروفایل با موفقیت به‌روز شد!');
-      // When the mutation is successful, invalidate the session query
-      // to force a refetch of the user's data (e.g., for the header).
-      queryClient.invalidateQueries({ queryKey: ['session'] });
-    },
-    onError: (error) => {
-      setMessage(`خطا: ${error.response?.data?.message || error.message}`);
-    },
-  });
+  // const mutation = useMutation({
+  //   mutationFn: updateProfile,
+  //   onSuccess: () => {
+  //     setMessage('پروفایل با موفقیت به‌روز شد!');
+  //     // When the mutation is successful, invalidate the session query
+  //     // to force a refetch of the user's data (e.g., for the header).
+  //     queryClient.invalidateQueries({ queryKey: ['session'] });
+  //   },
+  //   onError: (error) => {
+  //     setMessage(`خطا: ${error.response?.data?.message || error.message}`);
+  //   },
+  // });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,11 +101,18 @@ export default function ProfileForm({ user }) {
 
       // --- UPDATE THE UPLOAD CALLS ---
       // Pass the file type ('profile' or 'signature') to the helper
-      if (profileImageFile) {
-        profileImageUrl = await uploadFile(profileImageFile, 'profile');
+       if (profileImageFile) {
+        profileImageUrl = await uploadFileMutation.mutateAsync({
+          file: profileImageFile,
+          fileType: 'profile'
+        });
       }
+
       if (signatureImageFile) {
-        signatureImageUrl = await uploadFile(signatureImageFile, 'signature');
+        signatureImageUrl = await uploadFileMutation.mutateAsync({
+          file: signatureImageFile,
+          fileType: 'signature'
+        });
       }
 
       const finalData = {
@@ -120,7 +130,8 @@ export default function ProfileForm({ user }) {
       // if (!res.ok) throw new Error('Failed to update profile');
 
       // setMessage('Profile updated successfully!');
-      mutation.mutate(finalData);
+      await updateProfileMutation.mutateAsync(finalData);
+      setMessage('پروفایل با موفقیت به‌روز شد!');
     } catch (error) {
       setMessage(`خطا در آپلود فایل: ${error.message}`);
     }
@@ -210,7 +221,7 @@ export default function ProfileForm({ user }) {
               )}
             </div>
           
-          <Button type="submit" disabled={mutation.isPending}>  {mutation.isPending ? 'در حال ذخیره...' : 'ذخیره تغییرات'}</Button>
+          <Button type="submit" disabled={uploadFileMutation.isPending}>  {uploadFileMutation.isPending ? 'در حال ذخیره...' : 'ذخیره تغییرات'}</Button>
           {message && <p className="text-sm mt-2">{message}</p>}
         </form>
       </CardContent>

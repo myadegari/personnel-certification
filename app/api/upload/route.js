@@ -6,7 +6,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-// import { buffer } from 'node:stream/consumers'; 
 
 export async function POST(request) {
   const session = await getServerSession(authOptions);
@@ -16,46 +15,57 @@ export async function POST(request) {
 
   const data = await request.formData();
   const file = data.get('file');
-  const fileType = data.get('fileType'); // 'profile' or 'signature'
+  const fileType = data.get('fileType');
 
   if (!file || !fileType) {
     return NextResponse.json({ error: "File or file type not provided" }, { status: 400 });
   }
 
-  // Fetch the user from DB to get their personnelNumber
   await dbConnect();
   const user = await User.findById(session.user.id).select('personnelNumber');
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // const bytes = await file.arrayBuffer();
-  // const buffer = Buffer.from(bytes);
-  // const bufferData = await buffer(file.stream());
   const bytes = await file.arrayBuffer();
-  const bufferData = Buffer.from(bytes);
-  // --- NEW FILENAME LOGIC ---
-  // Get the original file extension
-   // Make user upload directory
-   const userUploadDir = path.join(process.cwd(), 'public/uploads', user.personnelNumber);
-   if (!existsSync(userUploadDir)) {
-     await mkdir(userUploadDir, { recursive: true });
-   }
+  const buffer = Buffer.from(bytes);
 
-   // Keep original extension
-   const fileExtension = path.extname(file.name || '');
-   const filename = `${fileType}${fileExtension}`;
-   
-   // 3. تعریف مسیر کامل فایل
-   const filePath = path.join(userUploadDir, filename); 
+  // --- منطق جدید برای ساخت نام فایل ---
+  const fileExtension = path.extname(file.name);
+  // برای تصاویر امضا و مهر، از نام اصلی فایل استفاده می‌کنیم تا تکراری نشوند
+  const simpleFilename = fileType === 'profile' ? `profile${fileExtension}` : `${fileType}-${Date.now()}${fileExtension}`;
 
-   try {
-    await writeFile(filePath, bufferData);
+  // --- دیباگ کردن مسیرها ---
+  const projectRoot = process.cwd();
+  console.log('Project Root (process.cwd()):', projectRoot);
+  
+  const uploadsDir = path.join(projectRoot, 'public', 'uploads');
+  console.log('Target Uploads Directory:', uploadsDir);
+
+  const userDir = path.join(uploadsDir, user.personnelNumber);
+  console.log('Target User Directory:', userDir);
+  
+  const filePath = path.join(userDir, simpleFilename);
+  console.log('Final File Path:', filePath);
+  // --- پایان بخش دیباگ ---
+
+  try {
+    // اطمینان از وجود پوشه کاربر
+    if (!existsSync(userDir)) {
+      await mkdir(userDir, { recursive: true });
+      console.log('Created directory:', userDir);
+    }
+    
+    // ذخیره فایل
+    await writeFile(filePath, buffer);
+    console.log(`File saved successfully to ${filePath}`);
+
   } catch (error) {
     console.error("Error saving file:", error);
-    return NextResponse.json({ error: "Failed to save file" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to save file on server." }, { status: 500 });
   }
 
-  const publicUrl = `/uploads/${user.personnelNumber}/${filename}`;
-  return NextResponse.json({ url: publicUrl, message: "File uploaded successfully" });
+  // ایجاد URL عمومی برای دسترسی از طریق وب
+  const publicUrl = `/uploads/${user.personnelNumber}/${simpleFilename}`;
+  return NextResponse.json({ url: publicUrl });
 }
