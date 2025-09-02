@@ -34,7 +34,7 @@ const handleSubmit = (e) => {
   return (
     <Card>
       <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 [&>div>Label]:mb-2 ">
           <div>
             <Label htmlFor="currentPassword">رمز عبور فعلی</Label>
             <Input id="currentPassword" name="currentPassword" type="password" value={passwords.currentPassword} onChange={handleChange} />

@@ -52,11 +52,11 @@ export default async function DashboardPage() {
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-gray-800">داشبورد کاربری</h1>
-        <div className="flex gap-4">
+        {/* <div className="flex gap-4">
           <Link href="/profile" passHref><Button variant="outline" className="cursor-pointer">پروفایل کاربری</Button></Link>
           <Link href="/courses" passHref><Button className="cursor-pointer">مشاهده و ثبت‌نام دوره‌ها</Button></Link>
           <Logout/>
-        </div>
+        </div> */}
       </div>
 
       <h2 className="text-xl font-semibold mb-4 text-gray-700">آمار کلی</h2>
