@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect,useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/axios';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -14,10 +13,14 @@ import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import CertificatePatternCombobox from './CertificatePatternCombobox'; // <-- کامپوننت جدید را import کنید
-
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 // --- کامپوننت جستجوی کاربر ---
+
+const createCourse = (newCourse) => axios.post('/api/admin/courses', newCourse);
+const updateCourse = ({ id, ...updatedCourse }) => axios.put(`/api/admin/courses/${id}`, updatedCourse);
+
 const fetchCertificateSequences = async () => {
-  const { data } = await axios.get('/api/admin/certificate-sequences');
+  const { data } = await axios.get('/admin/certificate-sequences');
   return data;
 };
 
@@ -76,8 +79,9 @@ function UserSearchCombobox({ selectedUser, onSelectUser }) {
 
 
 // --- کامپوننت اصلی مودال ---
-export default function CourseFormModal({ isOpen, onClose, courseData, onSave }) {
-    const [formData, setFormData] = useState({
+export default function CourseFormModal({ isOpen, onClose, courseData }) {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState({
     name: '', date: null, duration: '', organizingUnit: '',
     unitManager: null, position1: '',
     unitManager2: null, position2: '',
@@ -90,7 +94,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
   const [stampFile2, setStampFile2] = useState(null);
   const [stampPreview1, setStampPreview1] = useState('');
   const [stampPreview2, setStampPreview2] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const isEditing = !!courseData;
@@ -99,17 +103,15 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
     queryFn: fetchCertificateSequences,
     enabled: isOpen, // فقط زمانی که مودال باز است، داده‌ها را بگیر
   });
+
   const currentPattern = formData.certificateNumberPattern;
   const currentSequence = sequences.find(s => s.pattern === currentPattern);
 
   useEffect(() => {
     if (isOpen) {
       if (isEditing) {
-        console.log(courseData.date)
-        console.log(Date(courseData.date * 1000))
         setFormData({
           name: courseData.name || '',
-          // Convert Unix timestamp (seconds) to Date object (milliseconds)
           date: courseData.date ? new Date(courseData.date * 1000) : null,
           duration: courseData.duration || '',
           organizingUnit: courseData.organizingUnit || '',
@@ -124,7 +126,6 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
         setStampPreview1(courseData.unitStamp || '');
         setStampPreview2(courseData.unitStamp2 || '');
       } else {
-        // Reset form for creation
         setFormData({ name: '', date: null, duration: '', organizingUnit: '', unitManager: null, position1: '', unitManager2: null, position2: '', certificateNumberPattern: '' });
         setSelectedManager1(null);
         setSelectedManager2(null);
@@ -137,6 +138,24 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
     }
   }, [courseData, isOpen]);
 
+    const mutation = useMutation({
+    mutationFn: courseData ? updateCourse : createCourse,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['adminCourses']);
+      onClose(); // بستن مودال پس از موفقیت
+    },
+    onError: (error) => {
+      setError(error.response?.data?.error || error.message);
+    }
+  });
+
+    const uploadFile = async (file, fileType) => {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('fileType', fileType);
+      const { data } = await axios.post('/api/upload', uploadFormData);
+      return data.url;
+  };
   const handleFile1Change = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -158,32 +177,17 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
       setError('لطفاً یک امضاکننده انتخاب کنید.');
       return;
     }
-    setIsLoading(true);
+    // setIsLoading(true);
     setError('');
 
     try {
       let stampUrl = courseData?.unitStamp || '';
       let stampUrl2 = courseData?.unitStamp2 || '';
       if (stampFile1) {
-        // Upload the new stamp file
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', stampFile1);
-        uploadFormData.append('fileType', 'stamp'); // Differentiate file type
-        const res = await fetch('/api/upload', { method: 'POST', body: uploadFormData });
-        const uploadData = await res.json();
-        if (!res.ok) throw new Error('Upload failed');
-        stampUrl = uploadData.url;
+        stampUrl = await uploadFile(stampFile1, 'stamp');
       }
-      // Similarly handle stampFile2 if needed
       if (stampFile2) {
-        // Upload the new stamp file
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', stampFile2);
-        uploadFormData.append('fileType', 'stamp'); // Differentiate file type
-        const res = await fetch('/api/upload', { method: 'POST', body: uploadFormData });
-        const uploadData = await res.json();
-        if (!res.ok) throw new Error('Upload failed');
-        stampUrl2 = uploadData.url;
+        stampUrl2 = await uploadFile(stampFile2, 'stamp');
       }
 
       // Convert date object to Unix timestamp (seconds) for storage
@@ -193,27 +197,13 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
         unitStamp: stampUrl,
         unitStamp2: stampUrl2,
       };
-
-      const response = isEditing
-        ? await fetch(`/api/admin/courses/${courseData._id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(finalData),
-          })
-        : await fetch('/api/admin/courses', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(finalData),
-          });
-
-      if (!response.ok) throw new Error('Failed to save course');
-      
-      onSave();
-      onClose();
+      if (courseData){
+        mutation.mutate({id:courseData._id,...finalData})
+      }else{
+        mutation.mutate(finalData)
+      }
     } catch (err) {
       setError(err.message);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -221,7 +211,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'ویرایش دوره' : 'ایجاد دوره جدید'}</DialogTitle>
+          <DialogTitle>{courseData ? 'ویرایش دوره' : 'ایجاد دوره جدید'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 grid grid-cols-2 gap-4">
         <div className="col-span-1 p-4 border rounded-md space-y-2">
@@ -296,12 +286,37 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
                   {stampPreview1 && <div className="p-2 border rounded-md bg-gray-50 flex justify-center"><img src={stampPreview1} alt="مهر ۱" width={80} height={80} /></div>}
             </div>
           </div>
+              {/* امضاکننده اول */}
+     <div className="col-span-1 p-4 border rounded-md">
+            <h4 className="font-semibold mb-2">امضاکننده اول</h4>
+            <div className="space-y-4">
+              <UserSearchCombobox selectedUser={selectedManager1} onSelectUser={(user) => { setSelectedManager1(user); setFormData({...formData, unitManager: user._id}); }} />
+              <div className="w-full space-y-2 flex justify-between">
+                <Label>تصویر مهر</Label>
+                <Input
+                  ref={refStampFile1}
+                  id="stamp1"
+                  name="stamp1"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFile1Change}
+                  onClick={(e) => (e.target.value = null)}
+                  className="hidden" // --- ورودی فایل را مخفی کنید ---
+                  />
+                <Button type="button" variant="outline" onClick={() => refStampFile1.current?.click()}>
+                  {stampPreview1 ? 'تغییر تصویر' : 'بارگذاری تصویر'}
+                </Button>
+              </div>
+                  {stampPreview1 && <div className="p-2 border rounded-md bg-gray-50 flex justify-center"><img src={stampPreview1} alt="مهر ۱" width={80} height={80} /></div>}
+            </div>
+          </div>
+          
  
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>انصراف</Button>
-            <Button type="submit" disabled={isLoading}>{isLoading ? 'در حال ذخیره...' : 'ذخیره'}</Button>
+            <Button type="submit" disabled={mutation.isLoading}>{mutation.isLoading ? 'در حال ذخیره...' : 'ذخیره'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

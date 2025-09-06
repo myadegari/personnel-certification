@@ -6,12 +6,13 @@ import {
     SidebarGroup,
     SidebarHeader,
   } from "@/components/ui/sidebar"
-  import { LogOut } from "lucide-react";
+  import { LogOut, Users } from "lucide-react";
   import { useSession, signOut } from 'next-auth/react';
   import Link from 'next/link';
   import { Button } from '@/components/ui/button';
   import { usePathname } from 'next/navigation';
   import { clsx } from "clsx";
+    import { LayoutDashboard,GraduationCap,Layers } from "lucide-react";
 
   const HeaderSkeleton = () => (
     <div className="flex items-center gap-4 animate-pulse flex-row-reverse">
@@ -50,7 +51,7 @@ import {
     isActive = pathname === path || pathname.startsWith(path + '/');
   }
     
-    return clsx('py-2 px-4 rounded-md transition-colors', isActive ? 'bg-blue-600 text-white cursor-auto' : 'bg-slate-100 hover:bg-slate-200 duration-200 text-gray-700 hover:text-gray-900'); };
+    return clsx('py-2 px-4 rounded-md transition-colors flex gap-2 items-center', isActive ? 'bg-blue-600 text-white cursor-auto' : 'bg-slate-100 hover:bg-slate-200 duration-200 text-gray-700 hover:text-gray-900'); };
     return (
       <Sidebar side="right">
         <SidebarHeader>
@@ -60,20 +61,23 @@ import {
           
           </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup className="text-xs space-y-1">
+          <SidebarGroup className="space-y-1">
           <Link href="/admin" className={getLinkClassName('/admin')}>
+          <LayoutDashboard size={25}/>
             داشبورد
           </Link>
           <Link 
             href="/admin/courses" 
             className={getLinkClassName('/admin/courses')}
           >
+             <Layers size={25}/>
             مدیریت دوره‌ها
           </Link>
           <Link 
             href="/admin/users" 
             className={getLinkClassName('/admin/users')}
           >
+            <Users size={25}/>
             مدیریت کاربران
           </Link>
           </SidebarGroup>

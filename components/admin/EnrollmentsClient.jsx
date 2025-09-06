@@ -1,38 +1,34 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useReactTable, getCoreRowModel, getPaginationRowModel, flexRender } from '@tanstack/react-table';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from '@/lib/axios';
 // --- کامپوننت برای تغییر وضعیت ---
-function StatusSelector({ enrollment, onStatusChange }) {
-  const [status, setStatus] = useState(enrollment.status);
-  const [isLoading, setIsLoading] = useState(false);
+function StatusSelector({ enrollment }) {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn:({enrollmentId,status})=>axios.put(`/api/admin/enrollments/${enrollmentId}`,{status}),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['enrollments', enrollment.course]);
+    },
+    onError: (error) => {
+      alert(`خطا در به‌روزرسانی وضعیت: ${error.message}`);
+    }
+  })
+
+  // const [status, setStatus] = useState(enrollment.status);
+  // const [isLoading, setIsLoading] = useState(false);
 
   const handleValueChange = async (newStatus) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/admin/enrollments/${enrollment._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!res.ok) throw new Error('Failed to update status');
-      const updatedEnrollment = await res.json();
-      setStatus(updatedEnrollment.status);
-      onStatusChange(updatedEnrollment); // Notify parent to update data
-    } catch (error) {
-      console.error(error);
-      // Optionally show an error toast
-    } finally {
-      setIsLoading(false);
-    }
+    mutation.mutate({ enrollmentId: enrollment._id, status: newStatus });
   };
 
   return (
-    <Select onValueChange={handleValueChange} value={status} disabled={isLoading}>
+    <Select onValueChange={handleValueChange} defaultValue={enrollment.status} disabled={mutation.isLoading}>
       <SelectTrigger className="w-[180px]">
         <SelectValue placeholder="تغییر وضعیت" />
       </SelectTrigger>
@@ -47,29 +43,23 @@ function StatusSelector({ enrollment, onStatusChange }) {
 
 
 export default function EnrollmentsClient({ initialData, courseId }) {
-  const [data, setData] = useState(initialData.enrollments);
+
   const [pagination, setPagination] = useState({
     pageIndex: initialData.pagination.currentPage - 1,
     pageSize: 10,
   });
-  const [pageCount, setPageCount] = useState(initialData.pagination.pageCount);
-
-  useEffect(() => {
-    async function fetchData() {
+   const { data, isLoading } = useQuery({
+    queryKey: ['enrollments', courseId, pagination.pageIndex], // کلید کوئری شامل شناسه دوره و شماره صفحه
+    queryFn: async () => {
       const page = pagination.pageIndex + 1;
-      const res = await fetch(`/api/admin/courses/${courseId}/enrollments?page=${page}`);
-      const newData = await res.json();
-      setData(newData.enrollments);
-      setPageCount(newData.pagination.pageCount);
-    }
-    fetchData();
-  }, [pagination, courseId]);
-  
-  const handleStatusChange = (updatedEnrollment) => {
-    setData(currentData => 
-      currentData.map(e => e._id === updatedEnrollment._id ? updatedEnrollment : e)
-    );
-  };
+      const res = await axios.get(`/admin/courses/${courseId}/enrollments?page=${page}`);
+      return res.data;
+    },
+    initialData: initialData,
+    keepPreviousData: true, // برای تجربه کاربری بهتر هنگام تغییر صفحه
+  });
+  const enrollmentsData = data?.enrollments || [];
+  const pageCount = data?.pagination?.pageCount || 0;
 
   const columns = useMemo(() => [
     { 
@@ -80,7 +70,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
     { 
       accessorKey: 'status', 
       header: 'وضعیت',
-      cell: ({ row }) => <StatusSelector enrollment={row.original} onStatusChange={handleStatusChange} />
+      cell: ({ row }) => <StatusSelector enrollment={row.original}/>
     },
      { 
       accessorKey: 'certificateUrl', 
@@ -92,7 +82,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
   ], []);
 
   const table = useReactTable({
-    data,
+    data:enrollmentsData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -104,6 +94,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
 
   return (
     <div className="rounded-md border">
+      {isLoading && <p>در حال بارگذاری...</p>}
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map(headerGroup => (

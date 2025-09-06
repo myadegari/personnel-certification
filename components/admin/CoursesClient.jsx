@@ -10,23 +10,28 @@ import { DateObject } from 'react-multi-date-picker';
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import axios from 'axios';
+import { useQuery,useMutation,useQueryClient } from '@tanstack/react-query';
 
 export default function CoursesClient({ initialCourses }) {
-  const [courses, setCourses] = useState(initialCourses);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
+  
+  const data = initialCourses || [];
 
-  const refetchCourses = async () => {
-    const {data} = await axios.get('/admin/courses');
-    // const res = await fetch('/api/admin/courses');
-    // const data = await res.json();
-    setCourses(data);
-  };
+  const deleteCourseMutation = useMutation({
+    mutationFn: (courseId) => axios.delete(`/api/admin/courses/${courseId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['adminCourses']);
+    },
+    onError: (error) => {
+      alert(`خطا در حذف دوره: ${error.message}`);
+    }
+  });
 
-  const handleDelete = async (courseId) => {
+    const handleDelete = (courseId) => {
     if (confirm('آیا از حذف این دوره اطمینان دارید؟')) {
-      await axios.delete(`/admin/courses/${courseId}`);
-      refetchCourses();
+      deleteCourseMutation.mutate(courseId);
     }
   };
 
@@ -34,8 +39,7 @@ export default function CoursesClient({ initialCourses }) {
     setEditingCourse(course);
     setIsModalOpen(true);
   };
-
-  const handleCreate = () => {
+ const handleCreate = () => {
     setEditingCourse(null);
     setIsModalOpen(true);
   };
@@ -59,14 +63,16 @@ export default function CoursesClient({ initialCourses }) {
             <Link href={`/admin/courses/${row.original._id}/enrollments`}>مدیریت ثبت‌نام</Link>
           </Button>
           <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)}>ویرایش</Button>
-          <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original._id)}>حذف</Button>
+           <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original._id)} disabled={deleteCourseMutation.isLoading}>
+            {deleteCourseMutation.isLoading ? 'در حال حذف...' : 'حذف'}
+          </Button>
         </div>
       ),
     },
-  ], []);
+  ], [deleteCourseMutation.isLoading]);
 
   const table = useReactTable({
-    data: courses,
+    data,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
