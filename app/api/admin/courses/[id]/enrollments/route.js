@@ -5,7 +5,7 @@ import Course from '@/models/Course';
 
 export async function GET(request, { params }) {
   try {
-    const { id: courseId } = params;
+    const { id: courseId } = await params;
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');

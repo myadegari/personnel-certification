@@ -18,7 +18,8 @@ const EnrollmentSchema = new mongoose.Schema({
   },
   certificateUniqueId: { type: String },
   certificateUrl: { type: String },
-  issuedAt: { type: Date },
+  issuedAt: { type: String },
+  jobId: { type: String },
 }, { timestamps: true });
 
 // جلوگیری از ثبت‌نام مجدد یک کاربر در یک دوره

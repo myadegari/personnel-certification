@@ -83,8 +83,8 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: '', date: null, duration: '', organizingUnit: '',
-    unitManager: null, position1: '',
-    unitManager2: null, position2: '',
+    signatory: null, position1: '',
+    signatory2: null, position2: '',
     certificateNumberPattern: '',
   });
   const refStampFile1 = useRef(null);
@@ -115,18 +115,19 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
           date: courseData.date ? new Date(courseData.date * 1000) : null,
           duration: courseData.duration || '',
           organizingUnit: courseData.organizingUnit || '',
-          unitManager: courseData.unitManager?._id || null,
+          signatory: courseData.signatory?._id || null,
           position1: courseData.position1 || '',
-          unitManager2: courseData.unitManager2?._id || null,
+          signatory2: courseData.signatory2?._id || null,
           position2: courseData.position2 || '',
           certificateNumberPattern: courseData.certificateNumberPattern || '',
         });
-        setSelectedManager1(courseData.unitManager || null);
-        setSelectedManager2(courseData.unitManager2 || null);
+        setSelectedManager1(courseData.signatory || null);
+        setSelectedManager2(courseData.signatory2 || null);
         setStampPreview1(courseData.unitStamp || '');
         setStampPreview2(courseData.unitStamp2 || '');
       } else {
-        setFormData({ name: '', date: null, duration: '', organizingUnit: '', unitManager: null, position1: '', unitManager2: null, position2: '', certificateNumberPattern: '' });
+        // Reset form for creation
+        setFormData({ name: '', date: null, duration: '', organizingUnit: '', signatory: null, position1: '', signatory2: null, position2: '', certificateNumberPattern: '' });
         setSelectedManager1(null);
         setSelectedManager2(null);
         setStampPreview1('');
@@ -173,7 +174,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.unitManager) {
+    if (!formData.signatory) {
       setError('لطفاً یک امضاکننده انتخاب کنید.');
       return;
     }
@@ -239,7 +240,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
               selectedUser={selectedManager}
               onSelectUser={(user) => {
                 setSelectedManager(user);
-                setFormData({...formData, unitManager: user._id });
+                setFormData({...formData, signatory: user._id });
               }}
             />
           </div>
@@ -266,7 +267,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
      <div className="col-span-1 p-4 border rounded-md">
             <h4 className="font-semibold mb-2">امضاکننده اول</h4>
             <div className="space-y-4">
-              <UserSearchCombobox selectedUser={selectedManager1} onSelectUser={(user) => { setSelectedManager1(user); setFormData({...formData, unitManager: user._id}); }} />
+              <UserSearchCombobox selectedUser={selectedManager1} onSelectUser={(user) => { setSelectedManager1(user); setFormData({...formData, signatory: user._id}); }} />
               <div className="w-full space-y-2 flex justify-between">
                 <Label>تصویر مهر</Label>
                 <Input
@@ -331,7 +332,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
           <div className="col-span-1 p-4 border rounded-md">
             <h4 className="font-semibold mb-2">امضاکننده دوم (اختیاری)</h4>
             <div className="space-y-4">
-              <UserSearchCombobox selectedUser={selectedManager2} onSelectUser={(user) => { setSelectedManager2(user); setFormData({...formData, unitManager2: user._id}); }} />
+              <UserSearchCombobox selectedUser={selectedManager2} onSelectUser={(user) => { setSelectedManager2(user); setFormData({...formData, signatory2: user._id}); }} />
               <Input name="position2" placeholder="سمت امضاکننده دوم" />
               <Input type="file" name="stamp2" onChange={handleFile2Change} />
               {stampPreview2 && <Image src={stampPreview2} alt="مهر ۲" width={80} height={80} />}

@@ -33,7 +33,8 @@ export async function POST(request) {
   // --- منطق جدید برای ساخت نام فایل ---
   const fileExtension = path.extname(file.name);
   // برای تصاویر امضا و مهر، از نام اصلی فایل استفاده می‌کنیم تا تکراری نشوند
-  const simpleFilename = fileType === 'profile' ? `profile${fileExtension}` : `${fileType}-${Date.now()}${fileExtension}`;
+  // const simpleFilename = fileType === 'profile' ? `profile${fileExtension}` : `${fileType}-${Date.now()}${fileExtension}`;
+  const simpleFilename = `${fileType}-${Date.now()}${fileExtension}`;
 
   // --- دیباگ کردن مسیرها ---
   const projectRoot = process.cwd();

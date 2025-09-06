@@ -5,7 +5,10 @@ const CourseSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  date: { type: Number, required: true }, // باید از نوع Number باشد
+  date: { 
+    type: Number, 
+    required: true
+   }, // باید از نوع Number باشد
   
   duration: {
     type: Number, // مدت زمان به ساعت
@@ -16,11 +19,18 @@ const CourseSchema = new mongoose.Schema({
     required: true,
   },
    // --- امضاکننده اول ---
-  signatory: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  signatory: { 
+    type: mongoose.Schema.Types.ObjectId,
+     ref: 'User',
+    required: true
+   },
   unitStamp: { type: String }, // مهر اول
 
   // --- امضاکننده دوم (اختیاری) ---
-  signatory2: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  signatory2: { 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+     },
   unitStamp2: { type: String }, // مهر دوم
 
   // --- اطلاعات گواهی ---

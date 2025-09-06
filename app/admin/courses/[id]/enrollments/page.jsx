@@ -15,7 +15,7 @@ async function getEnrollmentData(courseId, page = 1) {
 }
 
 export default async function CourseEnrollmentsPage({ params }) {
-  const { id: courseId } = params;
+  const { id: courseId } = await params;
   const initialData = await getEnrollmentData(courseId);
 
   if (!initialData.course) {

@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from '@/lib/axios';
+import CertificateStatus from '@/components/CertificateStatus';
+
 // --- کامپوننت برای تغییر وضعیت ---
 function StatusSelector({ enrollment }) {
   const queryClient = useQueryClient();
@@ -75,10 +77,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
      { 
       accessorKey: 'certificateUrl', 
       header: 'گواهی',
-      cell: ({ row }) => row.original.certificateUrl 
-        ? <a href={row.original.certificateUrl} className="text-blue-600 hover:underline" download>دانلود</a> 
-        : 'صادر نشده'
-    },
+      cell: ({ row }) => <CertificateStatus enrollment={row.original}/>,   },
   ], []);
 
   const table = useReactTable({

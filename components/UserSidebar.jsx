@@ -30,8 +30,10 @@ import {
   
   export function UserSidebar() {
     const { data: session, status } = useSession();
-    const { data:userData } = useUser();
-    const profileImage = userData?.profileImage || session?.user?.profileImage;
+    const { data: userData, isLoading: isUserDataLoading } = useUser();
+     // Prioritize userData over session data for profile image
+     const profileImage = userData?.profileImage || session?.user?.profileImage;
+
     const getUserSubtitle = () => {
      if (!session?.user) return '';
      // اگر کاربر سمت خود را وارد کرده باشد، آن را نمایش بده
@@ -97,7 +99,7 @@ import {
                     */}
                     {status === 'loading' && <HeaderSkeleton />}
           
-                    {status === 'authenticated' && (
+                    {status === 'authenticated' && !isUserDataLoading && (
                       <>
                       <div className='flex flex-row-reverse items-center gap-4'>
           
