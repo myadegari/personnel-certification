@@ -25,7 +25,7 @@ export async function GET(request) {
 
         // Sanitize the path to prevent directory traversal attacks
         const normalizedPath = path.normalize(imagePath).replace(/^(\.\.(\/|\\|$))+/, '');
-        const fullPath = join(process.cwd(), 'public', 'uploads', normalizedPath);
+        const fullPath = join(process.cwd(), 'public', normalizedPath);
 
         // Verify the path is within the uploads directory
         const uploadsDir = join(process.cwd(), 'public', 'uploads');

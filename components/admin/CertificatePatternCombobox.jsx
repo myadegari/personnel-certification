@@ -11,7 +11,7 @@ import clsx from 'clsx';
 
 // API function to fetch sequences
 const fetchCertificateSequences = async () => {
-  const { data } = await axios.get('/api/admin/certificate-sequences');
+  const { data } = await axios.get('/admin/certificate-sequences');
   return data;
 };
 

@@ -5,6 +5,7 @@ import { useReactTable, getCoreRowModel, getPaginationRowModel, flexRender } fro
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CertificateStatus from '@/components/CertificateStatus';
 
 // --- کامپوننت برای تغییر وضعیت ---
 function StatusSelector({ enrollment, onStatusChange }) {
@@ -85,10 +86,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
      { 
       accessorKey: 'certificateUrl', 
       header: 'گواهی',
-      cell: ({ row }) => row.original.certificateUrl 
-        ? <a href={row.original.certificateUrl} className="text-blue-600 hover:underline" download>دانلود</a> 
-        : 'صادر نشده'
-    },
+      cell: ({ row }) => <CertificateStatus enrollment={row.original}/>,   },
   ], []);
 
   const table = useReactTable({

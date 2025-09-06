@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from '@tanstack/react-query'; // <-- Import useQuery
 import axios from '@/lib/axios';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-
+import CertificateStatus from '@/components/CertificateStatus';
 // A small component to safely render dates on the client side
 const fetchUserCourses = async ({ queryKey }) => {
   const [_key, { page, limit }] = queryKey;
@@ -82,15 +82,7 @@ export default function UserCoursesTable({ initialData }) {
     {
       accessorKey: 'certificateUrl',
       header: 'گواهی',
-      cell: ({ row }) => (
-        row.original.certificateUrl ? (
-          <Button asChild size="sm">
-            <a href={row.original.certificateUrl} download>دانلود</a>
-          </Button>
-        ) : (
-          <span className="text-xs text-muted-foreground">صادر نشده</span>
-        )
-      ),
+      cell: ({ row }) => <CertificateStatus enrollment={row.original}/>,
     },
   ], []);
 

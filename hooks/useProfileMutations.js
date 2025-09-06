@@ -24,9 +24,16 @@ export function useUpdateProfile() {
       const { data } = await axios.put('/profile', profileData);
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['session','user'] });
-      // queryClient.invalidateQueries({ queryKey: ['user'] });
+    onSuccess: (updatedData, variables) => {
+      // Update the user cache immediately with the new data
+      queryClient.setQueryData(['user'], (oldData) => ({
+        ...oldData,
+        ...variables, // This contains the updated profile data including new image URLs
+      }));
+      
+      // Also invalidate to ensure fresh data from server
+      queryClient.invalidateQueries({ queryKey: ['session'] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
     }
   });
 }

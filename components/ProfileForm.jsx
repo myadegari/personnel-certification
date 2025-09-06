@@ -131,6 +131,8 @@ export default function ProfileForm({ user }) {
 
       // setMessage('Profile updated successfully!');
       await updateProfileMutation.mutateAsync(finalData);
+      // Force refetch of user data to ensure UI updates immediately
+      await queryClient.refetchQueries({ queryKey: ['user'] });
       setMessage('پروفایل با موفقیت به‌روز شد!');
     } catch (error) {
       setMessage(`خطا در آپلود فایل: ${error.message}`);
