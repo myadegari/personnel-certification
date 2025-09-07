@@ -1,6 +1,5 @@
 'use client';
 import { useState, useRef } from 'react';
-import Image from 'next/image';
 import { useMutation, useQueryClient } from '@tanstack/react-query'; // <-- Import hooks
 import axios from '@/lib/axios'; // <-- Import custom axios instance
 // import { Card, CardContent, Label, Input, Button } from "@/components/ui";
@@ -10,23 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ImageCropper from './ImageCropper';
 import { useUploadFile, useUpdateProfile } from '@/hooks/useProfileMutations';
-
-// API function for uploading a file
-// const uploadFile = async ({ file, fileType }) => {
-//   const formData = new FormData();
-//   formData.append('file', file);
-//   formData.append('fileType', fileType);
-
-//   const { data } = await axios.post('/upload', formData, {
-//     headers: { 'Content-Type': 'multipart/form-data' },
-//   });
-//   return data.url;
-// };
-
-// const updateProfile = async (profileData) => {
-//   const { data } = await axios.put('/profile', profileData);
-//   return data;
-// };
+import { useFileUrl } from '@/hooks/useFileUrl'; // ✅ Import new hook
 
 export default function ProfileForm({ user }) {
   const queryClient = useQueryClient();
@@ -39,11 +22,10 @@ export default function ProfileForm({ user }) {
   const [profileImageFile, setProfileImageFile] = useState(null);
   const [signatureImageFile, setSignatureImageFile] = useState(null);
   
-  const [profilePreview, setProfilePreview] = useState(user.profileImage || null);
-  const [signaturePreview, setSignaturePreview] = useState(user.signatureImage || null);
+  const [profilePreview, setProfilePreview] = useState("");
+  const [signaturePreview, setSignaturePreview] = useState("");
   
   const [message, setMessage] = useState('');
-  // const [isLoading, setIsLoading] = useState(false);
 
     // --- NEW STATE FOR CROPPER ---
   const [isCropperOpen, setIsCropperOpen] = useState(false);
@@ -53,6 +35,27 @@ export default function ProfileForm({ user }) {
 
   const uploadFileMutation = useUploadFile();
   const updateProfileMutation = useUpdateProfile();
+    // ✅ Fetch existing image URLs with TanStack Query
+    const profileFileQuery = useFileUrl(user?.profileImage);
+    const signatureFileQuery = useFileUrl(user?.signatureImage);
+      // ✅ Sync query data → preview state (only on first load or when IDs change)
+  // We use this to avoid flicker when switching between new upload and existing
+  const isFirstLoadProfile = useRef(true);
+  const isFirstLoadSignature = useRef(true);
+
+  if (isFirstLoadProfile.current && !profileImageFile && user?.profileImage) {
+    if (!profileFileQuery.isLoading && profileFileQuery.data) {
+      setProfilePreview(profileFileQuery.data);
+      isFirstLoadProfile.current = false;
+    }
+  }
+
+  if (isFirstLoadSignature.current && !signatureImageFile && user?.signatureImage) {
+    if (!signatureFileQuery.isLoading && signatureFileQuery.data) {
+      setSignaturePreview(signatureFileQuery.data);
+      isFirstLoadSignature.current = false;
+    }
+  }
 
   const handleTextChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -77,27 +80,14 @@ export default function ProfileForm({ user }) {
     setIsCropperOpen(false); // Close the modal
     setImageToCrop(null); // Clear the source image
   };
-  // const mutation = useMutation({
-  //   mutationFn: updateProfile,
-  //   onSuccess: () => {
-  //     setMessage('پروفایل با موفقیت به‌روز شد!');
-  //     // When the mutation is successful, invalidate the session query
-  //     // to force a refetch of the user's data (e.g., for the header).
-  //     queryClient.invalidateQueries({ queryKey: ['session'] });
-  //   },
-  //   onError: (error) => {
-  //     setMessage(`خطا: ${error.response?.data?.message || error.message}`);
-  //   },
-  // });
-
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // setIsLoading(true);
     setMessage('');
 
     try {
-      let profileImageUrl = user.profileImage;
-      let signatureImageUrl = user.signatureImage;
+      let profileImageUrl = user.profileImage?._id || null;
+      let signatureImageUrl = user.signatureImage?._id || null;
 
       // --- UPDATE THE UPLOAD CALLS ---
       // Pass the file type ('profile' or 'signature') to the helper
@@ -121,23 +111,22 @@ export default function ProfileForm({ user }) {
         signatureImage: signatureImageUrl,
       };
       
-      // const res = await fetch('/api/profile', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(finalData),
-      // });
 
-      // if (!res.ok) throw new Error('Failed to update profile');
-
-      // setMessage('Profile updated successfully!');
       await updateProfileMutation.mutateAsync(finalData);
-      // Force refetch of user data to ensure UI updates immediately
       await queryClient.refetchQueries({ queryKey: ['user'] });
       setMessage('پروفایل با موفقیت به‌روز شد!');
     } catch (error) {
       setMessage(`خطا در آپلود فایل: ${error.message}`);
     }
   };
+  // ✅ Show loading skeleton while fetching existing image
+  const ProfileImageSkeleton = () => (
+    <div className="h-20 w-20 rounded-full bg-gray-200 animate-pulse"></div>
+  );
+
+  const SignatureImageSkeleton = () => (
+    <div className="h-20 w-40 bg-gray-200 animate-pulse rounded"></div>
+  );
 
   return (
     <>
@@ -174,12 +163,25 @@ export default function ProfileForm({ user }) {
                 <Input id="position" name="position" value={formData.position} onChange={handleTextChange} />
               </div>
           </div>
-          {/* Profile Image Section */}
-          <div className="flex items-center gap-4">
-            {profilePreview && (
-              <img src={profilePreview} alt="Profile Preview" width={80} height={80} className="rounded-full object-cover" />
-            )}
-             <div className="w-full space-y-2 flex justify-between">
+            {/* Profile Image Section */}
+            <div className="flex items-center gap-4">
+              {/* Show skeleton, error, or image */}
+              {profileFileQuery.isLoading && !profileImageFile ? (
+                <ProfileImageSkeleton />
+              ) : profileFileQuery.isError ? (
+                <div className="text-xs text-red-500">خطا در بارگذاری تصویر</div>
+              ) : profilePreview ? (
+                <img
+                  src={profilePreview}
+                  alt="Profile Preview"
+                  width={80}
+                  height={80}
+                  className="rounded-full object-cover border-2 border-gray-200"
+                  onError={() => setProfilePreview("")}
+                />
+              ) : null}
+
+              <div className="w-full space-y-2 flex justify-between">
                 <Label>تصویر پروفایل</Label>
                 <Input
                   ref={profileInputRef}
@@ -189,40 +191,51 @@ export default function ProfileForm({ user }) {
                   accept="image/*"
                   onChange={handleFileChange}
                   onClick={(e) => (e.target.value = null)}
-                  className="hidden" // --- ورودی فایل را مخفی کنید ---
+                  className="hidden"
                 />
                 <Button type="button" variant="outline" onClick={() => profileInputRef.current?.click()}>
-                  {profilePreview ? 'تغییر تصویر' : 'بارگذاری تصویر'}
+                  {profilePreview || profileFileQuery.data ? 'تغییر تصویر' : 'بارگذاری تصویر'}
                 </Button>
               </div>
-          </div>
-
-          {/* Signature Image Section */}
-          <div className="space-y-2">
-             
-              <div className='flex justify-between'>
-
-              <Label>تصویر امضا</Label>
-              <Input
-                ref={signatureInputRef}
-                id="signatureImage"
-                name="signatureImage"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden" // --- ورودی فایل را مخفی کنید ---
-              />
-              <Button type="button" variant="outline" onClick={() => signatureInputRef.current?.click()}>
-                {signaturePreview ? 'تغییر تصویر ' : 'بارگذاری تصویر '}
-              </Button>
-              </div>
-              {signaturePreview && (
-                <div className="p-2 border rounded-md bg-gray-50 flex justify-center">
-                  <img src={signaturePreview} alt="Signature Preview" width={200} height={80} style={{ objectFit: 'contain' }} />
-                </div>
-              )}
             </div>
-          
+
+            {/* Signature Image Section */}
+            <div className="space-y-2">
+              <div className='flex justify-between'>
+                <Label>تصویر امضا</Label>
+                <Input
+                  ref={signatureInputRef}
+                  id="signatureImage"
+                  name="signatureImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Button type="button" variant="outline" onClick={() => signatureInputRef.current?.click()}>
+                  {signaturePreview || signatureFileQuery.data ? 'تغییر تصویر' : 'بارگذاری تصویر'}
+                </Button>
+              </div>
+
+              {signatureFileQuery.isLoading && !signatureImageFile ? (
+                <div className="flex justify-center p-2">
+                  <SignatureImageSkeleton />
+                </div>
+              ) : signatureFileQuery.isError ? (
+                <div className="text-xs text-red-500 text-center">خطا در بارگذاری امضا</div>
+              ) : signaturePreview ? (
+                <div className="p-2 border rounded-md bg-gray-50 flex justify-center">
+                  <img
+                    src={signaturePreview}
+                    alt="Signature Preview"
+                    width={200}
+                    height={80}
+                    style={{ objectFit: 'contain' }}
+                    onError={() => setSignaturePreview("")}
+                  />
+                </div>
+              ) : null}
+            </div>
           <Button type="submit" disabled={uploadFileMutation.isPending}>  {uploadFileMutation.isPending ? 'در حال ذخیره...' : 'ذخیره تغییرات'}</Button>
           {message && <p className="text-sm mt-2">{message}</p>}
         </form>

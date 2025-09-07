@@ -14,7 +14,7 @@ import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import CertificatePatternCombobox from './CertificatePatternCombobox'; // <-- کامپوننت جدید را import کنید
-
+import { v4 as uuidv4 } from "uuid";
 // --- کامپوننت جستجوی کاربر ---
 const fetchCertificateSequences = async () => {
   const { data } = await axios.get('/admin/certificate-sequences');
@@ -81,7 +81,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
     name: '', date: null, duration: '', organizingUnit: '',
     signatory: null, position1: '',
     signatory2: null, position2: '',
-    certificateNumberPattern: '',
+    certificateNumberPattern: '', courseCode: uuidv4(),
   });
   const refStampFile1 = useRef(null);
   const [selectedManager1, setSelectedManager1] = useState(null);
@@ -108,6 +108,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
         console.log(courseData.date)
         console.log(Date(courseData.date * 1000))
         setFormData({
+          courseCode: courseData.courseCode || uuidv4(),
           name: courseData.name || '',
           // Convert Unix timestamp (seconds) to Date object (milliseconds)
           date: courseData.date ? new Date(courseData.date * 1000) : null,
@@ -169,6 +170,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
         const uploadFormData = new FormData();
         uploadFormData.append('file', stampFile1);
         uploadFormData.append('fileType', 'stamp'); // Differentiate file type
+        uploadFormData.append('courseCode', formData.courseCode);
         const res = await fetch('/api/upload', { method: 'POST', body: uploadFormData });
         const uploadData = await res.json();
         if (!res.ok) throw new Error('Upload failed');
@@ -180,6 +182,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData, onSave })
         const uploadFormData = new FormData();
         uploadFormData.append('file', stampFile2);
         uploadFormData.append('fileType', 'stamp'); // Differentiate file type
+        uploadFormData.append('courseCode', formData.courseCode);
         const res = await fetch('/api/upload', { method: 'POST', body: uploadFormData });
         const uploadData = await res.json();
         if (!res.ok) throw new Error('Upload failed');
