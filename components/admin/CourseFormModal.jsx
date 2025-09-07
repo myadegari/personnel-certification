@@ -155,6 +155,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
       uploadFormData.append('fileType', fileType);
+      uploadFormData.append('courseCode', formData.courseCode);
       const { data } = await axios.post('/api/upload', uploadFormData);
       return data.url;
   };
@@ -187,17 +188,9 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
       let stampUrl2 = courseData?.unitStamp2 || '';
       if (stampFile1) {
         stampUrl = await uploadFile(stampFile1, 'stamp');
-        uploadFormData.append('courseCode', formData.courseCode);
       }
       if (stampFile2) {
-        // Upload the new stamp file
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', stampFile2);
-        uploadFormData.append('fileType', 'stamp'); // Differentiate file type
-        const res = await fetch('/api/upload', { method: 'POST', body: uploadFormData });
-        const uploadData = await res.json();
-        if (!res.ok) throw new Error('Upload failed');
-        stampUrl2 = uploadData.url;
+        stampUrl2 = await uploadFile(stampFile2, 'stamp');
       }
 
       // Convert date object to Unix timestamp (seconds) for storage

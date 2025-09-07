@@ -72,7 +72,7 @@ export async function POST(request) {
 
   // --- Generate unique filename ---
   const fileExtension = file.name.includes('.') ? path.extname(file.name) : '';
-  const fileName = `${fileType}-${uuidv4()}${fileExtension}`;
+  const fileName = ['profile', 'signature'].includes(fileType) ? `${fileType}-${user.personnelNumber}${fileExtension}` : `${fileType}-${uuidv4()}${fileExtension}`;
 
   // --- Build object path based on fileType ---
   let objectName;
@@ -123,8 +123,6 @@ export async function POST(request) {
     console.error("Failed to save file record:", error);
     return NextResponse.json({ error: "Failed to save file metadata." }, { status: 500 });
   }
-  // // --- Generate public URL ---
-  // const publicUrl = `http://${process.env.MINIO_ENDPOINT || 'localhost'}:${process.env.MINIO_PORT || 9000}/${bucketName}/${encodeURIComponent(objectName)}`;
   // ✅ --- UPDATE USER IF PROFILE OR SIGNATURE ---
 try {
   if (fileType === 'profile') {
@@ -139,7 +137,6 @@ try {
   }
 } catch (error) {
   console.error("Failed to update user with file reference:", error);
-  // Optional: You can notify frontend or log warning, but don't break upload
 }
   return NextResponse.json({ file: newFile });
 }

@@ -10,38 +10,6 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 
 
-// --- شبیه‌سازی فراخوانی میکروسرویس صدور گواهی ---
-// async function generateCertificate(enrollmentData) {
-//   console.log("Calling certificate microservice with:", enrollmentData);
-//   // In a real app, this would be an actual HTTP request to your FastAPI service
-//   const formattedData = {
-//     user: {
-//       firstName: enrollmentData.user.firstName,
-//       lastName: enrollmentData.user.lastName,
-//       personnelNumber: enrollmentData.user.personnelNumber,
-//       nationalId: enrollmentData.user.nationalId
-//     },
-//     course: {
-//       name: enrollmentData.course.name,
-//       organizingUnit: enrollmentData.course.organizingUnit,
-//       date: new DateObject({ calendar: persian, locale: persian_fa, date: new Date(enrollmentData.course.date*1000) }).format()
-//     },
-//     certificateNumber: enrollmentData.certNumber
-//   };
-
-//   try {
-//     const { data } = await axios.post('http://localhost:8000/', formattedData);
-//     console.log("Certificate microservice response:", data);
-
-//     return {
-//       certificateUrl: data.certificateUrl || `/certificates/cert-${formattedData.user.personnelNumber}-${Date.now()}.pdf`,
-//       certificateUniqueId: data.certificateUniqueId || `404/گ/${Math.floor(Math.random() * 1000)}`,
-//     };
-//   } catch (error) {
-//     console.error("Certificate generation error:", error.response?.data || error.message);
-//     throw new Error('Failed to generate certificate');
-//   }
-// }
 // آدرس میکروسرویس خود را در فایل .env.local قرار دهید
 const MICROSERVICE_URL =
   process.env.MICROSERVICE_URL || "http://localhost:8000";
@@ -126,12 +94,14 @@ export async function PUT(request, { params }) {
       const dataForMicroservice = {
         category: course.signatory2 ? "2" : "1",
         user: {
+          userId: user._id,
           gender: user.gender,
           firstName: user.firstName,
           lastName: user.lastName,
           nationalId: user.nationalId,
         },
         course: {
+          courseCode: course.courseCode,
           name: course.name,
           organizingUnit: course.organizingUnit,
           date: new DateObject({
@@ -163,14 +133,11 @@ export async function PUT(request, { params }) {
         certificateNumber: certNumber,
         issuedAt: new DateObject({
           calendar: persian,
-          locale: persian_fa,
-        }).format("DD/MM/YYYY"),
+          }).format("YYYY/MM/DD"),
         certificationId: enrollmentId,
         // `job_id` در میکروسرویس ساخته می‌شود و برگردانده می‌شود
         qr_url: `${NEXTJS_APP_URL}/verify/${enrollmentId}`,
       };
-      // enrollment.certificateNumber = certNumber; // <-- Add certificate number to enrollment
-      // const certificateData = await generateCertificate({ user, course,certNumber });
       const microserviceResponse = await triggerCertificateGeneration(
         dataForMicroservice
       );
@@ -181,10 +148,6 @@ export async function PUT(request, { params }) {
       enrollment.certificateUrl = `${NEXTJS_APP_URL}/verify/${enrollmentId}`;
     }
 
-    //   enrollment.certificateUrl = certificateData.certificateUrl;
-    //   enrollment.certificateUniqueId = certificateData.certificateUniqueId;
-    //   enrollment.issuedAt = new Date();
-    // }
     enrollment.status = status;
     const updatedEnrollment = await enrollment.save();
 
