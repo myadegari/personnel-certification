@@ -291,7 +291,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
      <div className="col-span-1 p-4 border rounded-md">
             <h4 className="font-semibold mb-2">امضاکننده اول</h4>
             <div className="space-y-4">
-              <UserSearchCombobox selectedUser={selectedManager1} onSelectUser={(user) => { setSelectedManager1(user); setFormData({...formData, unitManager: user._id}); }} />
+              <UserSearchCombobox selectedUser={selectedManager1} onSelectUser={(user) => { setSelectedManager1(user); setFormData({...formData, signatory: user._id}); }} />
               <div className="w-full space-y-2 flex justify-between">
                 <Label>تصویر مهر</Label>
                 <Input
@@ -311,7 +311,6 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
                   {stampPreview1 && <div className="p-2 border rounded-md bg-gray-50 flex justify-center"><img src={stampPreview1} alt="مهر ۱" width={80} height={80} /></div>}
             </div>
           </div>
-          
  
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
