@@ -11,7 +11,7 @@ export async function GET() {
   if (!session) return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
 
   await dbConnect();
-  const user = await User.findById(session.user.id).select('-password -resetPasswordToken -resetPasswordExpires');
+  const user = await User.findById(session.user.id).select('-password -resetPasswordToken -resetPasswordExpires').lean();
   if (!user) return new Response(JSON.stringify({ message: "User not found" }), { status: 404 });
 
   return new Response(JSON.stringify(user), { status: 200 });

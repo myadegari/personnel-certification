@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const CourseSchema = new mongoose.Schema({
+  courseCode:{
+    type: String,
+    required: true,
+    unique: true,
+  },
   name: {
     type: String,
     required: true,
@@ -24,14 +29,16 @@ const CourseSchema = new mongoose.Schema({
      ref: 'User',
     required: true
    },
-  unitStamp: { type: String }, // مهر اول
+  unitStamp: { type: mongoose.Schema.Types.ObjectId,
+    ref: 'File' }, // مهر اول
 
   // --- امضاکننده دوم (اختیاری) ---
   signatory2: { 
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
      },
-  unitStamp2: { type: String }, // مهر دوم
+  unitStamp2: { type: mongoose.Schema.Types.ObjectId,
+    ref: 'File' }, // مهر دوم
 
   // --- اطلاعات گواهی ---
   certificateNumberPattern: { type: String, required: true }, // مثلا: 404/الف

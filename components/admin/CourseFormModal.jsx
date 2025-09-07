@@ -13,7 +13,7 @@ import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import CertificatePatternCombobox from './CertificatePatternCombobox'; // <-- کامپوننت جدید را import کنید
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';import { v4 as uuidv4 } from "uuid";
 // --- کامپوننت جستجوی کاربر ---
 
 const createCourse = (newCourse) => axios.post('/api/admin/courses', newCourse);
@@ -85,7 +85,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     name: '', date: null, duration: '', organizingUnit: '',
     signatory: null, position1: '',
     signatory2: null, position2: '',
-    certificateNumberPattern: '',
+    certificateNumberPattern: '', courseCode: uuidv4(),
   });
   const refStampFile1 = useRef(null);
   const [selectedManager1, setSelectedManager1] = useState(null);
@@ -111,6 +111,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     if (isOpen) {
       if (isEditing) {
         setFormData({
+          courseCode: courseData.courseCode || uuidv4(),
           name: courseData.name || '',
           date: courseData.date ? new Date(courseData.date * 1000) : null,
           duration: courseData.duration || '',
@@ -186,9 +187,17 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
       let stampUrl2 = courseData?.unitStamp2 || '';
       if (stampFile1) {
         stampUrl = await uploadFile(stampFile1, 'stamp');
+        uploadFormData.append('courseCode', formData.courseCode);
       }
       if (stampFile2) {
-        stampUrl2 = await uploadFile(stampFile2, 'stamp');
+        // Upload the new stamp file
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', stampFile2);
+        uploadFormData.append('fileType', 'stamp'); // Differentiate file type
+        const res = await fetch('/api/upload', { method: 'POST', body: uploadFormData });
+        const uploadData = await res.json();
+        if (!res.ok) throw new Error('Upload failed');
+        stampUrl2 = uploadData.url;
       }
 
       // Convert date object to Unix timestamp (seconds) for storage
