@@ -23,7 +23,7 @@ async function getDashboardStats(userId) {
 // This function gets the initial data for the first page of the table
 async function getInitialCourses() {
   // --- این بخش اصلاح شده است ---
-  const headersList = headers();
+  const headersList = await headers();
   const cookie = headersList.get('cookie');
   
   try {

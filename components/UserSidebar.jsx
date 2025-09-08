@@ -15,8 +15,8 @@ import {
   import { LayoutDashboard,GraduationCap,Settings } from "lucide-react";
   import { useUser } from '@/hooks/useUser';
   import axios from 'axios'; // ✅ Make sure you import axios
-  import { useEffect, useState } from 'react'; // ✅ Add these
-
+  import { useEffect, useState,useRef } from 'react'; // ✅ Add these
+  import { useFileUrl } from "@/hooks/useFileUrl";
 
   const HeaderSkeleton = () => (
     <div className="flex items-center gap-4 animate-pulse flex-row-reverse">
@@ -32,42 +32,22 @@ import {
   );
   
   export  function UserSidebar() {
-    const { data: session, status } = useSession();
     const { data: userData, isLoading: isUserDataLoading } = useUser();
+    const { data: session, status } = useSession();
       // ✅ Add state for profile image URL
   const [profileImageUrl, setProfileImageUrl] = useState(null);
-  const [isLoadingImage, setIsLoadingImage] = useState(false);
- // ✅ Fetch image URL when userData or session changes
- useEffect(() => {
-  const fetchProfileImage = async () => {
-    setIsLoadingImage(true);
-
-    // Priority: userData.profileImage > session.user.profileImage
-    const fileId = userData?.profileImage?._id || session?.user?.profileImage;
-
-    if (!fileId) {
-      setProfileImageUrl(null);
-      setIsLoadingImage(false);
-      return;
+  const fileId = userData?.profileImage
+   const isFirstLoadProfile = useRef(true);
+    const profileFileQuery = useFileUrl(fileId); // ✅ Use GET, not POST
+  
+    if (isFirstLoadProfile.current  && userData?.profileImage && status === 'authenticated' && !isUserDataLoading) {
+      if (!profileFileQuery.isLoading && profileFileQuery.data) {
+        setProfileImageUrl(profileFileQuery.data);
+        isFirstLoadProfile.current = false;
+      }
     }
 
-    try {
-      const response = await axios.get(`/api/file/${fileId}`); // ✅ Use GET, not POST
-      setProfileImageUrl(response.data.url);
-    } catch (error) {
-      console.error("Failed to fetch profile image URL:", error);
-      setProfileImageUrl(null);
-    } finally {
-      setIsLoadingImage(false);
-    }
-  };
-
-  if (status === 'authenticated' && !isUserDataLoading) {
-    fetchProfileImage();
-  }
-}, [userData, session, status, isUserDataLoading]);
-
-    const getUserSubtitle = () => {
+    const getUserSubtitle = () => {``
      if (!session?.user) return '';
      // اگر کاربر سمت خود را وارد کرده باشد، آن را نمایش بده
      if (session.user.position) {
@@ -141,7 +121,7 @@ import {
                           <div className="text-xs text-muted-foreground">{getUserSubtitle()}</div>
                         </div>
           
-                        {isLoadingImage ? (
+                        {profileFileQuery.isLoading ? (
                   <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
                 ) : profileImageUrl ? (
                   <img

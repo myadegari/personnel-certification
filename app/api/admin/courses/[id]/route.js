@@ -5,7 +5,7 @@ import Course from '@/models/Course';
 // PUT: Update a course
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     await dbConnect();
     const updatedCourse = await Course.findByIdAndUpdate(id, body, { new: true });
@@ -21,7 +21,7 @@ export async function PUT(request, { params }) {
 // DELETE: Delete a course
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     await dbConnect();
     await Course.findByIdAndDelete(id);
     // You might also want to delete related enrollments

@@ -13,7 +13,7 @@ import CertificateStatus from '@/components/CertificateStatus';
 function StatusSelector({ enrollment }) {
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn:({enrollmentId,status})=>axios.put(`/api/admin/enrollments/${enrollmentId}`,{status}),
+    mutationFn:({enrollmentId,status})=>axios.put(`/admin/enrollments/${enrollmentId}`,{status}),
     onSuccess: () => {
       queryClient.invalidateQueries(['enrollments', enrollment.course]);
     },

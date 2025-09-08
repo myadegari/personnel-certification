@@ -35,7 +35,7 @@ async function triggerCertificateGeneration(dataForMicroservice) {
 
 export async function PUT(request, { params }) {
   try {
-    const { id: enrollmentId } = params;
+    const { id: enrollmentId } = await params;
     const { status } = await request.json();
 
     await dbConnect();

@@ -13,11 +13,13 @@ import DatePicker from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import CertificatePatternCombobox from './CertificatePatternCombobox'; // <-- کامپوننت جدید را import کنید
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';import { v4 as uuidv4 } from "uuid";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { v4 as uuidv4 } from "uuid";
+import { useFileUrl } from '@/hooks/useFileUrl'; // ✅ Import new hook
+import { useUploadFile,useCourseMutation } from '@/hooks/useCourseMutation'; // ✅ Import upload hook
 // --- کامپوننت جستجوی کاربر ---
 
-const createCourse = (newCourse) => axios.post('/api/admin/courses', newCourse);
-const updateCourse = ({ id, ...updatedCourse }) => axios.put(`/api/admin/courses/${id}`, updatedCourse);
+
 
 const fetchCertificateSequences = async () => {
   const { data } = await axios.get('/admin/certificate-sequences');
@@ -81,6 +83,8 @@ function UserSearchCombobox({ selectedUser, onSelectUser }) {
 // --- کامپوننت اصلی مودال ---
 export default function CourseFormModal({ isOpen, onClose, courseData }) {
   const queryClient = useQueryClient();
+  const uploadFileMutation = useUploadFile();
+  const courseMutation = useCourseMutation(onClose,courseData)
   const [formData, setFormData] = useState({
     name: '', date: null, duration: '', organizingUnit: '',
     signatory: null, position1: '',
@@ -103,7 +107,8 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     queryFn: fetchCertificateSequences,
     enabled: isOpen, // فقط زمانی که مودال باز است، داده‌ها را بگیر
   });
-
+  const unitStampFileQuery = useFileUrl(courseData?.unitStamp);
+  const isFirstLoadunitStamp = useRef(true);
   const currentPattern = formData.certificateNumberPattern;
   const currentSequence = sequences.find(s => s.pattern === currentPattern);
 
@@ -124,8 +129,14 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
         });
         setSelectedManager1(courseData.signatory || null);
         setSelectedManager2(courseData.signatory2 || null);
-        setStampPreview1(courseData.unitStamp || '');
-        setStampPreview2(courseData.unitStamp2 || '');
+        if (isFirstLoadunitStamp.current && courseData?.unitStamp) {
+          if (!unitStampFileQuery.isLoading && unitStampFileQuery.data) {
+            setStampPreview1(unitStampFileQuery.data);
+            isFirstLoadunitStamp.current = false;
+          }
+        }
+        // setStampPreview1(courseData.unitStamp || '');
+        // setStampPreview2(courseData.unitStamp2 || '');
       } else {
         // Reset form for creation
         setFormData({ name: '', date: null, duration: '', organizingUnit: '', signatory: null, position1: '', signatory2: null, position2: '', certificateNumberPattern: '' });
@@ -140,25 +151,8 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     }
   }, [courseData, isOpen]);
 
-    const mutation = useMutation({
-    mutationFn: courseData ? updateCourse : createCourse,
-    onSuccess: () => {
-      queryClient.invalidateQueries(['adminCourses']);
-      onClose(); // بستن مودال پس از موفقیت
-    },
-    onError: (error) => {
-      setError(error.response?.data?.error || error.message);
-    }
-  });
-
-    const uploadFile = async (file, fileType) => {
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
-      uploadFormData.append('fileType', fileType);
-      uploadFormData.append('courseCode', formData.courseCode);
-      const { data } = await axios.post('/api/upload', uploadFormData);
-      return data.url;
-  };
+   
+    
   const handleFile1Change = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -184,13 +178,27 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     setError('');
 
     try {
-      let stampUrl = courseData?.unitStamp || '';
-      let stampUrl2 = courseData?.unitStamp2 || '';
+      let stampUrl 
+      let stampUrl2 
+      if (courseData){
+        stampUrl = courseData?.unitStamp?._id || null;
+        stampUrl2 = courseData?.unitStamp2?._id || null;
+      }
+    
+      const courseCode = formData?.courseCode || uuidv4();
       if (stampFile1) {
-        stampUrl = await uploadFile(stampFile1, 'stamp');
+        stampUrl = await uploadFileMutation.mutateAsync({
+          file: stampFile1,
+          fileType: 'stamp',
+          courseCode: courseCode
+        });
       }
       if (stampFile2) {
-        stampUrl2 = await uploadFile(stampFile2, 'stamp');
+        stampUrl2 = await uploadFileMutation.mutateAsync({
+          file: stampFile2,
+          fileType: 'stamp',
+          courseCode: courseCode
+        });
       }
 
       // Convert date object to Unix timestamp (seconds) for storage
@@ -199,11 +207,12 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
         date: formData.date ? Math.floor(new Date(formData.date).getTime() / 1000) : null,
         unitStamp: stampUrl,
         unitStamp2: stampUrl2,
+        courseCode: courseCode,
       };
       if (courseData){
-        mutation.mutate({id:courseData._id,...finalData})
+        courseMutation.mutateAsync({id:courseData._id,...finalData})
       }else{
-        mutation.mutate(finalData)
+        courseMutation.mutateAsync(finalData)
       }
     } catch (err) {
       setError(err.message);
@@ -289,36 +298,12 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
                   {stampPreview1 && <div className="p-2 border rounded-md bg-gray-50 flex justify-center"><img src={stampPreview1} alt="مهر ۱" width={80} height={80} /></div>}
             </div>
           </div>
-              {/* امضاکننده اول */}
-     <div className="col-span-1 p-4 border rounded-md">
-            <h4 className="font-semibold mb-2">امضاکننده اول</h4>
-            <div className="space-y-4">
-              <UserSearchCombobox selectedUser={selectedManager1} onSelectUser={(user) => { setSelectedManager1(user); setFormData({...formData, signatory: user._id}); }} />
-              <div className="w-full space-y-2 flex justify-between">
-                <Label>تصویر مهر</Label>
-                <Input
-                  ref={refStampFile1}
-                  id="stamp1"
-                  name="stamp1"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFile1Change}
-                  onClick={(e) => (e.target.value = null)}
-                  className="hidden" // --- ورودی فایل را مخفی کنید ---
-                  />
-                <Button type="button" variant="outline" onClick={() => refStampFile1.current?.click()}>
-                  {stampPreview1 ? 'تغییر تصویر' : 'بارگذاری تصویر'}
-                </Button>
-              </div>
-                  {stampPreview1 && <div className="p-2 border rounded-md bg-gray-50 flex justify-center"><img src={stampPreview1} alt="مهر ۱" width={80} height={80} /></div>}
-            </div>
-          </div>
  
           {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>انصراف</Button>
-            <Button type="submit" disabled={mutation.isLoading}>{mutation.isLoading ? 'در حال ذخیره...' : 'ذخیره'}</Button>
+            <Button type="submit" disabled={courseMutation.isLoading}>{courseMutation.isLoading ? 'در حال ذخیره...' : 'ذخیره'}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

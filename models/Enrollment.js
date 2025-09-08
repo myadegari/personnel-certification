@@ -18,7 +18,7 @@ const EnrollmentSchema = new mongoose.Schema(
       required: true,
     },
     certificateUniqueId: { type: String },
-    certificateUrl: { type: mongoose.Schema.Types.ObjectId, ref: "File" },
+    certificateUrl: { type: String },
     issuedAt: { type: String },
     jobId: { type: String },
   },

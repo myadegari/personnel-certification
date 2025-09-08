@@ -131,8 +131,10 @@ try {
     await User.findByIdAndUpdate(user._id, { signatureImage: newFile._id });
   }else if (fileType === 'stamp') {
     const course = await Course.findOne({ courseCode: courseCode });
+    console.log("course:",course)
     if (course) {
-      await Course.findByIdAndUpdate(course._id, { stampImage: newFile._id });
+      await Course.findByIdAndUpdate(course._id, { unitStamp: newFile._id });
+      console.log("affter course:",course)
     }
   }
 } catch (error) {
