@@ -9,7 +9,8 @@ const fileSchema = new mongoose.Schema(
       required: true,
     },
     courseId: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
       required: false, // only required for stamps
     },
     bucket: {

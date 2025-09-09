@@ -32,6 +32,9 @@ export async function POST(request) {
       user: session.user.id,
       course: courseId,
       status: 'PENDING',
+      metadata:{
+        courseStatus:"EXIST"
+      }
     });
 
     return new Response(JSON.stringify({ message: "Enrollment request sent successfully" }), { status: 201 });

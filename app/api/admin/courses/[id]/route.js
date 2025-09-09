@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Course from '@/models/Course';
+import Enrollment from '@/models/Enrollment';
 
 // PUT: Update a course
 export async function PUT(request, { params }) {
@@ -23,9 +24,15 @@ export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
     await dbConnect();
+    await Enrollment.updateMany(
+      { course: id },
+      { $set: { "metadata.courseStatus": "PERISH" } }
+    );
+    // Delete the course
     await Course.findByIdAndDelete(id);
+
     // You might also want to delete related enrollments
-    return NextResponse.json({ message: 'Course deleted successfully' });
+    return NextResponse.json({ message: "Course deleted and enrollments updated successfully."});
   } catch (error) {
     return NextResponse.json({ error: 'Failed to delete course' }, { status: 500 });
   }

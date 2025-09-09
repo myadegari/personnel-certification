@@ -243,7 +243,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             {currentSequence && (
               <div className="text-sm text-muted-foreground mt-1">
                 <p>الگوی فعلی: {currentSequence.pattern}</p>
-                <p>شماره بعدی: {currentSequence.nextNumber}</p>
+                <p>شماره بعدی: {currentSequence.lastNumber+1}</p>
                 {currentSequence.description && (
                   <p>توضیحات: {currentSequence.description}</p>
                 )}
