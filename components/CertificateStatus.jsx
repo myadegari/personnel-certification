@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { microserviceAxios } from '@/lib/axios';
 
 const MICROSERVICE_URL = process.env.NEXT_PUBLIC_MICROSERVICE_URL || 'http://localhost:8000';
 
@@ -57,7 +58,7 @@ export default function CertificateStatus({ enrollment }) {
   }, [enrollment.jobId, jobId]);
 
   const download_pdf = async () => {
-    const data = await axios.get(`${MICROSERVICE_URL}/certificates/${jobId}`);
+    const data = await microserviceAxios.get(`/certificates/${jobId}`);
     if (data.status !== 200) {
         alert('خطا در دریافت گواهی');
         return;

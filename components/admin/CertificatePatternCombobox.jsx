@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import axios from '@/lib/axios';
+import {internalAxios} from '@/lib/axios';
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -11,7 +11,7 @@ import clsx from 'clsx';
 
 // API function to fetch sequences
 const fetchCertificateSequences = async () => {
-  const { data } = await axios.get('/admin/certificate-sequences');
+  const { data } = await internalAxios.get('/admin/certificate-sequences');
   return data;
 };
 

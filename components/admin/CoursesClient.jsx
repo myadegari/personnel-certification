@@ -1,36 +1,48 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { useReactTable, getCoreRowModel, flexRender } from '@tanstack/react-table';
+import { useState, useMemo } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+} from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import Link from 'next/link';
-import CourseFormModal from './CourseFormModal'; // We will create this
-import { DateObject } from 'react-multi-date-picker';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import Link from "next/link";
+import CourseFormModal from "./CourseFormModal"; // We will create this
+import { DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
-import axios from 'axios';
-import { useQuery,useMutation,useQueryClient } from '@tanstack/react-query';
+import {internalAxios} from "@/lib/axios";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function CoursesClient({ initialCourses }) {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
-  
+
   const data = initialCourses || [];
 
   const deleteCourseMutation = useMutation({
-    mutationFn: (courseId) => axios.delete(`/api/admin/courses/${courseId}`),
+    mutationFn: (courseId) =>
+      internalAxios.delete(`/admin/courses/${courseId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries(['adminCourses']);
+      queryClient.invalidateQueries(["adminCourses"]);
     },
     onError: (error) => {
       alert(`خطا در حذف دوره: ${error.message}`);
-    }
+    },
   });
 
-    const handleDelete = (courseId) => {
-    if (confirm('آیا از حذف این دوره اطمینان دارید؟')) {
+  const handleDelete = (courseId) => {
+    if (confirm("آیا از حذف این دوره اطمینان دارید؟")) {
       deleteCourseMutation.mutate(courseId);
     }
   };
@@ -39,37 +51,57 @@ export default function CoursesClient({ initialCourses }) {
     setEditingCourse(course);
     setIsModalOpen(true);
   };
- const handleCreate = () => {
+  const handleCreate = () => {
     setEditingCourse(null);
     setIsModalOpen(true);
   };
 
-  const columns = useMemo(() => [
-    { accessorKey: 'name', header: 'نام دوره' },
-    { accessorKey: 'organizingUnit', header: 'واحد برگزار کننده' },
-    { 
-      accessorKey: 'date', 
-      header: 'تاریخ برگزاری',
-      cell: ({ row }) => new DateObject({date:new Date(row.original.date*1000),
+  const columns = useMemo(
+    () => [
+      { accessorKey: "name", header: "نام دوره" },
+      { accessorKey: "organizingUnit", header: "واحد برگزار کننده" },
+      {
+        accessorKey: "date",
+        header: "تاریخ برگزاری",
+        cell: ({ row }) =>
+          new DateObject({
+            date: new Date(row.original.date * 1000),
 
-      calendar: persian, locale: persian_fa }).format(),
-    },
-    {
-      id: 'actions',
-      header: 'عملیات',
-      cell: ({ row }) => (
-        <div className="space-x-2 space-x-reverse">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/admin/courses/${row.original._id}/enrollments`}>مدیریت ثبت‌نام</Link>
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)}>ویرایش</Button>
-           <Button variant="destructive" size="sm" onClick={() => handleDelete(row.original._id)} disabled={deleteCourseMutation.isLoading}>
-            {deleteCourseMutation.isLoading ? 'در حال حذف...' : 'حذف'}
-          </Button>
-        </div>
-      ),
-    },
-  ], [deleteCourseMutation.isLoading]);
+            calendar: persian,
+            locale: persian_fa,
+          }).format(),
+      },
+      {
+        id: "actions",
+        header: "عملیات",
+        cell: ({ row }) => (
+          <div className="space-x-2 space-x-reverse">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/courses/${row.original._id}/enrollments`}>
+                مدیریت ثبت‌نام
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleEdit(row.original)}
+            >
+              ویرایش
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleDelete(row.original._id)}
+              disabled={deleteCourseMutation.isLoading}
+            >
+              {deleteCourseMutation.isLoading ? "در حال حذف..." : "حذف"}
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [deleteCourseMutation.isLoading]
+  );
 
   const table = useReactTable({
     data,
@@ -96,20 +128,23 @@ export default function CoursesClient({ initialCourses }) {
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            {table.getHeaderGroups().map(headerGroup => (
+            {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
+                {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
                   </TableHead>
                 ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows.map(row => (
+            {table.getRowModel().rows.map((row) => (
               <TableRow key={row.id}>
-                {row.getVisibleCells().map(cell => (
+                {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

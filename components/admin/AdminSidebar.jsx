@@ -12,7 +12,10 @@ import {
   import { Button } from '@/components/ui/button';
   import { usePathname } from 'next/navigation';
   import { clsx } from "clsx";
-    import { LayoutDashboard,GraduationCap,Layers } from "lucide-react";
+  import { LayoutDashboard,GraduationCap,Layers } from "lucide-react";
+import { useUser } from '@/hooks/useUser';
+  import { useFileUrl } from "@/hooks/useFileUrl";
+   import { useState,useRef } from 'react'; 
 
   const HeaderSkeleton = () => (
     <div className="flex items-center gap-4 animate-pulse flex-row-reverse">
@@ -29,6 +32,20 @@ import {
   
   export function AdminSidebar() {
     const { data: session, status } = useSession();
+    const { data: userData, isLoading: isUserDataLoading } = useUser();
+
+    const [profileImageUrl, setProfileImageUrl] = useState(null);
+    const fileId = userData?.profileImage
+     const isFirstLoadProfile = useRef(true);
+      const profileFileQuery = useFileUrl(fileId); // ✅ Use GET, not POST
+    
+      if (isFirstLoadProfile.current  && userData?.profileImage && status === 'authenticated' && !isUserDataLoading) {
+        if (!profileFileQuery.isLoading && profileFileQuery.data) {
+          setProfileImageUrl(profileFileQuery.data);
+          isFirstLoadProfile.current = false;
+        }
+      }    
+
     const getUserSubtitle = () => {
      if (!session?.user) return '';
      // اگر کاربر سمت خود را وارد کرده باشد، آن را نمایش بده
@@ -102,17 +119,20 @@ import {
                           <div className="text-xs text-muted-foreground">{getUserSubtitle()}</div>
                         </div>
           
-                        {session.user.profileImage ? (
-                          <img
-                            src={session.user.profileImage}
-                            alt="Profile Picture"
-                            width={45}
-                            height={45}
-                            className="rounded-full object-cover border-2 border-gray-200"
-                          />
-                        ) : (
-                          <UserIcon />
-                        )}
+                       {profileFileQuery.isLoading ? (
+                  <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
+                ) : profileImageUrl ? (
+                  <img
+                    src={profileImageUrl}
+                    alt="Profile Picture"
+                    width={45}
+                    height={45}
+                    className="rounded-full object-cover border-2 border-gray-200"
+                    onError={() => setProfileImageUrl(null)} // fallback if image fails
+                  />
+                ) : (
+                  <UserIcon />
+                )}
                       </div>
                         
                         <Button variant="destructive" size="sm" className='cursor-pointer w-10/12 px-8 hover:bg-red-700' onClick={() => signOut()}>

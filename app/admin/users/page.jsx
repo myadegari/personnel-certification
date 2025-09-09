@@ -1,14 +1,14 @@
 import UserManagementClient from "@/components/admin/UserManagementClient";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import axios from 'axios';
+import {internalAxios} from '@/lib/axios';
 import { headers } from "next/headers";
 
 // Helper function to fetch data on the server
 async function getUsers(page = 1, limit = 10) {
   const cookie = headers().get('cookie');
   try {
-    const { data } = await axios.get(`${process.env.NEXTAUTH_URL}/api/admin/users?page=${page}&limit=${limit}`, {
+    const { data } = await internalAxios.get(`/admin/users?page=${page}&limit=${limit}`, {
         headers: { 'Cookie': cookie }
     });
     return data;

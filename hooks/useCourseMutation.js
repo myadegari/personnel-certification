@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from '@/lib/axios';
+import {internalAxios} from '@/lib/axios';
 
 export function useUploadFile() {
   return useMutation({
@@ -9,16 +9,15 @@ export function useUploadFile() {
       formData.append('fileType', fileType);
       formData.append('courseCode', courseCode);
       
-      const { data } = await axios.post('/upload', formData, {
+      const { data } = await internalAxios.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return data.url;
     }
   });
 }
-const createCourse = (newCourse) => axios.post('/admin/courses', newCourse);
-const updateCourse = ({ id, ...updatedCourse }) => axios.put(`/admin/courses/${id}`, updatedCourse);
-const mutation = ``
+const createCourse = (newCourse) => internalAxios.post('/admin/courses', newCourse);
+const updateCourse = ({ id, ...updatedCourse }) => internalAxios.put(`/admin/courses/${id}`, updatedCourse);
 
 export function useCourseMutation(onClose,courseData) {
     const queryClient = useQueryClient();

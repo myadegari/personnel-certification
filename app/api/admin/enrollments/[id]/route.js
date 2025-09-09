@@ -4,23 +4,20 @@ import Enrollment from "@/models/Enrollment";
 import User from "@/models/User";
 import Course from "@/models/Course";
 import CertificateSequence from "@/models/CertificateSequence"; // <-- مدل جدید را import کنید
-import axios from "axios";
+import {microserviceAxios} from "@/lib/axios";
 import { DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 
 
-// آدرس میکروسرویس خود را در فایل .env.local قرار دهید
-const MICROSERVICE_URL =
-  process.env.MICROSERVICE_URL || "http://localhost:8000";
 // This should be the public URL of your Next.js application
 const NEXTJS_APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
 async function triggerCertificateGeneration(dataForMicroservice) {
   console.log("dataForMicroservice",dataForMicroservice)
   try {
-    const { data } = await axios.post(
-      `${MICROSERVICE_URL}/certificates/generate/`,
+    const { data } = await microserviceAxios.post(
+      '/certificates/generate/',
       dataForMicroservice
     );
     return data; // باید شامل job_id باشد

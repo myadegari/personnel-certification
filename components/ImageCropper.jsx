@@ -38,27 +38,56 @@ function getCroppedImg(image, crop, fileName) {
     }, 'image/png');
   });
 }
-
+// 👇 Helper to convert % crop to pixel crop
+function convertToPixelCrop(crop, imageWidth, imageHeight) {
+  if (!crop || !imageWidth || !imageHeight) return null;
+  if (crop.unit === '%') {
+    return {
+      x: (crop.x / 100) * imageWidth,
+      y: (crop.y / 100) * imageHeight,
+      width: (crop.width / 100) * imageWidth,
+      height: (crop.height / 100) * imageHeight,
+    };
+  }
+  return crop;
+}
 
 export default function ImageCropper({ isOpen, onOpenChange, image, onCropComplete }) {
   const imgRef = useRef(null);
   const [crop, setCrop] = useState();
+  const [completedCrop, setCompletedCrop] = useState(null); // ✅ This is key!
 
   function onImageLoad(e) {
     const { width, height } = e.currentTarget;
     const initialCrop = centerCrop(
-      makeAspectCrop({ unit: '%', width: 90 }, 1, width, height),
+      makeAspectCrop({ unit: '%', width: 80 }, 1, width, height),
       width,
       height
     );
     setCrop(initialCrop);
   }
 
-  async function handleCrop() {
-    if (imgRef.current && crop?.width && crop?.height) {
-      const croppedFile = await getCroppedImg(imgRef.current, crop, 'cropped-image.png');
-      onCropComplete(croppedFile);
+ async function handleCrop() {
+    if (!imgRef.current || !completedCrop) {
+      console.warn('No completed crop available');
+      return;
     }
+      // ✅ Ensure crop is perfectly 1:1 before cropping
+  const { width: imgWidth, height: imgHeight } = imgRef.current;
+  const pixelCrop = convertToPixelCrop(crop, imgWidth, imgHeight);
+
+  // Enforce square by using min dimension
+  const size = Math.min(pixelCrop.width, pixelCrop.height);
+  const enforcedCrop = {
+    x: pixelCrop.x,
+    y: pixelCrop.y,
+    width: size,
+    height: size,
+  };
+
+    // ✅ Use completedCrop — it's in pixels and validated
+    const croppedFile = await getCroppedImg(imgRef.current, enforcedCrop, 'cropped-image.png');
+    onCropComplete(croppedFile);
   }
 
   return (
@@ -68,10 +97,11 @@ export default function ImageCropper({ isOpen, onOpenChange, image, onCropComple
           <DialogTitle>Crop Your Profile Picture</DialogTitle>
         </DialogHeader>
         <div className="flex justify-center">
-          <ReactCrop
+             <ReactCrop
             crop={crop}
-            onChange={c => setCrop(c)}
-            aspect={1} // Enforce 1:1 square aspect ratio
+            onChange={(_, percentCrop) => setCrop(percentCrop)} // keep % for UI
+            onComplete={(pixelCrop) => setCompletedCrop(pixelCrop)} // ✅ use pixelCrop for actual cropping
+            aspect={1}
             minWidth={100}
           >
             <img ref={imgRef} src={image} onLoad={onImageLoad} alt="Crop preview" />
@@ -79,7 +109,12 @@ export default function ImageCropper({ isOpen, onOpenChange, image, onCropComple
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleCrop}>Confirm Crop</Button>
+          <Button 
+            onClick={handleCrop} 
+            disabled={!completedCrop} // ✅ Only enable when crop is ready
+          >
+            Confirm Crop
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

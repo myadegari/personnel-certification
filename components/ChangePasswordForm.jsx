@@ -5,10 +5,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMutation } from '@tanstack/react-query';
-import axios from '@/lib/axios';
+import {internalAxios} from '@/lib/axios';
 
 const changePassword = async (passwords) => {
-  const { data } = await axios.post('/profile/change-password', passwords);
+  const { data } = await internalAxios.post('/profile/change-password', passwords);
   return data;
 };
 export default function ChangePasswordForm() {

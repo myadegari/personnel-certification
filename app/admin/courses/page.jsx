@@ -1,13 +1,13 @@
 'use client';
 import CoursesClient from "@/components/admin/CoursesClient";
 // import Link from 'next/link';
-import axios from 'axios';
+import {internalAxios} from '@/lib/axios';
 // import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const getCourses = async () => {
-  const { data } = await axios.get('/api/admin/courses');
+  const { data } = await internalAxios.get('/admin/courses');
   return data;
 };
 

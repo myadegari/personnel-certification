@@ -14,7 +14,7 @@ import {
   import { clsx } from "clsx";
   import { LayoutDashboard,GraduationCap,Settings } from "lucide-react";
   import { useUser } from '@/hooks/useUser';
-  import axios from 'axios'; // ✅ Make sure you import axios
+  // import axios from 'axios'; // ✅ Make sure you import axios
   import { useEffect, useState,useRef } from 'react'; // ✅ Add these
   import { useFileUrl } from "@/hooks/useFileUrl";
 
@@ -37,16 +37,18 @@ import {
       // ✅ Add state for profile image URL
   const [profileImageUrl, setProfileImageUrl] = useState(null);
   const fileId = userData?.profileImage
-   const isFirstLoadProfile = useRef(true);
+  //  const isFirstLoadProfile = useRef(true);
     const profileFileQuery = useFileUrl(fileId); // ✅ Use GET, not POST
-  
-    if (isFirstLoadProfile.current  && userData?.profileImage && status === 'authenticated' && !isUserDataLoading) {
+    useEffect(()=>{
+
+      if ( userData?.profileImage && status === 'authenticated' && !isUserDataLoading) {
       if (!profileFileQuery.isLoading && profileFileQuery.data) {
         setProfileImageUrl(profileFileQuery.data);
-        isFirstLoadProfile.current = false;
       }
     }
 
+    },[profileFileQuery])
+    
     const getUserSubtitle = () => {``
      if (!session?.user) return '';
      // اگر کاربر سمت خود را وارد کرده باشد، آن را نمایش بده
@@ -122,7 +124,7 @@ import {
                         </div>
           
                         {profileFileQuery.isLoading ? (
-                  <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
+                  <div className="h-[50px] w-[50px] rounded-full bg-gray-200 animate-pulse"></div>
                 ) : profileImageUrl ? (
                   <img
                     src={profileImageUrl}

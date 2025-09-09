@@ -19,7 +19,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    console.log("Request body:", body); // Debug log
+    // console.log("Request body:", body); // Debug log
     await dbConnect();
     const newCourse = await Course.create(body);
     return NextResponse.json(newCourse, { status: 201 });

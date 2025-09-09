@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from '@/lib/axios';
+import {internalAxios} from '@/lib/axios';
 import { Button } from "./ui/button";
 
-const enrollInCourse = (courseId) => axios.post('/enrollments', { courseId });
+const enrollInCourse = (courseId) => internalAxios.post('/enrollments', { courseId });
 
 export default function EnrollButton({ courseId, status }) {
   const queryClient = useQueryClient();

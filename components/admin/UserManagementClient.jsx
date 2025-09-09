@@ -8,7 +8,7 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from '@/lib/axios';
+import {internalAxios} from '@/lib/axios';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,10 +17,10 @@ import UserFormModal from './UserFormModal';
 
 const fetchUsers = async ({ queryKey }) => {
   const [_key, { page, limit }] = queryKey;
-  const { data } = await axios.get(`/admin/users?page=${page}&limit=${limit}`);
+  const { data } = await internalAxios.get(`/admin/users?page=${page}&limit=${limit}`);
   return data;
 };
-const deleteUsers = (userIds) => axios.delete('/admin/users', { data: { userIds } });
+const deleteUsers = (userIds) => internalAxios.delete('/admin/users', { data: { userIds } });
 
 export default function UserManagementClient({ initialData }) {
   const queryClient = useQueryClient();
