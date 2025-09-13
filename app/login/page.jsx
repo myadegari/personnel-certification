@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -14,23 +14,41 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  // The useEffect that was here has been removed, as the logic is now in handleSubmit.
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    const result = await signIn('credentials', {
-      redirect: false,
-      personnelNumber,
-      password,
-    });
+    try {
+        const result = await signIn('credentials', {
+            redirect: false,
+            personnelNumber,
+            password,
+        });
 
-    setIsLoading(false);
-
-    if (result.error) {
-      setError('شماره پرسنلی یا رمز عبور اشتباه است.');
-    } else if (result.ok) {
-      router.push('/');
+        if (result.error) {
+            // NEW: Check for our custom error message here
+            if (result.error.startsWith('PENDING_VERIFICATION')) {
+                const email = result.error.split(',')[1];
+                // Redirect to the signup page with the necessary parameters
+                router.push(`/signup?step=3&email=${email}`);
+                // No need to set loading to false, as we are navigating away
+                return; 
+            }
+            // For any other error, display a generic message
+            setError('شماره پرسنلی یا رمز عبور اشتباه است.');
+        } else if (result.ok) {
+            // On successful login, redirect to the root which will be handled by middleware
+            router.push('/');
+        }
+    } catch (err) {
+        // Catch any unexpected network errors
+        setError('خطایی در ارتباط با سرور رخ داد.');
+    } finally {
+        // This will only run if we aren't redirecting
+        setIsLoading(false);
     }
   };
 
@@ -42,7 +60,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
             <div>
               <Input
                 placeholder="شماره پرسنلی"

@@ -6,7 +6,8 @@ import { headers } from "next/headers";
 
 // Helper function to fetch data on the server
 async function getUsers(page = 1, limit = 10) {
-  const cookie = headers().get('cookie');
+  const cookie_h = await headers();
+  const cookie = cookie_h.get('cookie')
   try {
     const { data } = await internalAxios.get(`/admin/users?page=${page}&limit=${limit}`, {
         headers: { 'Cookie': cookie }

@@ -3,12 +3,13 @@ import { authOptions } from "../api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
 import {internalAxios} from '@/lib/axios'; // <-- Use the main axios library for server-side
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import UserCoursesTable from "@/components/UserCoursesTable";
 import { headers } from "next/headers"; // <-- این را import کنید
 import Logout from "@/components/Logout";
+import clsx from "clsx";
 
 
 // This function now gets the totals for the stat cards
@@ -49,8 +50,8 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+<div className=" relative">
+<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-gray-800">داشبورد کاربری</h1>
         {/* <div className="flex gap-4">
           <Link href="/profile" passHref><Button variant="outline" className="cursor-pointer">پروفایل کاربری</Button></Link>
@@ -58,7 +59,35 @@ export default async function DashboardPage() {
           <Logout/>
         </div> */}
       </div>
+      {session?.user?.status === 'NEED_TO_VERIFY' && (
+      <div className="grid place-content-center justify-items-center h-full absolute mx-auto w-full z-10">
+      <Card className="w-full max-w-md p-0 shadow-xl bg-transparent">
+                <CardContent className="p-0 bg-transparent">
+                    
+                        <div className="text-center p-4 bg-yellow-200/75 text-yellow-800 rounded-md bg-opacity-5">
+                            <h3 className="font-bold">حساب کاربری در انتظار تایید است</h3>
+                            <p className="text-sm mt-2">
+                                حساب کاربری شما با موفقیت ایجاد شده و در حال حاضر منتظر تایید توسط مدیر سیستم می‌باشد.
+                                پس از تایید، به تمامی امکانات دسترسی خواهید داشت.
+                            </p>
+                        </div>
+                    
 
+                    {/* {session?.user?.status === 'VERIFIED' && (
+                        <div className="text-center p-4 bg-green-100 text-green-800 rounded-md">
+                             <h3 className="font-bold">حساب کاربری شما فعال است</h3>
+                            <p className="text-sm mt-2">
+                                شما می‌توانید از تمام امکانات سامانه استفاده کنید.
+                            </p>
+                        </div>
+                    )} */}
+                </CardContent>
+            </Card>
+            </div>
+  )}
+
+  <div className={clsx({"w-full h-full blur-sm z-0":session?.user?.status != 'VERIFIED'})}>
+   
       <h2 className="text-xl font-semibold mb-4 text-gray-700">آمار کلی</h2>
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <Card>
@@ -73,6 +102,7 @@ export default async function DashboardPage() {
       
       <h2 className="text-xl font-semibold mb-4 text-gray-700">دوره‌های من (تایید شده)</h2>
       <UserCoursesTable initialData={initialCoursesData} />
-    </div>
-  );
+      </div>
+</div>
+    );
 }

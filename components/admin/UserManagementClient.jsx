@@ -1,26 +1,54 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from "react";
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   flexRender,
-} from '@tanstack/react-table';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {internalAxios} from '@/lib/axios';
+} from "@tanstack/react-table";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { internalAxios } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge"; // Assuming you have a Badge component
 // You will need to create this modal component
-import UserFormModal from './UserFormModal'; 
+import UserFormModal from "./UserFormModal";
 
 const fetchUsers = async ({ queryKey }) => {
   const [_key, { page, limit }] = queryKey;
-  const { data } = await internalAxios.get(`/admin/users?page=${page}&limit=${limit}`);
+  const { data } = await internalAxios.get(
+    `/admin/users?page=${page}&limit=${limit}`
+  );
   return data;
 };
-const deleteUsers = (userIds) => internalAxios.delete('/admin/users', { data: { userIds } });
+const deleteUsers = (userIds) =>
+  internalAxios.delete("/admin/users", { data: { userIds } });
+const updateUserStatus = ({ userId, status }) => {
+  return internalAxios.post("/admin/users/update-status", { userId, status });
+};
+const StatusBadge = ({ status }) => {
+  switch (status) {
+    case "PENDING":
+      return <Badge variant="outline">در انتظار تکمیل</Badge>;
+    case "NEED_TO_VERIFY":
+      return <Badge variant="secondary">در انتظار تایید</Badge>;
+    case "VERIFIED":
+      return <Badge>تایید شده</Badge>;
+    case "REJECTED":
+      return <Badge variant="destructive">رد شده</Badge>;
+    default:
+      return <Badge variant="outline">نامشخص</Badge>;
+  }
+};
 
 export default function UserManagementClient({ initialData }) {
   const queryClient = useQueryClient();
@@ -34,21 +62,40 @@ export default function UserManagementClient({ initialData }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  const { data:tableData } = useQuery({
-    queryKey: ['adminUsers', { page: pagination.pageIndex + 1, limit: pagination.pageSize }],
+  const { data: tableData } = useQuery({
+    queryKey: [
+      "adminUsers",
+      { page: pagination.pageIndex + 1, limit: pagination.pageSize },
+    ],
     queryFn: fetchUsers,
     initialData,
     keepPreviousData: true,
   });
-  
+
   const deleteMutation = useMutation({
     mutationFn: deleteUsers,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       table.resetRowSelection();
-    }
+    },
   });
- 
+  const statusMutation = useMutation({
+    mutationFn: updateUserStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+    },
+    onError: (error) => {
+      alert("خطا در تغییر وضعیت کاربر: " + error.response?.data?.message);
+    },
+  });
+
+  const handleStatusUpdate = (userId, status) => {
+    const action = status === "VERIFIED" ? "تایید" : "رد";
+    if (confirm(`آیا از ${action} کردن این کاربر اطمینان دارید؟`)) {
+      statusMutation.mutate({ userId, status });
+    }
+  };
+
   // Fetch data from API when pagination changes
   // useEffect(() => {
   //   async function fetchData() {
@@ -63,41 +110,81 @@ export default function UserManagementClient({ initialData }) {
   // }, [pagination]);
 
   // Define table columns
-  const columns = useMemo(() => [
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-    },
-    { accessorKey: 'personnelNumber', header: 'شماره پرسنلی' },
-    {
-      accessorFn: row => `${row.firstName} ${row.lastName}`,
-      header: 'نام کامل',
-    },
-    { accessorKey: 'email', header: 'ایمیل' },
-    { accessorKey: 'role', header: 'نقش' },
-    {
-      id: 'actions',
-      header: 'عملیات',
-      cell: ({ row }) => (
-        <Button variant="outline" size="sm" onClick={() => handleEdit(row.original)}>
-          ویرایش
-        </Button>
-      ),
-    },
-  ], []);
+  const columns = useMemo(
+    () => [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            aria-label="Select all"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
+        ),
+      },
+      { accessorKey: "personnelNumber", header: "شماره پرسنلی" },
+      {
+        accessorFn: (row) => `${row.firstName} ${row.lastName}`,
+        header: "نام کامل",
+      },
+      { accessorKey: "email", header: "ایمیل" },
+      { accessorKey: "role", header: "نقش" },
+      {
+        accessorKey: "status",
+        header: "وضعیت",
+        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+      },
+      {
+        id: "actions",
+        header: "عملیات",
+        cell: ({ row }) => (
+          <div className="space-x-2 space-x-reverse">
+            {row.original.status === "NEED_TO_VERIFY" && (
+              <>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() =>
+                    handleStatusUpdate(row.original._id, "VERIFIED")
+                  }
+                  disabled={statusMutation.isLoading}
+                >
+                  تایید
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() =>
+                    handleStatusUpdate(row.original._id, "REJECTED")
+                  }
+                  disabled={statusMutation.isLoading}
+                >
+                  رد
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleEdit(row.original)}
+            >
+              ویرایش
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    []
+  );
 
   const table = useReactTable({
     data: tableData?.users,
@@ -114,7 +201,7 @@ export default function UserManagementClient({ initialData }) {
     onRowSelectionChange: setRowSelection,
     enableRowSelection: true,
   });
-  
+
   const handleEdit = (user) => {
     setEditingUser(user);
     setIsModalOpen(true);
@@ -125,8 +212,13 @@ export default function UserManagementClient({ initialData }) {
     setIsModalOpen(true);
   };
   const handleBulkDelete = () => {
-    const selectedIds = table.getSelectedRowModel().rows.map(row => row.original._id);
-    if (selectedIds.length > 0 && confirm(`آیا از حذف ${selectedIds.length} کاربر اطمینان دارید؟`)) {
+    const selectedIds = table
+      .getSelectedRowModel()
+      .rows.map((row) => row.original._id);
+    if (
+      selectedIds.length > 0 &&
+      confirm(`آیا از حذف ${selectedIds.length} کاربر اطمینان دارید؟`)
+    ) {
       deleteMutation.mutate(selectedIds);
     }
     table.resetRowSelection();
@@ -134,7 +226,7 @@ export default function UserManagementClient({ initialData }) {
   // const handleBulkDelete = async () => {
   //   const selectedIds = table.getSelectedRowModel().rows.map(row => row.original._id);
   //   if (selectedIds.length === 0) return;
-    
+
   //   if (confirm(`آیا از حذف ${selectedIds.length} کاربر اطمینان دارید؟`)) {
   //     await fetch('/api/admin/users', {
   //       method: 'DELETE',
@@ -151,7 +243,7 @@ export default function UserManagementClient({ initialData }) {
     <div>
       <div className="flex items-center justify-between mb-4">
         <Button onClick={handleCreate}>ایجاد کاربر جدید</Button>
-        <Button 
+        <Button
           variant="destructive"
           onClick={handleBulkDelete}
           disabled={Object.keys(rowSelection).length === 0}
@@ -161,16 +253,16 @@ export default function UserManagementClient({ initialData }) {
       </div>
 
       {/* A modal for creating/editing users would go here */}
-       <UserFormModal 
+      <UserFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        userData={editingUser} 
+        userData={editingUser}
         onSave={() => {
           setIsModalOpen(false);
-          setPagination(prev => ({...prev})); // Refetch
+          setPagination((prev) => ({ ...prev })); // Refetch
         }}
       />
-      
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -178,7 +270,10 @@ export default function UserManagementClient({ initialData }) {
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id}>
-                    {flexRender(header.column.columnDef.header, header.getContext())}
+                    {flexRender(
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -190,14 +285,20 @@ export default function UserManagementClient({ initialData }) {
                 <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
                   کاربری یافت نشد.
                 </TableCell>
               </TableRow>
@@ -217,9 +318,10 @@ export default function UserManagementClient({ initialData }) {
           قبلی
         </Button>
         <span>
-          صفحه{' '}
+          صفحه{" "}
           <strong>
-            {table.getState().pagination.pageIndex + 1} از {table.getPageCount()}
+            {table.getState().pagination.pageIndex + 1} از{" "}
+            {table.getPageCount()}
           </strong>
         </span>
         <Button
