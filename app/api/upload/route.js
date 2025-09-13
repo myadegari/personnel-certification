@@ -9,14 +9,14 @@ import path from "path"; // ✅ Make sure this is imported
 import File from "@/models/File"; // ✅ Import as FileModel
 import Course from "@/models/Course";
 import { minioClient } from "@/lib/minio";
-import { useQueryClient } from "@tanstack/react-query";
+// import { useQueryClient } from "@tanstack/react-query";
 
 export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  
+
   const data = await request.formData();
   const file = data.get("file");
   const fileType = data.get("fileType");
@@ -31,6 +31,10 @@ export async function POST(request) {
 
   await dbConnect();
   const user = await User.findById(session.user.id).select("personnelNumber");
+  let course;
+  if (courseCode) {
+    course = await Course.findOne({ courseCode: courseCode });
+  }
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
@@ -38,7 +42,16 @@ export async function POST(request) {
   // --- Determine bucket based on fileType ---
   let bucketName;
   switch (fileType) {
-    case "stamp":
+    case "stamp1":
+      bucketName = "stamp";
+      if (!courseCode) {
+        return NextResponse.json(
+          { error: "courseCode is required for stamp uploads" },
+          { status: 400 }
+        );
+      }
+      break;
+    case "stamp2":
       bucketName = "stamp";
       if (!courseCode) {
         return NextResponse.json(
@@ -80,8 +93,8 @@ export async function POST(request) {
 
   // --- Build object path based on fileType ---
   let objectName;
-  if (fileType === "stamp") {
-    objectName = `${courseCode}/${fileName}`; // ✅ Store under course ID
+  if (fileType.startsWith("stamp")) {
+    objectName = `${course._id}/${fileName}`; // ✅ Store under course ID
   } else {
     objectName = `${user.personnelNumber}/${fileName}`; // ✅ Store under user ID
   }
@@ -148,7 +161,7 @@ export async function POST(request) {
   } else {
     const newFile = new File({
       userId: user._id,
-      courseId: fileType === "stamp" ? courseCode : undefined,
+      courseId: fileType.startsWith("stamp") ? course._id : undefined,
       bucket: bucketName,
       objectName: objectName,
       originalName: file.name,
@@ -171,14 +184,18 @@ export async function POST(request) {
         await User.findByIdAndUpdate(user._id, { profileImage: newFile._id });
       } else if (fileType === "signature") {
         await User.findByIdAndUpdate(user._id, { signatureImage: newFile._id });
-      } else if (fileType === "stamp") {
-        const course = await Course.findOne({ courseCode: courseCode });
-        console.log("course:", course);
-        if (course) {
-          await Course.findByIdAndUpdate(course._id, {
-            unitStamp: newFile._id,
-          });
-          console.log("affter course:", course);
+      } else if (fileType.startsWith("stamp")) {
+        switch (fileType) {
+          case "stamp1":
+            await Course.findByIdAndUpdate(course._id, {
+              unitStamp: newFile._id,
+            });
+            break;
+          case "stamp2":
+            await Course.findByIdAndUpdate(course._id, {
+              unitStamp2: newFile._id,
+            });
+            break;
         }
       }
     } catch (error) {

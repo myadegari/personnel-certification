@@ -27,7 +27,7 @@ const CourseSchema = new mongoose.Schema({
   signatory: { 
     type: mongoose.Schema.Types.ObjectId,
      ref: 'User',
-    required: true
+    // required: true
    },
   unitStamp: { type: mongoose.Schema.Types.ObjectId,
     ref: 'File' }, // مهر اول

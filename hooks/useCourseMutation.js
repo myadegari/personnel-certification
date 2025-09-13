@@ -8,8 +8,6 @@ export function useUploadFile() {
       formData.append("file", file);
       formData.append("fileType", fileType);
       formData.append("courseCode", courseCode);
-      console.error("formData:", formData);
-
       const { data } = await internalAxios.post("/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -30,20 +28,32 @@ const updateCourse = ({ id, ...updatedCourse }) => {
 };
 
 
-export function useCourseMutation(onClose, courseData) {
+/**
+ * A custom mutation hook for creating or updating courses.
+ * It dynamically chooses the correct API endpoint based on the
+ * presence of an 'id' in the submitted data.
+ */
+export function useCourseMutation() {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: courseData ? updateCourse : createCourse,
-    onSuccess: (updatedData, variables) => {
-      queryClient.setQueryData(["adminCourses"], (oldData) => ({
-        ...oldData,
-        ...variables, //
-      }));
-      queryClient.invalidateQueries(["adminCourses"]);
-      onClose();
+    mutationFn: async (coursePayload) => {
+      // If the payload has an 'id', we are updating an existing course.
+      if (coursePayload.id) {
+        const { data } = await updateCourse(coursePayload);
+        return data;
+      }
+      // Otherwise, we are creating a new one.
+      const { data } = await createCourse(coursePayload);
+      return data;
     },
+    // After a successful mutation, invalidate the courses query to refetch fresh data.
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adminCourses"] });
+    },
+    // Re-throw the error to be caught by the component's try/catch block.
     onError: (error) => {
-      setError(error.response?.data?.error || error.message);
+      throw error;
     },
   });
 }

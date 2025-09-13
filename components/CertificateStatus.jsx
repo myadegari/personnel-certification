@@ -3,40 +3,47 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { microserviceAxios } from '@/lib/axios';
 
-const MICROSERVICE_URL = process.env.NEXT_PUBLIC_MICROSERVICE_URL || 'http://localhost:8000';
+// It's good practice to have the WebSocket URL in an environment variable.
+const MICROSERVICE_WS_URL = (process.env.NEXT_PUBLIC_MICROSERVICE_URL || 'http://localhost:8000').replace('http', 'ws');
 
 export default function CertificateStatus({ enrollment }) {
-  const [status, setStatus] = useState('loading');
-//   const [pdfUrl, setPdfUrl] = useState(enrollment.certificateUrl || '');
-  const [jobId, setJobId] = useState(enrollment.jobId || '');
+  // The component's state is now derived directly from the enrollment prop.
+  // If a certificateUrl exists, the job is considered complete.
+  const isComplete = !!enrollment.certificateUrl;
+  
+  const [status, setStatus] = useState(isComplete ? 'completed' : 'loading');
 
   useEffect(() => {
-    if (!enrollment.jobId) {
-      setStatus('not_started');
-      return;
-    }
-    
-    if (jobId) {
-      setStatus('completed');
+    // If the certificate is already generated, we don't need a WebSocket connection.
+    if (isComplete || !enrollment.jobId) {
+      setStatus(isComplete ? 'completed' : 'not_started');
       return;
     }
 
-    const ws = new WebSocket(`${MICROSERVICE_URL.replace('http', 'ws')}/ws/certificates?job_id=${enrollment.jobId}`);
+    // Establish the WebSocket connection if the job is not yet complete.
+    const ws = new WebSocket(`${MICROSERVICE_WS_URL}/ws/certificates?job_id=${enrollment.jobId}`);
 
     ws.onopen = () => {
       console.log('WebSocket connection established for job:', enrollment.jobId);
     };
 
     ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      console.log('Received status update:', message);
-      setStatus(message.status);
+      try {
+        const message = JSON.parse(event.data);
+        console.log('Received status update:', message);
+        setStatus(message.status);
 
-      if (message.status === 'completed' && message.pdf_path) {
-        setJobId(message.job_id);
-        ws.close();
+        // When the job is completed, the WebSocket connection can be closed.
+        if (message.status === 'completed') {
+          // A small delay can help ensure the UI updates before the connection closes.
+          setTimeout(() => ws.close(), 500);
+          // Instead of reloading, we now rely on the button using the certificateUrl.
+          // You might want to trigger a data refresh for the parent component here.
+        }
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+        setStatus('error');
       }
     };
 
@@ -49,38 +56,36 @@ export default function CertificateStatus({ enrollment }) {
       console.log('WebSocket connection closed for job:', enrollment.jobId);
     };
 
-    // Cleanup function to close WebSocket on component unmount
+    // This cleanup function ensures the WebSocket is closed when the component unmounts.
     return () => {
-      if (ws.readyState === WebSocket.OPEN) {
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
         ws.close();
       }
     };
-  }, [enrollment.jobId, jobId]);
-
-  const download_pdf = async () => {
-    const data = await microserviceAxios.get(`/certificates/${jobId}`);
-    if (data.status !== 200) {
-        alert('خطا در دریافت گواهی');
-        return;
+    // The dependency array ensures this effect runs only when the job ID changes or completion status changes.
+  }, [enrollment.jobId, isComplete]);
+  
+  // This function opens the certificate URL in a new browser tab.
+  const viewCertificate = () => {
+    if (enrollment.certificateUrl) {
+      window.open(enrollment.certificateUrl, '_blank');
+    } else {
+      // This is a fallback in case the URL is not available.
+      alert('لینک گواهی هنوز آماده نشده است.');
     }
-    const file = new Blob([data.data], { type: 'application/pdf' });
-    const fileURL = URL.createObjectURL(file);
-    window.open(fileURL);
-    
-  }
-  if (jobId) {
-    return <Button asChild size="sm" onClick={download_pdf}>دانلود گواهی</Button>;
-  }
+  };
 
+  // Render the appropriate UI based on the current status.
   switch (status) {
     case 'loading':
     case 'pending':
     case 'queued':
       return <Badge variant="secondary">در صف صدور</Badge>;
     case 'processing':
-      return <Badge variant="outline">در حال پردازش...</Badge>;
+      return <Badge variant="outline" className="animate-pulse">در حال پردازش...</Badge>;
     case 'completed':
-      return <Button asChild size="sm" onClick={download_pdf}>دانلود گواهی</Button>;
+      // When complete, show a button to view the certificate.
+      return <Button size="sm" onClick={viewCertificate}>مشاهده گواهی</Button>;
     case 'failed':
       return <Badge variant="destructive">خطا در صدور</Badge>;
     case 'error':
