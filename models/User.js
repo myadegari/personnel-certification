@@ -43,11 +43,38 @@ const UserSchema = new mongoose.Schema(
       enum: ["USER", "ADMIN"],
       default: "USER",
     },
+    status: {
+      type: String,
+      enum: ["PENDING", "NEED_TO_VERIFY", "VERIFIED", "REJECTED"],
+      default: "PENDING",
+    },
+    otp: {
+      type: String,
+    },
+    otpExpires: {
+      type: Date,
+    },
     // --- ADD THESE TWO FIELDS ---
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
   },
   { timestamps: true }
+);
+
+// Delete pending users who are older than one week
+UserSchema.index(
+  { createdAt: 1 },
+  {
+    expireAfterSeconds: 7 * 24 * 3600,
+    partialFilterExpression: { status: "PENDING" },
+  }
+);
+UserSchema.index(
+  { createdAt: 1 },
+  {
+    expireAfterSeconds: 24 * 3600,
+    partialFilterExpression: { status: "REJECTED" },
+  }
 );
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);
