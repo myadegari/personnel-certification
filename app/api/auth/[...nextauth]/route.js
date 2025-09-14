@@ -101,7 +101,7 @@ export const authOptions = {
     },
   },
   pages: {
-    signIn: "/login", // صفحه ورود سفارشی
+    signIn: "/authentication/login", // صفحه ورود سفارشی
   },
 };
 

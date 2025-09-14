@@ -128,7 +128,7 @@ export default function SignupPage() {
 
       setSuccess(data.message);
       setTimeout(() => {
-        router.push("/login");
+        router.push("/authentication/login");
       }, 3000);
     } catch (err) {
       setError(err.message);
@@ -342,7 +342,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center py-12">
+    <div className="flex items-center justify-center py-20">
       <Card className="w-full max-w-lg">
         <CardHeader>
           <CardTitle className="text-2xl text-center">
@@ -369,7 +369,7 @@ export default function SignupPage() {
           <p className="text-sm text-gray-600">
             حساب کاربری دارید؟{" "}
             <Link
-              href="/login"
+              href="/authentication/login"
               className="font-semibold text-blue-600 hover:underline"
             >
               وارد شوید

@@ -68,7 +68,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex items-center justify-center py-12">
+    <div className="flex items-center justify-center py-20">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl text-center">بازیابی رمز عبور</CardTitle>
@@ -109,7 +109,7 @@ export default function ForgotPasswordPage() {
           )}
         </CardContent>
         <CardFooter className="flex justify-center">
-          <Link href="/login" className="text-sm text-blue-600 hover:underline">
+          <Link href="/authentication/login" className="text-sm text-blue-600 hover:underline">
             بازگشت به صفحه ورود
           </Link>
         </CardFooter>

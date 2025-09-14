@@ -69,12 +69,12 @@ UserSchema.index(
     partialFilterExpression: { status: "PENDING" },
   }
 );
-UserSchema.index(
-  { createdAt: 1 },
-  {
-    expireAfterSeconds: 24 * 3600,
-    partialFilterExpression: { status: "REJECTED" },
-  }
-);
+// UserSchema.index(
+//   { createdAt: 1 },
+//   {
+//     expireAfterSeconds: 24 * 3600,
+//     partialFilterExpression: { status: "REJECTED" },
+//   }
+// );
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);

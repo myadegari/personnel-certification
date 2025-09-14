@@ -33,7 +33,7 @@ export default function LoginPage() {
             if (result.error.startsWith('PENDING_VERIFICATION')) {
                 const email = result.error.split(',')[1];
                 // Redirect to the signup page with the necessary parameters
-                router.push(`/signup?step=3&email=${email}`);
+                router.push(`/authentication/signup?step=3&email=${email}`);
                 // No need to set loading to false, as we are navigating away
                 return; 
             }
@@ -53,7 +53,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[70vh]">
+    <div className="flex items-center justify-center py-20">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-center">ورود به سامانه</CardTitle>
@@ -85,13 +85,13 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col items-center space-y-3 pt-4">
           <div className="text-sm">
-            <Link href="/forgot-password" className="text-blue-600 hover:underline">
+            <Link href="/authentication/forgot-password" className="text-blue-600 hover:underline">
               فراموشی رمز عبور
             </Link>
           </div>
           <div className="text-sm text-muted-foreground">
             حساب کاربری ندارید؟{' '}
-            <Link href="/signup" className="font-semibold text-blue-600 hover:underline">
+            <Link href="/authentication/signup" className="font-semibold text-blue-600 hover:underline">
               ثبت‌نام کنید
             </Link>
           </div>
