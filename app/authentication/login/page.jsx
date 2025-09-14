@@ -1,11 +1,14 @@
 'use client';
 import { useState } from 'react';
+import {motion as m} from "motion/react"
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
+// import { Button } from "@/components/ui/stateful-button";
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import PasswordInput from "@/components/comp-23"
 
 export default function LoginPage() {
   const [personnelNumber, setPersonnelNumber] = useState('');
@@ -70,12 +73,18 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <Input
+              {/* <Input
                 type="password"
                 placeholder="رمز عبور"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+              /> */}
+              <PasswordInput
+                placeholder="رمز عبور"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required={true}
               />
             </div>
             <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
