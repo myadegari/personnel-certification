@@ -68,11 +68,16 @@ import { useUser } from '@/hooks/useUser';
     isActive = pathname === path || pathname.startsWith(path + '/');
   }
     
-    return clsx('py-2 px-4 rounded-md transition-colors flex gap-2 items-center', isActive ? 'bg-blue-600 text-white cursor-auto' : 'bg-slate-100 hover:bg-slate-200 duration-200 text-gray-700 hover:text-gray-900'); };
+  return clsx(
+    "py-2 px-4 rounded-md font-bold transition-colors duration-500 ease-in-out flex gap-2 items-center",
+    isActive
+      ? "bg-emerald-800 text-white cursor-auto"
+      : "hover:bg-emerald-800/10  text-gray-700 hover:text-gray-900"
+  ); };
     return (
       <Sidebar side="right">
         <SidebarHeader>
-        <Link href="/" className="text-xl font-bold self-center text-blue-600 ">
+        <Link href="/" className="text-xl font-bold self-center text-emerald-800 ">
           سامانه کارمندان
         </Link>
           

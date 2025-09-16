@@ -72,17 +72,25 @@ export default function CoursesClient({ initialCourses }) {
           }).format(),
       },
       {
-        id: "actions",
-        header: "عملیات",
+        id:"enrollments-actions",
+        header:"مدیریت ثبت نام",
         cell: ({ row }) => (
           <div className="space-x-2 space-x-reverse">
-            <Button asChild variant="outline" size="sm">
+            <Button asChild  className=" rounded-3xl cursor-pointer transition-transform hover:scale-x-105" variant="outline" size="sm">
               <Link href={`/admin/courses/${row.original._id}/enrollments`}>
-                مدیریت ثبت‌نام
+                مشاهده ثبت نامی ها
               </Link>
             </Button>
+            </div>)
+      },
+      {
+        id: "actions",
+        header: "مدیریت دوره",
+        cell: ({ row }) => (
+          <div className="space-x-2 space-x-reverse flex gap-1">
             <Button
               variant="outline"
+              className=" rounded-r-3xl cursor-pointer transition-transform hover:scale-x-110 hover:bg-slate-50"
               size="sm"
               onClick={() => handleEdit(row.original)}
             >
@@ -90,6 +98,7 @@ export default function CoursesClient({ initialCourses }) {
             </Button>
             <Button
               variant="destructive"
+              className="rounded-l-3xl cursor-pointer transition-transform hover:scale-x-110"
               size="sm"
               onClick={() => handleDelete(row.original._id)}
               disabled={deleteCourseMutation.isLoading}
@@ -112,7 +121,7 @@ export default function CoursesClient({ initialCourses }) {
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <Button onClick={handleCreate}>ایجاد دوره جدید</Button>
+        <Button className=" rounded-xl cursor-pointer" onClick={handleCreate}>ایجاد دوره جدید</Button>
       </div>
 
       <CourseFormModal

@@ -6,7 +6,7 @@ import { minioClient } from '@/lib/minio';
 export async function GET(request, { params }) {
   try {
     await dbConnect();
-    const { id: certificationId } = params;
+    const { id: certificationId } = await params;
 
     if (!certificationId) {
       return new NextResponse("Missing certification ID", { status: 400 });

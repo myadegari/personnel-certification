@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 
 // A simple component to show while the PDF is loading.
 const LoadingSpinner = () => (
@@ -20,8 +20,8 @@ const ErrorDisplay = ({ message }) => (
     </div>
 );
 
-export default function VerifyCertificatePage({ params }) {
-  const { id } = params;
+export default  function VerifyCertificatePage({ params }) {
+   const { id } = use(params);
   const [pdfUrl, setPdfUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');

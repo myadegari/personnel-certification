@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
+import Course from "@/models/Course";
 import {internalAxios} from '@/lib/axios'; // <-- Use the main axios library for server-side
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from 'next/link';
@@ -92,11 +93,11 @@ export default async function DashboardPage() {
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         <Card>
           <CardHeader><CardTitle>تعداد دوره‌های گذرانده</CardTitle></CardHeader>
-          <CardContent><p className="text-4xl font-bold text-blue-600">{stats.totalCourses}</p></CardContent>
+          <CardContent><p className="text-4xl font-bold text-emerald-600">{stats.totalCourses}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>مجموع ساعات آموزشی</CardTitle></CardHeader>
-          <CardContent><p className="text-4xl font-bold text-blue-600">{stats.totalHours} ساعت</p></CardContent>
+          <CardHeader><CardTitle>مجموع ساعات آموزشی سالانه</CardTitle></CardHeader>
+          <CardContent><p className="text-4xl font-bold text-emerald-600">{stats.totalHours} ساعت</p></CardContent>
         </Card>
       </div>
       

@@ -18,8 +18,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { clsx } from "clsx";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge"; // Assuming you have a Badge component
+// import { Badge } from "@/components/ui/badge"; // Assuming you have a Badge component
+import {Badge} from "@radix-ui/themes"
 // You will need to create this modal component
 import UserFormModal from "./UserFormModal";
 
@@ -35,18 +37,32 @@ const deleteUsers = (userIds) =>
 const updateUserStatus = ({ userId, status }) => {
   return internalAxios.post("/admin/users/update-status", { userId, status });
 };
+// const StatusBadge = ({ status }) => {
+//   switch (status) {
+//     case "PENDING":
+//       return <Badge variant="outline">در انتظار تکمیل</Badge>;
+//     case "NEED_TO_VERIFY":
+//       return <Badge variant="secondary">در انتظار تایید</Badge>;
+//     case "VERIFIED":
+//       return <Badge>تایید شده</Badge>;
+//     case "REJECTED":
+//       return <Badge variant="destructive">رد شده</Badge>;
+//     default:
+//       return <Badge variant="outline">نامشخص</Badge>;
+//   }
+// };
 const StatusBadge = ({ status }) => {
   switch (status) {
     case "PENDING":
-      return <Badge variant="outline">در انتظار تکمیل</Badge>;
+      return <Badge color="orange" radius="full">در انتظار تکمیل</Badge>;
     case "NEED_TO_VERIFY":
-      return <Badge variant="secondary">در انتظار تایید</Badge>;
+      return <Badge color="yellow" radius="full">در انتظار تایید</Badge>;
     case "VERIFIED":
-      return <Badge>تایید شده</Badge>;
+      return <Badge color="green" radius="full">تایید شده</Badge>;
     case "REJECTED":
-      return <Badge variant="destructive">رد شده</Badge>;
+      return <Badge color="ruby" radius="full">رد شده</Badge>;
     default:
-      return <Badge variant="outline">نامشخص</Badge>;
+      return <Badge color="gray" radius="full">نامشخص</Badge>;
   }
 };
 
@@ -137,7 +153,9 @@ export default function UserManagementClient({ initialData }) {
         header: "نام کامل",
       },
       { accessorKey: "email", header: "ایمیل" },
-      { accessorKey: "role", header: "نقش" },
+      { accessorKey: "role", header: "نقش",
+        cell:({row})=> <p>{row.original.role == "ADMIN"?"مدیر":"کاربر"}</p>
+      },
       {
         accessorKey: "status",
         header: "وضعیت",
@@ -147,11 +165,12 @@ export default function UserManagementClient({ initialData }) {
         id: "actions",
         header: "عملیات",
         cell: ({ row }) => (
-          <div className="space-x-2 space-x-reverse">
-            {row.original.status === "NEED_TO_VERIFY" && (
-              <>
+          <div className="space-x-2 space-x-reverse flex flex-col gap-2">
+            {row.original.status === "NEED_TO_VERIFY" ? (
+              <div className="flex gap-1 w-full">
                 <Button
                   variant="default"
+                  className="flex-1 rounded-r-3xl cursor-pointer"
                   size="sm"
                   onClick={() =>
                     handleStatusUpdate(row.original._id, "VERIFIED")
@@ -162,6 +181,7 @@ export default function UserManagementClient({ initialData }) {
                 </Button>
                 <Button
                   variant="destructive"
+                  className="flex-1 rounded-l-3xl cursor-pointer"
                   size="sm"
                   onClick={() =>
                     handleStatusUpdate(row.original._id, "REJECTED")
@@ -170,15 +190,16 @@ export default function UserManagementClient({ initialData }) {
                 >
                   رد
                 </Button>
-              </>
-            )}
-            <Button
+              </div>
+            ):( <Button
               variant="outline"
+              className="cursor-pointer rounded-3xl"
               size="sm"
               onClick={() => handleEdit(row.original)}
             >
               ویرایش
-            </Button>
+            </Button>)}
+           
           </div>
         ),
       },
@@ -242,9 +263,10 @@ export default function UserManagementClient({ initialData }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <Button onClick={handleCreate}>ایجاد کاربر جدید</Button>
+        <Button className="cursor-pointer rounded-xl" onClick={handleCreate}>ایجاد کاربر جدید</Button>
         <Button
           variant="destructive"
+          className={clsx("rounded-xl",Object.keys(rowSelection).length === 0 ? "" : "cursor-pointer")}
           onClick={handleBulkDelete}
           disabled={Object.keys(rowSelection).length === 0}
         >
