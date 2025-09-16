@@ -1,5 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@radix-ui/themes/styles.css";
+
+* {
+  font-family: var(--font-sahel) !important;
+}
 
 @custom-variant dark (&:is(.dark *));
 
