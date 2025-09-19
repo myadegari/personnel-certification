@@ -4,6 +4,7 @@ import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
 import Course from "@/models/Course";
 
+
 export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!session) {

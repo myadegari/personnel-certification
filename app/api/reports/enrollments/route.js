@@ -3,7 +3,7 @@ import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
 import Course from "@/models/Course";
 import User from "@/models/User";
-import CertificateSequence from "@/models/CertificateSequence"
+import CertificateSequence from "@/models/Indicator"
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Adjust path to your authOptions
 import { microserviceAxios } from "@/lib/axios";

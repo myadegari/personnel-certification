@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import CertificateSequence from '@/models/CertificateSequence';
+import CertificateSequence from '@/models/Indicator';
 
 export async function GET() {
   await dbConnect();
