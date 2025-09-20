@@ -70,6 +70,25 @@ export default function CoursesClient({ initialCourses }) {
             calendar: persian,
             locale: persian_fa,
           }).format(),
+      }, {
+        accessorKey: "enrollmentDeadline",
+        header: "مهلت ثبت‌نام",
+        cell: ({ row }) => {
+            const course = row.original;
+            // The extra 86399 seconds make the deadline end of the day after course date (23:59:59)
+            const deadline = course.enrollmentDeadline || (course.date + 86399);
+            const isCustom = !!course.enrollmentDeadline;
+
+            return (
+                <div className="flex flex-col">
+                    <span>
+                        {new DateObject({ date: new Date(deadline * 1000), calendar: persian, locale: persian_fa }).format("YYYY/MM/DD")}
+                    </span>
+                    {!isCustom && <span className="text-xs text-gray-500">(پیش‌فرض)</span>}
+                    {isCustom && <span className="text-xs text-blue-500 font-semibold">(سفارشی)</span>}
+                </div>
+            );
+        }
       },
       {
         id:"enrollments-actions",

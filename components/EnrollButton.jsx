@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 
 const enrollInCourse = (courseId) => internalAxios.post('/enrollments', { courseId });
 
-export default function EnrollButton({ courseId, status }) {
+export default function EnrollButton({ courseId, status, enrollmentDeadline }) {
   const queryClient = useQueryClient();
   const [currentStatus, setCurrentStatus] = useState(status);
   // const [message, setMessage] = useState('');
@@ -17,12 +17,18 @@ export default function EnrollButton({ courseId, status }) {
         setCurrentStatus('PENDING');
         // Invalidate the main courses query to refetch and update statuses
         queryClient.invalidateQueries({ queryKey: ['courses'] });
-    }
+    }, onError: (error) => {
+      const errorMessage = error.response?.data?.message || "An error occurred during enrollment.";
+      alert(errorMessage); // For a better UX, consider using a toast notification library
+  }
 });
   
 const handleEnroll = () => {
     mutation.mutate(courseId);
   };
+
+  const nowInSeconds = Math.floor(Date.now() / 1000);
+  const isDeadlinePassed = nowInSeconds > enrollmentDeadline;
   
   if (currentStatus === 'APPROVED') {
     return <Button disabled className="w-full bg-green-600">ثبت‌نام شده (تایید شده)</Button>;
@@ -30,6 +36,9 @@ const handleEnroll = () => {
   
   if (currentStatus === 'PENDING') {
     return <Button disabled className="w-full bg-yellow-500">در انتظار تایید</Button>;
+  }
+  if (isDeadlinePassed) {
+    return <Button disabled className="w-full bg-red-500">مهلت ثبت‌نام به پایان رسیده است</Button>;
   }
 
   return (

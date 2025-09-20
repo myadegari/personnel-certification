@@ -14,7 +14,9 @@ const CourseSchema = new mongoose.Schema({
     type: Number, 
     required: true
    }, // باید از نوع Number باشد
-  
+   enrollmentDeadline: {
+    type: Number, // Optional custom deadline, Unix timestamp in seconds
+  },
   duration: {
     type: Number, // مدت زمان به ساعت
     required: true,

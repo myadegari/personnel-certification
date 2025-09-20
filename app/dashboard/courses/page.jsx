@@ -1,63 +1,64 @@
-// File: app/courses/page.jsx
+// File: app/dashboard/courses/page.jsx
+'use server'; // You can add server actions in the same file as a Server Component
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import Course from "@/models/Course";
 import Enrollment from "@/models/Enrollment";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import EnrollButton from "@/components/EnrollButton";
-import Link from 'next/link';
-import { Button } from "@/components/ui/button";
-import { DateObject } from "react-multi-date-picker";
-import persian from "react-date-object/calendars/persian";
-import persian_fa from "react-date-object/locales/persian_fa";
+import { unstable_noStore as noStore } from 'next/cache';
+import CourseList from "@/components/CourseList"; // We will create this component next
 
-// Fetch all necessary data on the server
-async function getCourseData(userId) {
-  await dbConnect();
-  const courses = await Course.find({}).sort({ date: -1 }).lean();
-  const userEnrollments = await Enrollment.find({ user: userId }).select('course status -_id').lean();
-  
-  const enrollmentMap = new Map(userEnrollments.map(e => [e.course.toString(), e.status]));
+const COURSES_PER_PAGE = 9; // Number of courses to fetch per page
 
-  return { courses, enrollmentMap };
+/**
+ * Server Action to fetch paginated courses.
+ * This function will be called by the client to load more courses.
+ */
+export async function fetchCourses({ page = 1 }) {
+  noStore(); // Opt out of caching for dynamic data
+  try {
+    await dbConnect();
+    const courses = await Course.find({})
+      .sort({ date: -1 }) // Newest courses first
+      .skip((page - 1) * COURSES_PER_PAGE)
+      .limit(COURSES_PER_PAGE)
+      .lean();
+    
+    // Important: Convert MongoDB ObjectId to string for client-side usage
+    return courses.map(course => ({
+      ...course,
+      _id: course._id.toString(),
+      // Ensure other ObjectId fields are converted if they will be used on the client
+    }));
+
+  } catch (error) {
+    console.error('Failed to fetch courses:', error);
+    return [];
+  }
 }
 
 export default async function CoursesPage() {
   const session = await getServerSession(authOptions);
-  const { courses, enrollmentMap } = await getCourseData(session.user.id);
+  
+  // Fetch the initial data (first page of courses and all user enrollments)
+  const initialCourses = await fetchCourses({ page: 1 });
+  const userEnrollments = await Enrollment.find({ user: session.user.id }).select('course status -_id').lean();
+  
+  // Create a map for quick lookup of enrollment status
+  const enrollmentMap = new Map(userEnrollments.map(e => [e.course.toString(), e.status]));
 
   return (
     <div>
-      {/* --- بخش جدید: هدر صفحه --- */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-gray-800">لیست دوره‌های آموزشی</h1>
-        {/* <Link href="/dashboard" passHref>
-          <Button variant="outline">بازگشت به داشبورد</Button>
-        </Link> */}
       </div>
-      {/* --- پایان بخش جدید --- */}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.map((course) => {
-          const enrollmentStatus = enrollmentMap.get(course._id.toString());
-          return (
-            <Card key={course._id} className="flex flex-col">
-              <CardHeader>
-                <CardTitle>{course.name}</CardTitle>
-                <CardDescription>{course.organizingUnit}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <p><strong>تاریخ برگزاری:</strong> {new DateObject({date:new Date(course.date*1000),calendar: persian, locale: persian_fa }).format()}</p>
-                <p><strong>مدت زمان:</strong> {course.duration} ساعت</p>
-              </CardContent>
-              <CardFooter>
-                <EnrollButton courseId={course._id.toString()} status={enrollmentStatus} />
-              </CardFooter>
-            </Card>
-          );
-        })}
-      </div>
+      {/* Pass initial data to the client component */}
+      <CourseList 
+        initialCourses={initialCourses} 
+        enrollmentMap={enrollmentMap} 
+      />
     </div>
   );
 }
