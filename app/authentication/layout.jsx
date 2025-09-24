@@ -1,5 +1,8 @@
+"use client"
+
 import Image from "next/image";
 import universityLogo from '@/public/universityLogo.jpg';
+import { motion } from "motion/react"
 
 export default function AuthenticationLayout({ children }) {
   return (
@@ -18,21 +21,31 @@ export default function AuthenticationLayout({ children }) {
       </main>
 
       {/* The footer remains fixed at the bottom */}
-      <footer className="bg-white py-4 border-t border-gray-200 w-full fixed bottom-0 z-20">
+      <footer className="bg-white py-2 border-t border-gray-200 w-full fixed bottom-0 z-20">
         <div className="container mx-auto px-4 text-center">
           <div className="flex flex-row-reverse gap-2 justify-center items-center">
-            <div className="text-xs text-gray-800 grid gap-1 w-fit">
-              <p className=" font-black">مجتمع آموزش عالی لارستان</p>
+            <motion.div 
+            initial={{ opacity: 0, x: 25 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}  
+            className="text-[0.65rem] text-gray-800 grid gap-1 w-fit">
+              <p className="">مجتمع آموزش عالی لارستان</p>
               <p>Larestan Higher Education Complex</p>
-            </div>
+            </motion.div>
+            <motion.div
+            initial={{ opacity: 0}}
+            animate={{ opacity: 1}}
+            transition={{ duration: 0.5 }}  
+            >
             <Image 
               src={universityLogo} 
-              width={55} 
+              width={35} 
               height={50} 
               alt="لوگوی دانشگاه"
-              className="object-contain opacity-80"
+              className="object-contain opacity-80 "
               priority={false}
             />
+            </motion.div>
           </div>
         </div>
       </footer>

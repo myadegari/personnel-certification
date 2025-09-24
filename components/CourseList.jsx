@@ -8,6 +8,23 @@ import { DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import { fetchCourses } from '@/app/dashboard/courses/page'; // Import the Server Action
+import { Badge } from '@radix-ui/themes';
+import { cn } from '@/lib/utils';
+
+const CourseStatusElement= ({ status }) => {
+  switch(status){
+    case 1:
+      return <p className="text-xs py-2 text-blue-600 bg-blue-400/25 px-4 rounded-full">دوره پیش‌رو</p>;
+    case 2:
+      return <p className="text-xs py-2 text-green-600 bg-green-400/25 px-4 rounded-full">درحال برگزاری</p>;
+    case 3:
+      return <p className="text-xs py-2 text-red-600 bg-red-400/25 px-4 rounded-full">امروز آخرین مهلت ثبت‌نام</p>;
+    case 4:
+      return <p className="text-xs py-2 text-gray-600 bg-gray-400/25 px-4 rounded-full">اتمام ثبت نام</p>;
+    default:
+      return <p className="text-xs py-2 text-gray-600 bg-gray-400/25 px-4 rounded-full">وضعیت نامشخص</p>;
+  }
+}
 
 export default function CourseList({ initialCourses, enrollmentMap }) {
   const [courses, setCourses] = useState(initialCourses);
@@ -55,6 +72,39 @@ export default function CourseList({ initialCourses, enrollmentMap }) {
     };
   }, [hasMore, isLoading]); // Re-run effect if these dependencies change
 
+// New, more robust function to determine course status
+const getCourseStatus = (course) => {
+  const now = new Date();
+  // Get start and end of day in UTC to avoid timezone issues
+  const startOfTodayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+  const courseDateUTC = new Date(course.date * 1000);
+  const enrollmentDeadlineUTC = new Date((course.enrollmentDeadline || course.date) * 1000);
+
+  // If enrollment deadline has passed, the course is closed for registration
+  if (now > enrollmentDeadlineUTC) {
+    return 4; // Canceled or Closed
+  }
+
+  // If the course date is in the future, it's an upcoming course
+  if (courseDateUTC > startOfTodayUTC) {
+    return 1; // Upcoming
+  }
+
+  // If the course date is today or has passed, but the enrollment is still open, it's ongoing or enrollment is open
+  if (now <= enrollmentDeadlineUTC) {
+    // If the course has already started, it's in progress
+    if (now >= courseDateUTC) {
+      return 2; // In Progress
+    }
+    // If the course starts today, it's the last day to enroll
+    if (startOfTodayUTC.getTime() === enrollmentDeadlineUTC.getTime() && now < enrollmentDeadlineUTC) {
+      return 3; // Last Day to Enroll
+    }
+  }
+
+  // Default to a status indicating an unknown state
+  return 0;
+};
 
   return (
     <>
@@ -64,15 +114,20 @@ export default function CourseList({ initialCourses, enrollmentMap }) {
           const enrollmentDeadline = course.enrollmentDeadline || (course.date + 86399);
           
           return (
-            <Card key={course._id} className="flex flex-col">
+            <Card key={course._id} className={cn("flex flex-col drop-shadow-slate-300/50 drop-shadow-[0px_10px_5px]",{"opacity-50":[4,0].includes(getCourseStatus(course)) })}>
               <CardHeader>
-                <CardTitle>{course.name}</CardTitle>
-                <CardDescription>{course.organizingUnit}</CardDescription>
+                <div  className="flex justify-between items-center">
+                <div>
+                  <CardTitle className={cn("text-2xl", { "text-green-600": [1,2,3].includes(getCourseStatus(course)) })}>{course.name}</CardTitle>
+                  <CardDescription>{course.organizingUnit}</CardDescription>
+                </div>
+                  <CourseStatusElement status={getCourseStatus(course)}/>
+                </div>
               </CardHeader>
-              <CardContent className="flex-grow">
-                <p><strong>تاریخ برگزاری:</strong> {new DateObject({date:new Date(course.date*1000),calendar: persian, locale: persian_fa }).format()}</p>
-                <p><strong>مهلت ثبت‌نام:</strong> {new DateObject({date:new Date(enrollmentDeadline * 1000),calendar: persian, locale: persian_fa }).format("YYYY/MM/DD")}</p>
-                <p><strong>مدت زمان:</strong> {course.duration} ساعت</p>
+              <CardContent className="flex-grow flex justify-around border-t pt-5">
+                <p className="flex flex-col gap-2 items-center text-lg"><span className="text-[13px] font-normal text-gray-500">تاریخ برگزاری</span> {new DateObject({date:new Date(course.date*1000),calendar: persian, locale: persian_fa }).format()}</p>
+                {/* <p className="flex flex-col gap-2 items-center text-lg"><span className="text-[13px] font-normal text-gray-500">مهلت ثبت‌نام</span> {new DateObject({date:new Date(enrollmentDeadline * 1000),calendar: persian, locale: persian_fa }).format("YYYY/MM/DD")}</p> */}
+                <p className="flex flex-col gap-2 items-center text-lg"><span className="text-[13px] font-normal text-gray-500">مدت زمان</span> {course.duration} ساعت</p>
               </CardContent>
               <CardFooter>
                 <EnrollButton courseId={course._id.toString()} status={enrollmentStatus} enrollmentDeadline={enrollmentDeadline}/>

@@ -11,6 +11,8 @@ import UserCoursesTable from "@/components/UserCoursesTable";
 import { headers } from "next/headers"; // <-- این را import کنید
 import Logout from "@/components/Logout";
 import clsx from "clsx";
+import AnnualHours from "@/components/AnnualHours";
+
 
 
 // This function now gets the totals for the stat cards
@@ -19,6 +21,7 @@ async function getDashboardStats(userId) {
   const enrollments = await Enrollment.find({ user: userId, status: 'APPROVED' }).populate('course', 'duration').lean();
   const totalCourses = enrollments.length;
   const totalHours = enrollments.reduce((acc, curr) => acc + (curr.course?.duration || 0), 0);
+  console.log("Total Courses:", totalCourses);
   return { totalCourses, totalHours };
 }
 
@@ -52,14 +55,14 @@ export default async function DashboardPage() {
 
   return (
 <div className=" relative">
-<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+{/* <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-gray-800">داشبورد کاربری</h1>
         {/* <div className="flex gap-4">
           <Link href="/profile" passHref><Button variant="outline" className="cursor-pointer">پروفایل کاربری</Button></Link>
           <Link href="/courses" passHref><Button className="cursor-pointer">مشاهده و ثبت‌نام دوره‌ها</Button></Link>
           <Logout/>
-        </div> */}
-      </div>
+        </div> 
+      </div> */}
       {session?.user?.status === 'NEED_TO_VERIFY' && (
       <div className="grid place-content-center justify-items-center h-full absolute mx-auto w-full z-10">
       <Card className="w-full max-w-md p-0 shadow-xl bg-transparent">
@@ -82,7 +85,7 @@ export default async function DashboardPage() {
                             </p>
                         </div>
                     )} */}
-                </CardContent>
+                </CardContent >
             </Card>
             </div>
   )}
@@ -90,14 +93,19 @@ export default async function DashboardPage() {
   <div className={clsx({"w-full h-full blur-sm z-0":session?.user?.status != 'VERIFIED'})}>
    
       <h2 className="text-xl font-semibold mb-4 text-gray-700">آمار کلی</h2>
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <Card>
-          <CardHeader><CardTitle>تعداد دوره‌های گذرانده</CardTitle></CardHeader>
-          <CardContent><p className="text-4xl font-bold text-emerald-600">{stats.totalCourses}</p></CardContent>
+      <div className="grid md:grid-cols-3 gap-4 mb-8">
+        <Card className="rounded-2xl hover:scale-105 transition-all cursor-default hover:z-10">
+          <CardHeader className="text-center"><CardTitle>تعداد دوره‌های گذرانده</CardTitle></CardHeader>
+          <CardContent className="text-center"><p className="text-4xl font-bold text-emerald-600">{stats.totalCourses}</p></CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardTitle>مجموع ساعات آموزشی سالانه</CardTitle></CardHeader>
-          <CardContent><p className="text-4xl font-bold text-emerald-600">{stats.totalHours} ساعت</p></CardContent>
+        {/* <Card className="rounded-2xl hover:scale-105 transition-all cursor-default hover:z-10">
+          <CardHeader className="text-center"><CardTitle>مجموع ساعات آموزشی سالانه</CardTitle></CardHeader>
+          <CardContent className="text-center"><p className="text-4xl font-bold text-emerald-600">{stats.totalHours} ساعت</p></CardContent>
+        </Card> */}
+        <AnnualHours />
+        <Card className="rounded-2xl hover:scale-105 transition-all cursor-default hover:z-10">
+          <CardHeader className="text-center"><CardTitle>مجموع کل ساعات آموزشی</CardTitle></CardHeader>
+          <CardContent className="text-center"><p className="text-4xl font-bold text-emerald-600">{stats.totalHours} ساعت</p></CardContent>
         </Card>
       </div>
       

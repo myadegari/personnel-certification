@@ -8,25 +8,26 @@ import Providers from "@/components/Providers";
 import Image from "next/image";
 import universityLogo from '@/public/universityLogo.jpg';
 import { Theme } from "@radix-ui/themes";
-
+// import { ToastContainer, ToastContentProps } from 'react-toastify';
+import toast, { Toaster } from 'react-hot-toast';
 // const vazirmatn = Vazirmatn({ subsets: ["arabic"] });
 const sahel = localFont({
   src: [
     {
-      path: './fonts/Sahel-FD-WOL.woff2',
+      path: './fonts/Shabnam-FD.woff2',
       weight: '400', // Regular
       style: 'normal',
     },
     {
-      path: './fonts/Sahel-Bold-FD-WOL.woff2',
+      path: './fonts/Shabnam-Bold-FD.woff2',
       weight: '700', // Bold
       style: 'normal',
     },
-    {
-      path: './fonts/Sahel-Black-FD-WOL.woff2',
-      weight: '900', // Black
-      style: 'normal',
-    },
+    // {
+    //   path: './fonts/Sahel-Black-FD-WOL.woff2',
+    //   weight: '900', // Black
+    //   style: 'normal',
+    // },
   ],
   display: 'swap', // Improves font loading performance
   variable: '--font-sahel', // This creates a CSS variable
@@ -53,8 +54,9 @@ export default function RootLayout({ children }) {
                 {children}
        
               
-             
             </div>
+                <Toaster   position="top-center"
+  reverseOrder={false} />
             </Theme>
           </Providers>
         </AuthProvider>

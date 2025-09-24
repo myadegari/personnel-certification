@@ -27,7 +27,11 @@ export async function fetchCourses({ page = 1 }) {
     
     // Important: Convert MongoDB ObjectId to string for client-side usage
     return courses.map(course => ({
-      ...course,
+      name: course.name,
+      date: course.date,
+      enrollmentDeadline: course.enrollmentDeadline,
+      duration: course.duration,
+      organizingUnit: course.organizingUnit,
       _id: course._id.toString(),
       // Ensure other ObjectId fields are converted if they will be used on the client
     }));
@@ -50,9 +54,9 @@ export default async function CoursesPage() {
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+      {/* <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-gray-800">لیست دوره‌های آموزشی</h1>
-      </div>
+      </div> */}
 
       {/* Pass initial data to the client component */}
       <CourseList 

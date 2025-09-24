@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent,CardHeader,CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMutation } from '@tanstack/react-query';
 import {internalAxios} from '@/lib/axios';
+import PasswordInput from "@/components/comp-23"
 
 const changePassword = async (passwords) => {
   const { data } = await internalAxios.post('/profile/change-password', passwords);
@@ -32,18 +33,23 @@ const handleSubmit = (e) => {
   mutation.mutate(passwords);
 };
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <form onSubmit={handleSubmit} className="space-y-4 [&>div>Label]:mb-2 ">
+    <Card className="gap-0 h-full">
+      <CardHeader>
+        <CardTitle>
+          تغییر رمز عبور
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-6 h-full">
+        <form onSubmit={handleSubmit} className="space-y-4 [&>div>Label]:mb-2 grid h-full">
           <div>
             <Label htmlFor="currentPassword">رمز عبور فعلی</Label>
-            <Input id="currentPassword" name="currentPassword" type="password" value={passwords.currentPassword} onChange={handleChange} />
+            <PasswordInput id="currentPassword" name="currentPassword" value={passwords.currentPassword} onChange={handleChange} />
           </div>
           <div>
             <Label htmlFor="newPassword">رمز عبور جدید</Label>
-            <Input id="newPassword" name="newPassword" type="password" value={passwords.newPassword} onChange={handleChange} />
+            <PasswordInput id="newPassword" name="newPassword" value={passwords.newPassword} onChange={handleChange} />
           </div>
-          <Button type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'در حال تغییر...' : 'تغییر رمز'}</Button>
+          <Button className="w-full cursor-pointer self-end" type="submit" disabled={mutation.isPending}>{mutation.isPending ? 'در حال تغییر...' : 'تغییر رمز'}</Button>
           {message && <p className={`text-sm mt-2 ${message.includes('موفقیت') ? 'text-green-600' : 'text-red-600'}`}>{message}</p>}
         </form>
       </CardContent>

@@ -52,7 +52,7 @@ function convertToPixelCrop(crop, imageWidth, imageHeight) {
   return crop;
 }
 
-export default function ImageCropper({ isOpen, onOpenChange, image, onCropComplete }) {
+export default function ImageCropper({ isOpen, onOpenChange, image, onCropComplete,aspect=1 }) {
   const imgRef = useRef(null);
   const [crop, setCrop] = useState();
   const [completedCrop, setCompletedCrop] = useState(null); // ✅ This is key!
@@ -60,7 +60,7 @@ export default function ImageCropper({ isOpen, onOpenChange, image, onCropComple
   function onImageLoad(e) {
     const { width, height } = e.currentTarget;
     const initialCrop = centerCrop(
-      makeAspectCrop({ unit: '%', width: 80 }, 1, width, height),
+      makeAspectCrop({ unit: '%', width: 80 }, aspect, width, height),
       width,
       height
     );
@@ -77,12 +77,12 @@ export default function ImageCropper({ isOpen, onOpenChange, image, onCropComple
   const pixelCrop = convertToPixelCrop(crop, imgWidth, imgHeight);
 
   // Enforce square by using min dimension
-  const size = Math.min(pixelCrop.width, pixelCrop.height);
+  // const size = Math.min(pixelCrop.width, pixelCrop.height);
   const enforcedCrop = {
     x: pixelCrop.x,
     y: pixelCrop.y,
-    width: size,
-    height: size,
+    width: pixelCrop.width,
+    height: pixelCrop.height,
   };
 
     // ✅ Use completedCrop — it's in pixels and validated
@@ -94,26 +94,26 @@ export default function ImageCropper({ isOpen, onOpenChange, image, onCropComple
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Crop Your Profile Picture</DialogTitle>
+          {/* <DialogTitle>Crop Your Profile Picture</DialogTitle> */}
         </DialogHeader>
         <div className="flex justify-center">
              <ReactCrop
             crop={crop}
             onChange={(_, percentCrop) => setCrop(percentCrop)} // keep % for UI
             onComplete={(pixelCrop) => setCompletedCrop(pixelCrop)} // ✅ use pixelCrop for actual cropping
-            aspect={1}
+            aspect={aspect}
             minWidth={100}
           >
             <img ref={imgRef} src={image} onLoad={onImageLoad} alt="Crop preview" />
           </ReactCrop>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>لغو</Button>
           <Button 
             onClick={handleCrop} 
             disabled={!completedCrop} // ✅ Only enable when crop is ready
           >
-            Confirm Crop
+            تایید برش
           </Button>
         </DialogFooter>
       </DialogContent>

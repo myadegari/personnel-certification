@@ -30,7 +30,7 @@ export async function POST(request) {
       );
     }
 
-    if (user.status !== "NEED_TO_VERIFY") {
+    if (!["PENDING", "NEED_TO_VERIFY"].includes(user.status)) {
       return new Response(
         JSON.stringify({ message: "این حساب قبلاً تایید شده است." }),
         { status: 400 }

@@ -15,6 +15,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { internalAxios } from "@/lib/axios";
+import toast from 'react-hot-toast';
+import PasswordInput from "@/components/comp-23"
 
 export default function SignupPage() {
   const [step, setStep] = useState(1);
@@ -47,7 +49,7 @@ export default function SignupPage() {
     if (stepFromQuery === "3" && emailFromQuery) {
       setStep(Number(stepFromQuery));
       setUserEmail(emailFromQuery);
-      setSuccess(
+      toast(
         "کد تایید جدیدی به ایمیل شما ارسال شد. لطفاً ثبت‌نام خود را تکمیل کنید."
       );
     }
@@ -78,7 +80,7 @@ export default function SignupPage() {
   const handleNextToInfo = (e) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      setError("رمزهای عبور یکسان نیستند.");
+      toast.error("رمزهای عبور یکسان نیستند.");
       return;
     }
     setError("");
@@ -99,13 +101,18 @@ export default function SignupPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "خطایی در ثبت‌نام رخ داد.");
+      if (!res.ok) {
+        
+        throw new Error(data.message || "خطایی در ثبت‌نام رخ داد.");
 
-      setSuccess(data.message);
+      }
+
+      toast.success(data.message);
       setUserEmail(data.email);
       setStep(3); // Move to OTP step
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
+      // setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -126,12 +133,14 @@ export default function SignupPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      setSuccess(data.message);
+      // setSuccess(data.message);
+      toast.success(data.message);
       setTimeout(() => {
         router.push("/authentication/login");
       }, 3000);
     } catch (err) {
-      setError(err.message);
+      // setError(err.message);
+      toast.error(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -151,11 +160,13 @@ export default function SignupPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      setSuccess(data.message);
+      // setSuccess(data.message);
+      toast(data.message);
       setCanResend(false);
       setTimer(60); // Reset timer
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
+       // setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -167,8 +178,9 @@ export default function SignupPage() {
         return (
           <form onSubmit={handleNextToInfo} className="space-y-4">
             <div>
-              <Label htmlFor="personnelNumber">شماره پرسنلی</Label>
+              <Label  className="mb-2" htmlFor="personnelNumber">شماره پرسنلی</Label>
               <Input
+              dir="ltr"
                 id="personnelNumber"
                 name="personnelNumber"
                 value={formData.personnelNumber}
@@ -177,25 +189,23 @@ export default function SignupPage() {
               />
             </div>
             <div>
-              <Label htmlFor="password">رمز عبور</Label>
-              <Input
+              <Label htmlFor="password"  className="mb-2">رمز عبور</Label>
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 value={formData.password}
                 onChange={handleChange}
-                required
+                required={true}
               />
             </div>
             <div>
-              <Label htmlFor="confirmPassword">تکرار رمز عبور</Label>
-              <Input
+              <Label className="mb-2" htmlFor="confirmPassword">تکرار رمز عبور</Label>
+              <PasswordInput
                 id="confirmPassword"
                 name="confirmPassword"
-                type="password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                required
+                required={true}
               />
             </div>
             <Button type="submit" className="w-full">
@@ -232,6 +242,7 @@ export default function SignupPage() {
               <div>
                 <Label htmlFor="nationalId">کد ملی</Label>
                 <Input
+                dir="ltr"
                   id="nationalId"
                   name="nationalId"
                   value={formData.nationalId}
@@ -250,9 +261,12 @@ export default function SignupPage() {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+
             <div>
               <Label htmlFor="email">ایمیل</Label>
               <Input
+              dir="ltr"
                 id="email"
                 name="email"
                 type="email"
@@ -261,8 +275,8 @@ export default function SignupPage() {
                 required
               />
             </div>
-            <div>
-              <Label>جنسیت</Label>
+            <div className="flex justify-around">
+              <Label className="mb-0">جنسیت</Label>
               <RadioGroup
                 name="gender"
                 value={formData.gender}
@@ -280,16 +294,19 @@ export default function SignupPage() {
                 </div>
               </RadioGroup>
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            </div>
+            <div className="flex gap-2">
+            <Button type="submit" className="flex-1 cursor-pointer" disabled={isLoading}>
               {isLoading ? "در حال ارسال..." : "ثبت‌نام و ارسال کد"}
             </Button>
             <Button
               variant="outline"
-              className="w-full"
+              className=" cursor-pointer"
               onClick={() => setStep(1)}
             >
               بازگشت
             </Button>
+            </div>
           </form>
         );
       case 3:
@@ -298,6 +315,7 @@ export default function SignupPage() {
             <div>
               <Label htmlFor="otp">کد تایید</Label>
               <Input
+               dir="ltr"
                 id="otp"
                 name="otp"
                 value={otp}
@@ -343,7 +361,7 @@ export default function SignupPage() {
 
   return (
     <div className="flex items-center justify-center py-20">
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-md drop-shadow-amber-800/20">
         <CardHeader>
           <CardTitle className="text-2xl text-center">
             ایجاد حساب کاربری

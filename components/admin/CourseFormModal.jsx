@@ -50,7 +50,7 @@ const CourseFormFields = ({
   const currentSequence = sequences.find((s) => s.pattern === currentPattern);
 
   return (
-    <div className="space-y-4 max-h-[60vh] overflow-y-auto p-1">
+    <div className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
       {/* Course Details Section */}
       <div className="p-4 border rounded-md space-y-4">
         <h4 className="font-semibold mb-2">اطلاعات اولیه دوره</h4>

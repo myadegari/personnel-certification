@@ -5,65 +5,100 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
 // It's good practice to have the WebSocket URL in an environment variable.
-const MICROSERVICE_WS_URL = (process.env.NEXT_PUBLIC_MICROSERVICE_URL || 'http://localhost:8000').replace('http', 'ws');
+const MICROSERVICE_URL = process.env.NEXT_PUBLIC_MICROSERVICE_URL || 'http://localhost:8000';
+const MICROSERVICE_WS_URL = MICROSERVICE_URL.replace('http', 'ws');
+
+// A simple utility to wait for a specific duration.
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default function CertificateStatus({ enrollment }) {
   // The component's state is now derived directly from the enrollment prop.
   // If a certificateUrl exists, the job is considered complete.
-  const isComplete = !!enrollment.certificateUrl;
+  const [status, setStatus] = useState("not_started")
   
-  const [status, setStatus] = useState(isComplete ? 'completed' : 'loading');
+  
+  // const [status, setStatus] = useState(isComplete ? 'completed' : 'loading');
 
   useEffect(() => {
-    // If the certificate is already generated, we don't need a WebSocket connection.
-    if (isComplete || !enrollment.jobId) {
-      setStatus(isComplete ? 'completed' : 'not_started');
-      return;
-    }
+    let ws = null;
+    let isMounted = true;
+    
+    // Asynchronous function to fetch initial status and handle WebSocket connection.
+    const fetchStatusAndConnect = async () => {
+      
+      // If there's no jobId, it means the process hasn't started yet.
+      if (!enrollment.jobId) {
+        setStatus('not_started');
+        return;
+      }
 
-    // Establish the WebSocket connection if the job is not yet complete.
-    const ws = new WebSocket(`${MICROSERVICE_WS_URL}/ws/certificates?job_id=${enrollment.jobId}`);
-
-    ws.onopen = () => {
-      console.log('WebSocket connection established for job:', enrollment.jobId);
-    };
-
-    ws.onmessage = (event) => {
+      // First, fetch the status from the REST API to get the current state.
       try {
-        const message = JSON.parse(event.data);
-        console.log('Received status update:', message);
-        setStatus(message.status);
+        const response = await fetch(`${MICROSERVICE_URL}/certificates/status/${enrollment.jobId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch initial job status');
+        }
+        const data = await response.json();
+        // Update the status based on the fetched data.
+        if (isMounted) {
+          setStatus(data.status);
+        }
 
-        // When the job is completed, the WebSocket connection can be closed.
-        if (message.status === 'completed') {
-          // A small delay can help ensure the UI updates before the connection closes.
-          setTimeout(() => ws.close(), 500);
-          // Instead of reloading, we now rely on the button using the certificateUrl.
-          // You might want to trigger a data refresh for the parent component here.
+        // Only establish a WebSocket connection if the job is still in progress.
+        if (data.status !== 'completed' && data.status !== 'failed') {
+          ws = new WebSocket(`${MICROSERVICE_WS_URL}/ws/certificates?job_id=${enrollment.jobId.toString()}`);
+
+          ws.onopen = () => {
+            console.log('WebSocket connection established for job:', enrollment.jobId);
+          };
+
+          ws.onmessage = (event) => {
+            try {
+              const message = JSON.parse(event.data);
+              console.log('Received status update:', message);
+              if (isMounted) {
+                setStatus(message.status);
+              }
+            } catch (e) {
+              console.error('Failed to parse WebSocket message:', e);
+            }
+          };
+
+          ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            // Optional: You could retry the connection here after a delay.
+          };
+
+          ws.onclose = (event) => {
+            console.log('WebSocket connection closed:', event.code, event.reason);
+            // Handle reconnect logic if needed, but for 'completed', it's intentional.
+          };
+        } else if (isMounted) {
+            // The job has already completed or failed, so we don't need a WebSocket.
+            setStatus(data.status);
         }
       } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
-        setStatus('error');
+        console.error('Error fetching initial status or connecting WebSocket:', error);
+        if (isMounted) {
+          setStatus('error');
+        }
       }
     };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setStatus('error');
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket connection closed for job:', enrollment.jobId);
-    };
+    
+    fetchStatusAndConnect();
 
     // This cleanup function ensures the WebSocket is closed when the component unmounts.
     return () => {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close();
+      isMounted = false;
+      if (ws) {
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+          ws.close();
+        }
       }
     };
-    // The dependency array ensures this effect runs only when the job ID changes or completion status changes.
-  }, [enrollment.jobId, isComplete]);
+    // The dependency array ensures this effect runs only when the enrollment prop or its jobId changes.
+  }, [enrollment.jobId]);
+  
   
   // This function opens the certificate URL in a new browser tab.
   const viewCertificate = () => {

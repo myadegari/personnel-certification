@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PasswordInput from "@/components/comp-23"
+import toast, { Toaster } from 'react-hot-toast';
+import { Label } from '@/components/ui/label';
 
 export default function LoginPage() {
   const [personnelNumber, setPersonnelNumber] = useState('');
@@ -22,6 +24,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+       // Add a flag to track if we're about to redirect.
+       let isRedirecting = false;
 
     try {
         const result = await signIn('credentials', {
@@ -36,27 +40,42 @@ export default function LoginPage() {
                 const email = result.error.split(',')[1];
                 // Redirect to the signup page with the necessary parameters
                 router.push(`/authentication/signup?step=3&email=${email}`);
+                      // Set the flag to true.
+                      isRedirecting = true; 
+                // toast.info('حساب کاربری شما هنوز فعال نشده است. لطفاً ایمیل خود را برای تایید بررسی کنید.',{  autoClose: 5000,});
                 // No need to set loading to false, as we are navigating away
                 return; 
             }
             // For any other error, display a generic message
-            setError('شماره پرسنلی یا رمز عبور اشتباه است.');
+            toast.error('شماره پرسنلی یا رمز عبور اشتباه است.',{ autoClose: 5000, });
+            // setError('شماره پرسنلی یا رمز عبور اشتباه است.');
         } else if (result.ok) {
             // On successful login, redirect to the root which will be handled by middleware
             router.push('/');
+            toast.success('ورود با موفقیت انجام شد.',{
+              autoClose: 5000,
+            });
+             // Set the flag to true.
+             isRedirecting = true; 
         }
     } catch (err) {
         // Catch any unexpected network errors
-        setError('خطایی در ارتباط با سرور رخ داد.');
+        if (!isRedirecting) {
+        toast.error('خطایی در ارتباط با سرور رخ داد.',{  autoClose: 5000,});
+        }
+
+        // setError('خطایی در ارتباط با سرور رخ داد.');
     } finally {
         // This will only run if we aren't redirecting
-        setIsLoading(false);
+        if (!isRedirecting) {
+            setIsLoading(false);
+        }
     }
   };
 
   return (
     <div className="flex items-center justify-center py-20">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md drop-shadow-amber-800/20 ">
         <CardHeader>
           <CardTitle className="text-center">ورود به سامانه</CardTitle>
         </CardHeader>
@@ -64,8 +83,10 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
             <div>
+              <Label className="mb-2" htmlFor="personnelNumber">شماره پرسنلی</Label>
               <Input
-                placeholder="شماره پرسنلی"
+              dir="ltr"
+                // placeholder="شماره پرسنلی"
                 value={personnelNumber}
                 onChange={(e) => setPersonnelNumber(e.target.value)}
                 required
@@ -79,8 +100,9 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               /> */}
+              <Label className="mb-2" htmlFor="password">رمز عبور</Label>
               <PasswordInput
-                placeholder="رمز عبور"
+              
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required={true}
@@ -105,6 +127,7 @@ export default function LoginPage() {
           </div>
         </CardFooter>
       </Card>
+    
     </div>
   );
 }

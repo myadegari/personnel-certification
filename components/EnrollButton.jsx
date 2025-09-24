@@ -31,19 +31,19 @@ const handleEnroll = () => {
   const isDeadlinePassed = nowInSeconds > enrollmentDeadline;
   
   if (currentStatus === 'APPROVED') {
-    return <Button disabled className="w-full bg-green-600">ثبت‌نام شده (تایید شده)</Button>;
+    return <Button disabled className="w-full rounded-xl bg-green-200 border-green-600/15  text-green-600 disabled:opacity-100 ">ثبت‌نام شده (تایید شده)</Button>;
   }
   
   if (currentStatus === 'PENDING') {
-    return <Button disabled className="w-full bg-yellow-500">در انتظار تایید</Button>;
+    return <Button disabled className="w-full rounded-xl bg-yellow-200 border-yellow-600/15 border-2 text-yellow-600">در انتظار تایید</Button>;
   }
   if (isDeadlinePassed) {
-    return <Button disabled className="w-full bg-red-500">مهلت ثبت‌نام به پایان رسیده است</Button>;
+    return <Button disabled className="w-full rounded-xl bg-red-200 border-red-600/15 border-2 text-red-600">مهلت ثبت‌نام به پایان رسیده است</Button>;
   }
 
   return (
     <div className="w-full">
-    <Button onClick={handleEnroll} className="w-full" disabled={mutation.isPending}>
+    <Button onClick={handleEnroll} className="w-full rounded-xl" disabled={mutation.isPending}>
       {mutation.isPending ? 'در حال ارسال...' : 'ثبت‌نام در دوره'}
     </Button>
       {/* {message && <p className="text-xs text-center mt-2">{message}</p>} */}

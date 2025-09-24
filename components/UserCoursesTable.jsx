@@ -12,6 +12,7 @@ import { useQuery } from '@tanstack/react-query'; // <-- Import useQuery
 import {internalAxios} from '@/lib/axios';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import CertificateStatus from '@/components/CertificateStatus';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 // A small component to safely render dates on the client side
 const fetchUserCourses = async ({ queryKey }) => {
   const [_key, { page, limit }] = queryKey;
@@ -99,8 +100,9 @@ export default function UserCoursesTable({ initialData }) {
   if (isLoading && !initialData) return <div>در حال بارگذاری دوره‌ها...</div>;
   if (isError) return <div>خطا در دریافت اطلاعات.</div>;
   return (
-    <div>
-      <div className="rounded-md border">
+    <Card className="rounded-2xl">
+      <CardContent>
+      <div className="rounded-md ">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map(headerGroup => (
@@ -130,7 +132,9 @@ export default function UserCoursesTable({ initialData }) {
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-center space-x-2 space-x-reverse py-4">
+      </CardContent>
+      <CardFooter className="grid">
+      <div className="flex items-center justify-center content-around gap-2 py-4">
         <Button
           variant="outline"
           size="sm"
@@ -139,7 +143,7 @@ export default function UserCoursesTable({ initialData }) {
         >
           قبلی
         </Button>
-        <span>
+        <span className="bg-emerald-500 text-white px-4 py-1 rounded-lg">
           صفحه{' '}
           <strong>
             {table.getState().pagination.pageIndex + 1} از {table.getPageCount()}
@@ -154,6 +158,7 @@ export default function UserCoursesTable({ initialData }) {
           بعدی
         </Button>
       </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

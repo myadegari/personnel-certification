@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { toast } from 'react-toastify';
+import PasswordInput from "@/components/comp-23"
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState(1); // 1: Enter email, 2: Enter token and new password
@@ -31,10 +33,12 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      setMessage(data.message);
+      toast.success(data.message,{autoClose:5000});
+      // setMessage(data.message);
       setStep(2); // Move to the next step regardless of whether email exists
     } catch (err) {
-      setError('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
+      toast.error('خطایی رخ داد. لطفاً دوباره تلاش کنید.', { autoClose: 5000 });
+      // setError('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
     } finally {
       setIsLoading(false);
     }
@@ -58,10 +62,10 @@ export default function ForgotPasswordPage() {
         throw new Error(data.message || 'خطا در بازنشانی رمز عبور.');
       }
 
-      setMessage(data.message);
+      toast.success(data.message, { autoClose: 5000 });
       setTimeout(() => router.push('/login'), 3000);
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message, { autoClose: 5000 });
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +73,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex items-center justify-center py-20">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md drop-shadow-amber-800/20">
         <CardHeader>
           <CardTitle className="text-2xl text-center">بازیابی رمز عبور</CardTitle>
           <CardDescription className="text-center">
@@ -84,9 +88,9 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="email">ایمیل</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Input dir="ltr" id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                 {isLoading ? 'در حال ارسال...' : 'ارسال کد بازیابی'}
               </Button>
             </form>
@@ -96,13 +100,13 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleResetSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="token">کد بازیابی (Token)</Label>
-                <Input id="token" value={token} onChange={(e) => setToken(e.target.value)} required placeholder="کد ارسال شده به ایمیلتان را وارد کنید" />
+                <Input dir="ltr" id="token" value={token} onChange={(e) => setToken(e.target.value)} required  />
               </div>
               <div>
                 <Label htmlFor="password">رمز عبور جدید</Label>
-                <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <PasswordInput id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={true} />
               </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
                 {isLoading ? 'در حال بررسی...' : 'تغییر رمز عبور'}
               </Button>
             </form>
