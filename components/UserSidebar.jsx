@@ -61,6 +61,7 @@ const UserStatusIndicator = ({ children, state, className }) => {
 
 export function UserSidebar() {
   const { data: userData, isLoading: isUserDataLoading } = useUser();
+  console.log("userData",userData);
   const { data: session, status } = useSession();
   // ✅ Add state for profile image URL
   const [profileImageUrl, setProfileImageUrl] = useState(null);
@@ -83,11 +84,11 @@ export function UserSidebar() {
     ``;
     if (!session?.user) return "";
     // اگر کاربر سمت خود را وارد کرده باشد، آن را نمایش بده
-    if (session.user.position) {
-      return session.user.position;
+    if (userData.position) {
+      return userData.position;
     }
     // در غیر این صورت، نقش پیش‌فرض را نمایش بده
-    return session.user.role === "ADMIN" ? "مدیر سیستم" : "کاربر";
+    return userData.role === "ADMIN" ? "مدیر سیستم" : "کاربر";
   };
   const pathname = usePathname();
 
@@ -153,7 +154,7 @@ export function UserSidebar() {
             <>
               <div className="flex flex-row-reverse items-center gap-4">
                 <div className="text-xs text-right">
-                  <div className="font-semibold">{session.user.name}</div>
+                  <div className="font-semibold">{`${userData.firstName} ${userData.lastName}`}</div>
                   <div className="text-xs text-muted-foreground">
                     {getUserSubtitle()}
                   </div>

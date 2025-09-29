@@ -11,6 +11,23 @@ import ImageCropper from "./ImageCropper";
 import { useUploadFile, useUpdateProfile } from "@/hooks/useProfileMutations";
 import { useFileUrl } from "@/hooks/useFileUrl"; // ✅ Import new hook
 
+const UserIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="h-[110px] w-[110px] rounded-full text-gray-500/40 p-1"
+  >
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+  </svg>
+);
 export default function ProfileForm({ user }) {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
@@ -133,7 +150,7 @@ export default function ProfileForm({ user }) {
   };
   // ✅ Show loading skeleton while fetching existing image
   const ProfileImageSkeleton = () => (
-    <div className="h-[80px] w-[120px] rounded-full bg-gray-200 animate-pulse"></div>
+    <div className="h-[140px] w-[140px] rounded-full bg-gray-200 animate-pulse"></div>
   );
 
   const SignatureImageSkeleton = () => (
@@ -163,6 +180,10 @@ export default function ProfileForm({ user }) {
               {/* Show skeleton, error, or image */}
               {profileFileQuery.isLoading && !profileImageFile ? (
                 <ProfileImageSkeleton />
+              ) : !profileImageFile ? (
+                <div className="h-[140px] w-[140px] rounded-full bg-gray-200 grid place-content-center">
+                       <UserIcon />
+                </div>
               ) : profileFileQuery.isError ? (
                 <div className="text-xs text-red-500">
                   خطا در بارگذاری تصویر
@@ -225,6 +246,7 @@ export default function ProfileForm({ user }) {
               <div className=" col-span-2">
                 <Label htmlFor="position">سمت</Label>
                 <Input
+                  disabled
                   id="position"
                   name="position"
                   value={formData.position}
@@ -234,7 +256,8 @@ export default function ProfileForm({ user }) {
               <div className=" col-span-2">
                 <Label htmlFor="email">ایمیل</Label>
                 <Input
-                dir="ltr"
+                  dir="ltr"
+                  disabled
                   id="email"
                   name="email"
                   type="email"
