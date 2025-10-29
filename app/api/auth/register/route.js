@@ -28,6 +28,7 @@ export async function POST(request) {
       email,
       gender,
       position,
+      isProfessor,
     } = body;
 
     // --- Input Validation ---
@@ -39,7 +40,8 @@ export async function POST(request) {
       !nationalId ||
       !email ||
       !gender ||
-      !position
+      !position ||
+      !isProfessor
     ) {
       return new Response(
         JSON.stringify({ message: "لطفاً تمام فیلدهای الزامی را پر کنید." }),
@@ -99,6 +101,7 @@ export async function POST(request) {
       email,
       gender,
       position,
+      isProfessor,
       // Optional fields like profileImage and signatureImage can be added later
       status: "PENDING",
       otp: otp,

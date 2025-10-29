@@ -15,8 +15,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { internalAxios } from "@/lib/axios";
-import toast from 'react-hot-toast';
-import PasswordInput from "@/components/comp-23"
+import toast from "react-hot-toast";
+import PasswordInput from "@/components/comp-23";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function SignupPageClient() {
   const [step, setStep] = useState(1);
@@ -30,6 +31,7 @@ export default function SignupPageClient() {
     email: "",
     gender: "",
     position: "",
+    isProfessor: false,
   });
   const [otp, setOtp] = useState("");
   const [userEmail, setUserEmail] = useState(""); // To store email for OTP step
@@ -49,6 +51,7 @@ export default function SignupPageClient() {
     if (stepFromQuery === "3" && emailFromQuery) {
       setStep(Number(stepFromQuery));
       setUserEmail(emailFromQuery);
+      setFormData((prev) => ({ ...prev, isProfessor: false }));
       toast(
         "کد تایید جدیدی به ایمیل شما ارسال شد. لطفاً ثبت‌نام خود را تکمیل کنید."
       );
@@ -102,9 +105,7 @@ export default function SignupPageClient() {
 
       const data = await res.json();
       if (!res.ok) {
-        
         throw new Error(data.message || "خطایی در ثبت‌نام رخ داد.");
-
       }
 
       toast.success(data.message);
@@ -166,7 +167,7 @@ export default function SignupPageClient() {
       setTimer(60); // Reset timer
     } catch (err) {
       toast.error(err.message);
-       // setError(err.message);
+      // setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -178,9 +179,11 @@ export default function SignupPageClient() {
         return (
           <form onSubmit={handleNextToInfo} className="space-y-4">
             <div>
-              <Label  className="mb-2" htmlFor="personnelNumber">شماره پرسنلی</Label>
+              <Label className="mb-2" htmlFor="personnelNumber">
+                شماره پرسنلی
+              </Label>
               <Input
-              dir="ltr"
+                dir="ltr"
                 id="personnelNumber"
                 name="personnelNumber"
                 value={formData.personnelNumber}
@@ -189,7 +192,9 @@ export default function SignupPageClient() {
               />
             </div>
             <div>
-              <Label htmlFor="password"  className="mb-2">رمز عبور</Label>
+              <Label htmlFor="password" className="mb-2">
+                رمز عبور
+              </Label>
               <PasswordInput
                 id="password"
                 name="password"
@@ -199,7 +204,9 @@ export default function SignupPageClient() {
               />
             </div>
             <div>
-              <Label className="mb-2" htmlFor="confirmPassword">تکرار رمز عبور</Label>
+              <Label className="mb-2" htmlFor="confirmPassword">
+                تکرار رمز عبور
+              </Label>
               <PasswordInput
                 id="confirmPassword"
                 name="confirmPassword"
@@ -238,11 +245,12 @@ export default function SignupPageClient() {
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="nationalId">کد ملی</Label>
                 <Input
-                dir="ltr"
+                  dir="ltr"
                   id="nationalId"
                   name="nationalId"
                   value={formData.nationalId}
@@ -261,51 +269,74 @@ export default function SignupPageClient() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
 
-            <div>
-              <Label htmlFor="email">ایمیل</Label>
-              <Input
-              dir="ltr"
-                id="email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
+              <div>
+                <Label htmlFor="email">ایمیل</Label>
+                <Input
+                  dir="ltr"
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex justify-around">
+                <Label className="mb-0">جنسیت</Label>
+                <RadioGroup
+                  name="gender"
+                  value={formData.gender}
+                  onValueChange={(v) =>
+                    setFormData((p) => ({ ...p, gender: v }))
+                  }
+                  className="flex gap-4 mt-2"
+                  required
+                >
+                  <div className="flex space-x-2">
+                    <RadioGroupItem value="Male" id="Male" />
+                    <Label htmlFor="Male">آقا</Label>
+                  </div>
+                  <div className="flex  space-x-2">
+                    <RadioGroupItem value="Female" id="Female" />
+                    <Label htmlFor="Female">خانم</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            <div className="grid grid-cols-3 place-content-center border-r pr-4">
+              <Label className="mb-0 col-span-2">عضو هیات علمی</Label>
+              <div className="flex mt-2">
+
+                <Checkbox
+                  id="isProfessor"
+                  checked={formData.isProfessor}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, isProfessor: checked }))
+                  }
+                />
+                <Label htmlFor="isProfessor">بله</Label>
+              </div>
+              
             </div>
-            <div className="flex justify-around">
-              <Label className="mb-0">جنسیت</Label>
-              <RadioGroup
-                name="gender"
-                value={formData.gender}
-                onValueChange={(v) => setFormData((p) => ({ ...p, gender: v }))}
-                className="flex gap-4"
-                required
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Male" id="Male" />
-                  <Label htmlFor="Male">آقا</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="Female" id="Female" />
-                  <Label htmlFor="Female">خانم</Label>
-                </div>
-              </RadioGroup>
             </div>
-            </div>
+
+
             <div className="flex gap-2">
-            <Button type="submit" className="flex-1 cursor-pointer" disabled={isLoading}>
-              {isLoading ? "در حال ارسال..." : "ثبت‌نام و ارسال کد"}
-            </Button>
-            <Button
-              variant="outline"
-              className=" cursor-pointer"
-              onClick={() => setStep(1)}
-            >
-              بازگشت
-            </Button>
+              <Button
+                type="submit"
+                className="flex-1 cursor-pointer"
+                disabled={isLoading}
+              >
+                {isLoading ? "در حال ارسال..." : "ثبت‌نام و ارسال کد"}
+              </Button>
+              <Button
+                variant="outline"
+                className="cursor-pointer"
+                onClick={() => setStep(1)}
+              >
+                بازگشت
+              </Button>
             </div>
           </form>
         );
@@ -315,7 +346,7 @@ export default function SignupPageClient() {
             <div>
               <Label htmlFor="otp">کد تایید</Label>
               <Input
-               dir="ltr"
+                dir="ltr"
                 id="otp"
                 name="otp"
                 value={otp}

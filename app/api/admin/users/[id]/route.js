@@ -7,14 +7,14 @@ export async function PUT(request, { params }) {
   try {
     const { id } = params;
     const body = await request.json();
-    const { firstName, lastName, email, role, personnelNumber } = body;
+    const { firstName, lastName, email, role, personnelNumber,nationalId ,gender,position,isProfessor} = body;
 
     await dbConnect();
 
     // We don't update password here, that should be a separate "reset" flow
     const updatedUser = await User.findByIdAndUpdate(
       id,
-      { firstName, lastName, email, role, personnelNumber },
+      { firstName, lastName, email, role, personnelNumber,nationalId,gender,position,isProfessor },
       { new: true, runValidators: true }
     ).select('-password');
 

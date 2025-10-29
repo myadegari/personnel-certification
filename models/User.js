@@ -57,6 +57,7 @@ const UserSchema = new mongoose.Schema(
     // --- ADD THESE TWO FIELDS ---
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
+    isProfessor : { type: Boolean },
   },
   { timestamps: true }
 );

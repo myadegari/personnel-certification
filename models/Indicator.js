@@ -9,7 +9,7 @@ const IndicatorSchema = new mongoose.Schema({
   lastNumber: {
     type: Number,
     required: true,
-    default: 99, // Starts at 99, so the first number generated is 100
+    default: 999, // Starts at 999, so the first number generated is 100
   },
 }, { timestamps: true });
 

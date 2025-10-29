@@ -34,7 +34,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { personnelNumber, password, firstName, lastName, nationalId, email, role } = body;
+    const { personnelNumber, password, firstName, lastName, nationalId, email, role,gender,position,isProfessor } = body;
 
     await dbConnect();
 
@@ -46,6 +46,9 @@ export async function POST(request) {
       lastName,
       nationalId,
       email,
+      gender,
+      position,
+      isProfessor,
       role
     });
 

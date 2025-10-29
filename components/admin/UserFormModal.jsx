@@ -11,7 +11,9 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -25,9 +27,13 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
     firstName: '',
     lastName: '',
     personnelNumber: '',
-    email: '',
     password: '',
     role: 'USER',
+    nationalId: "",
+    email: "",
+    gender: "",
+    position: "",
+    isProfessor: false
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -42,8 +48,11 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
         lastName: userData.lastName || '',
         personnelNumber: userData.personnelNumber || '',
         email: userData.email || '',
-        password: '', // Password is not edited here
         role: userData.role || 'USER',
+        nationalId: userData.nationalId || "",
+        gender: userData.gender || "",
+        position:userData.position || "",
+        isProfessor: userData.isProfessor || false
       });
     } else {
       // Reset form for creating a new user
@@ -51,9 +60,13 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
         firstName: '',
         lastName: '',
         personnelNumber: '',
-        email: '',
+        nationalId:'',
         password: '',
         role: 'USER',
+        email: "",
+        gender: "",
+        position: "",
+        isProfessor: false
       });
     }
   }, [userData, isOpen]);
@@ -128,6 +141,17 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
               <Label htmlFor="personnelNumber" className="text-right">شماره پرسنلی</Label>
               <Input id="personnelNumber" name="personnelNumber" value={formData.personnelNumber} onChange={handleChange} className="col-span-3" required />
             </div>
+            <div>
+                <Label htmlFor="nationalId">کد ملی</Label>
+                <Input
+                  dir="ltr"
+                  id="nationalId"
+                  name="nationalId"
+                  value={formData.nationalId}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="email" className="text-right">ایمیل</Label>
               <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="col-span-3" required />
@@ -149,6 +173,43 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                   <SelectItem value="ADMIN">مدیر</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex justify-around">
+                <Label className="mb-0">جنسیت</Label>
+                <RadioGroup
+                  name="gender"
+                  value={formData.gender}
+                  onValueChange={(v) =>
+                    setFormData((p) => ({ ...p, gender: v }))
+                  }
+                  className="flex gap-4 mt-2"
+                  required
+                >
+                  <div className="flex space-x-2">
+                    <RadioGroupItem value="Male" id="Male" />
+                    <Label htmlFor="Male">آقا</Label>
+                  </div>
+                  <div className="flex  space-x-2">
+                    <RadioGroupItem value="Female" id="Female" />
+                    <Label htmlFor="Female">خانم</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            <div className="grid grid-cols-3 place-content-center border-r pr-4">
+              <Label className="mb-0 col-span-2">عضو هیات علمی</Label>
+              <div className="flex mt-2">
+
+                <Checkbox
+                  id="isProfessor"
+                  checked={formData.isProfessor}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, isProfessor: checked }))
+                  }
+                />
+                <Label htmlFor="isProfessor">بله</Label>
+              </div>
+              </div>
             </div>
             {error && <p className="text-red-500 text-sm col-span-4">{error}</p>}
           </div>

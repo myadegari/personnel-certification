@@ -69,11 +69,12 @@ import { useUser } from '@/hooks/useUser';
   }
     
   return clsx(
-    "py-2 px-4 rounded-md font-bold transition-colors duration-500 ease-in-out flex gap-2 items-center",
+    "py-2 px-4 rounded-md rounded-l-3xl font-bold transition-colors duration-500 ease-in-out flex gap-2 items-center",
     isActive
-      ? "bg-emerald-800 text-white cursor-auto"
-      : "hover:bg-emerald-800/10  text-gray-700 hover:text-gray-900"
-  ); };
+      ? "bg-emerald-500 text-white cursor-auto"
+      : "hover:bg-emerald-500/10  text-gray-700 hover:text-gray-900"
+  );
+};
     return (
       <Sidebar side="right">
         <SidebarHeader>

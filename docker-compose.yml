@@ -15,7 +15,7 @@ services:
   minio:
     image: minio/minio:latest
     ports:
-      - "127.0.0.1:9000:9000"      # MinIO API
+      - "9000:9000"      # MinIO API
       - "127.0.0.1:9001:9001"      # MinIO Console (UI)
     environment:
       MINIO_ROOT_USER: minioadmin
@@ -24,7 +24,16 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
     restart: unless-stopped
-
+  nextjs:
+    build: .
+    container_name: nextjs
+    
+    ports:
+      - "3000:3000" # Expose Next.js on port 3000
+    depends_on:
+      - mongodb # Add dependency so Next.js starts after MongoDB
+      - minio
+  
 volumes:
   mongodb_data:
   minio_data:

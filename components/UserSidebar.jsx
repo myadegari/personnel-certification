@@ -110,7 +110,7 @@ export function UserSidebar() {
         : "hover:bg-emerald-500/10  text-gray-700 hover:text-gray-900"
     );
   };
-  return (
+  return ( 
     <Sidebar side="right">
       <SidebarHeader>
         <Link href="/" className="text-xl  font-bold self-center  text-emerald-800 ">

@@ -1,11 +1,12 @@
 import EnrollmentsClient from "@/components/admin/EnrollmentsClient";
 import Link from 'next/link';
-import {internalAxios} from '@/lib/axios';
+import axios from "axios";
 import { Button } from "@/components/ui/button";
+const NEXTJS_APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
 async function getEnrollmentData(courseId, page = 1) {
   try {
-    const res = await internalAxios.get(`/admin/courses/${courseId}/enrollments?page=${page}`);
+    const res = await axios.get(`${NEXTJS_APP_URL}/api/admin/courses/${courseId}/enrollments?page=${page}`);
     if (res.status !== 200) throw new Error('Failed to fetch data');
     return res.data;
   } catch (error) {
