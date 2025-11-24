@@ -6,7 +6,7 @@ import Course from "@/models/Course";
 import Enrollment from "@/models/Enrollment";
 
 // This is a Server Component, so we can fetch data directly
-// export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic';
 
 async function getStats() {
   await dbConnect();

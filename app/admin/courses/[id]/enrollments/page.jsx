@@ -6,7 +6,7 @@ const NEXTJS_APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
 async function getEnrollmentData(courseId, page = 1) {
   try {
-    const res = await axios.get(`${NEXTJS_APP_URL}/api/admin/courses/${courseId}/enrollments?page=${page}`);
+    const res = await axios.get(`/api/admin/courses/${courseId}/enrollments?page=${page}`);
     if (res.status !== 200) throw new Error('Failed to fetch data');
     return res.data;
   } catch (error) {

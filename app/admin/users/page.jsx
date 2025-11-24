@@ -11,7 +11,7 @@ async function getUsers(page = 1, limit = 10) {
   const cookie_h = await headers();
   const cookie = cookie_h.get('cookie')
   try {
-    const { data } = await axios.get(`${NEXTJS_APP_URL}/api/admin/users?page=${page}&limit=${limit}`, {
+    const { data } = await axios.get(`/api/admin/users?page=${page}&limit=${limit}`, {
         headers: { 'Cookie': cookie }
     });
     return data;
