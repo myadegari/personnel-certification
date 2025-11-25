@@ -180,15 +180,11 @@ export default function ProfileForm({ user }) {
               {/* Show skeleton, error, or image */}
               {profileFileQuery.isLoading && !profileImageFile ? (
                 <ProfileImageSkeleton />
-              ) : !profileImageFile ? (
-                <div className="h-[140px] w-[140px] rounded-full bg-gray-200 grid place-content-center">
-                       <UserIcon />
-                </div>
               ) : profileFileQuery.isError ? (
                 <div className="text-xs text-red-500">
                   خطا در بارگذاری تصویر
                 </div>
-              ) : profilePreview ? (
+              ): profilePreview ? (
                 <img
                   src={profilePreview}
                   alt="Profile Preview"
@@ -197,7 +193,11 @@ export default function ProfileForm({ user }) {
                   className="rounded-full border-2 border-gray-200"
                   onError={() => setProfilePreview("")}
                 />
-              ) : null}
+              ): !profileImageFile ? (
+                <div className="h-[140px] w-[140px] rounded-full bg-gray-200 grid place-content-center">
+                       <UserIcon />
+                </div>
+              )   : null}
 
               <div className="w-full space-y-2 place-self-center grid place-content-center">
                 {/* <Label className={"w-full text-center"}>تصویر پروفایل</Label> */}

@@ -11,7 +11,10 @@ import Course from "@/models/Course";
 import { minioClient } from "@/lib/minio";
 // import { useQueryClient } from "@tanstack/react-query";
 
+
 export async function POST(request) {
+  const publicBaseUrl = process.env.MINIO_PUBLIC_URL; 
+
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -142,6 +145,7 @@ export async function POST(request) {
   const fileRecord = await File.findOne({
     objectName: objectName,
   });
+  presignedUrl = presignedUrl.replace(`http://${process.env.MINIO_ENDPOINT}:9000`, publicBaseUrl);
   if (fileRecord) {
     fileRecord.originalName = file.name;
     fileRecord.mimeType = file.type;

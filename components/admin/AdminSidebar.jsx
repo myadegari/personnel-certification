@@ -42,7 +42,7 @@ import { useUser } from '@/hooks/useUser';
       if (isFirstLoadProfile.current  && userData?.profileImage && status === 'authenticated' && !isUserDataLoading) {
         if (!profileFileQuery.isLoading && profileFileQuery.data) {
           setProfileImageUrl(profileFileQuery.data);
-          isFirstLoadProfile.current = false;
+          isFirstLoadProfile.current = false; 
         }
       }    
 

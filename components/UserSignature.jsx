@@ -10,10 +10,11 @@ import { Button } from "@/components/ui/button";
 import ImageCropper from "./ImageCropper";
 import { useUploadFile, useUpdateProfile } from "@/hooks/useProfileMutations";
 import { useFileUrl } from "@/hooks/useFileUrl"; // ✅ Import new hook
-import { toast } from 'react-toastify';
+// import { toast } from 'react-toastify';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function UserSignature({ user }) {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient(); 
   const [formData, setFormData] = useState({});
   const [signatureImageFile, setSignatureImageFile] = useState(null);
   const [signaturePreview, setSignaturePreview] = useState("");
@@ -31,7 +32,7 @@ export default function UserSignature({ user }) {
     isFirstLoadSignature.current &&
     !signatureImageFile &&
     user?.signatureImage
-  ) {
+  ) { 
     if (!signatureFileQuery.isLoading && signatureFileQuery.data) {
       setSignaturePreview(signatureFileQuery.data);
       isFirstLoadSignature.current = false;
