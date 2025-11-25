@@ -30,7 +30,7 @@ export async function POST(request) {
       position,
       isProfessor,
     } = body;
-
+    console.log(body);
     // --- Input Validation ---
     if (
       !personnelNumber ||
@@ -40,9 +40,9 @@ export async function POST(request) {
       !nationalId ||
       !email ||
       !gender ||
-      !position ||
-      !isProfessor
+      !position
     ) {
+      
       return new Response(
         JSON.stringify({ message: "لطفاً تمام فیلدهای الزامی را پر کنید." }),
         { status: 400 }
@@ -134,3 +134,4 @@ export async function POST(request) {
     );
   }
 }
+ 
