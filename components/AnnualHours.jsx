@@ -13,10 +13,19 @@ import {
 } from "@/components/ui/card";
 import { useSession } from "next-auth/react";
 
+const getBaseUrl = () => {
+  // If we are on the server, use the internal Docker URL
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_URL || 'http://localhost:3000';
+  }
+  // If on client, use relative path or public URL
+  return ''; 
+};
+
 // Update the API call to accept date parameters
 async function getAnnualHours(startTimestamp, endTimestamp) {
   try {
-    const response = await fetch(`/api/dashboard/stats?startTimestamp=${startTimestamp}&endTimestamp=${endTimestamp}`);
+    const response = await fetch(`${getBaseUrl()}/api/dashboard/stats?startTimestamp=${startTimestamp}&endTimestamp=${endTimestamp}`);
     const data = await response.json();
     return data;
   } catch (error) {

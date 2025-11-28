@@ -3,10 +3,18 @@ import Link from 'next/link';
 import axios from "axios";
 import { Button } from "@/components/ui/button";
 const NEXTJS_APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
+const getBaseUrl = () => {
+  // If we are on the server, use the internal Docker URL
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_URL || 'http://localhost:3000';
+  }
+  // If on client, use relative path or public URL
+  return ''; 
+};
 
 async function getEnrollmentData(courseId, page = 1) {
   try {
-    const res = await axios.get(`/api/admin/courses/${courseId}/enrollments?page=${page}`);
+    const res = await axios.get(`${getBaseUrl()}/api/admin/courses/${courseId}/enrollments?page=${page}`);
     if (res.status !== 200) throw new Error('Failed to fetch data');
     return res.data;
   } catch (error) {

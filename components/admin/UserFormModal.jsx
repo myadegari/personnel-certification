@@ -22,6 +22,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const getBaseUrl = () => {
+  // If we are on the server, use the internal Docker URL
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_URL || 'http://localhost:3000';
+  }
+  // If on client, use relative path or public URL
+  return ''; 
+};
 export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -89,14 +97,14 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
       let response;
       if (isEditing) {
         // Update user
-        response = await fetch(`/api/admin/users/${userData._id}`, {
+        response = await fetch(`${getBaseUrl()}/api/admin/users/${userData._id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
         });
       } else {
         // Create user
-        response = await fetch('/api/admin/users', {
+        response = await fetch(`${getBaseUrl()}/api/admin/users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData),
