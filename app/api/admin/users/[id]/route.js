@@ -5,7 +5,7 @@ import User from '@/models/User';
 // PUT: Update a user
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { firstName, lastName, email, role, personnelNumber,nationalId ,gender,position,isProfessor} = body;
 

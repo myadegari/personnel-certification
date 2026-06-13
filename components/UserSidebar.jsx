@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import { LayoutDashboard, GraduationCap, Settings } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Settings,MonitorDotIcon } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
 // import axios from 'axios'; // ✅ Make sure you import axios
 import { useEffect, useState, useRef } from "react"; // ✅ Add these
@@ -60,8 +60,8 @@ const UserStatusIndicator = ({ children, state, className }) => {
 };
 
 export function UserSidebar() {
-  const { data: userData, isLoading: isUserDataLoading } = useUser();
-  console.log("userData",userData);
+  const { data: userData, isLoading: isUserDataLoading, isError } = useUser();
+  // console.log("userData",userData);
   const { data: session, status } = useSession();
   // ✅ Add state for profile image URL
   const [profileImageUrl, setProfileImageUrl] = useState(null);
@@ -88,7 +88,7 @@ export function UserSidebar() {
       return userData.position;
     }
     // در غیر این صورت، نقش پیش‌فرض را نمایش بده
-    return userData.role === "ADMIN" ? "مدیر سیستم" : "کاربر";
+    return userData.role === "ADMIN" || userData.role === "SUPERADMIN" ? "مدیر سیستم" : "کاربر";
   };
   const pathname = usePathname();
 
@@ -110,7 +110,12 @@ export function UserSidebar() {
         : "hover:bg-emerald-500/10  text-gray-700 hover:text-gray-900"
     );
   };
-  return ( 
+  if(isUserDataLoading || isError){
+    return(<></>)
+  }
+  else{
+    console.log(userData)
+  return (
     <Sidebar side="right">
       <SidebarHeader>
         <Link href="/" className="text-xl  font-bold self-center  text-emerald-800 ">
@@ -137,6 +142,14 @@ export function UserSidebar() {
             <Settings size={25} />
             پروفایل کاربری
           </Link>
+          {userData?.role === "ADMIN" || userData?.role === "SUPERADMIN" ? <Link 
+            href="/admin" 
+            className={getLinkClassName('/admin')}
+          >
+            <MonitorDotIcon size={25}/>
+            پنل مدیریت
+          </Link>:null}
+          
         </SidebarGroup>
         <SidebarGroup />
       </SidebarContent>
@@ -166,7 +179,7 @@ export function UserSidebar() {
                   <UserStatusIndicator
                     state={userData.status}
                     className="-right-0.5"
-                  >
+                  > 
                     <img
                       src={profileImageUrl}
                       alt="Profile Picture"
@@ -197,4 +210,5 @@ export function UserSidebar() {
       </SidebarFooter>
     </Sidebar>
   );
+}
 }

@@ -47,7 +47,15 @@ const CourseFormFields = ({
   isEditing = false,
 }) => {
   const currentPattern = formData.certificateNumberPattern;
-  const currentSequence = sequences.find((s) => s.pattern === currentPattern);
+  // const currentSequence = sequences.find((s) => s.pattern === currentPattern);
+  // فیلتر کردن زیرالگوها بر اساس الگوی اصلی انتخاب شده
+const filteredSequences = sequences.filter(s => 
+  s.pattern.startsWith(currentPattern) && s.pattern !== currentPattern
+);
+
+// یافتن زیرالگوی مربوط به اساتید ('ع') و کارکنان/دانشجویان ('ک')
+const professorSequence = filteredSequences.find(s => s.pattern === `${currentPattern}/ع`);
+const staffSequence = filteredSequences.find(s => s.pattern === `${currentPattern}/ک`);
 
   return (
     <div className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
@@ -89,7 +97,7 @@ const CourseFormFields = ({
             }
             placeholder="پیش‌فرض: یک روز پس از شروع دوره"
             inputClass="w-full px-3 py-2 border rounded-md h-10"
-            containerClassName="flex-1"
+            containerClassName="w-full"
           />
           <p className="text-xs text-gray-500 mt-1">
             در صورت عدم انتخاب، مهلت به طور خودکار یک روز پس از تاریخ برگزاری
@@ -124,15 +132,26 @@ const CourseFormFields = ({
             }))
           }
         />
-        {currentSequence && (
-          <div className="text-sm text-muted-foreground mt-1">
-            <p>الگوی فعلی: {currentSequence.pattern}</p>
-            <p>شماره بعدی: {currentSequence.lastNumber + 1}</p>
-            {currentSequence.description && (
-              <p>توضیحات: {currentSequence.description}</p>
-            )}
-          </div>
-        )}
+        {currentPattern && (
+         <div className="text-sm text-muted-foreground mt-1 space-y-1 p-2 border rounded-md bg-gray-50">
+         <p className="font-semibold">الگوی اصلی: {currentPattern}</p>
+
+         {staffSequence && (
+           <p>
+            <strong className=" font-bold">شماره بعدی (کارکنان - {staffSequence.pattern})</strong> {staffSequence.lastNumber + 1}
+           </p>
+         )}
+         {!staffSequence && <p className="text-red-500">زیرالگوی کارکنان ({currentPattern}/ک) یافت نشد.</p>}
+
+         {professorSequence && (
+           <p>
+             <strong className=" font-bold">شماره بعدی (اساتید - {professorSequence.pattern}):</strong> {professorSequence.lastNumber + 1}
+           </p>
+         )}
+         {!professorSequence && <p className="text-red-500">زیرالگوی اساتید ({currentPattern}/ع) یافت نشد.</p>}
+
+       </div>
+     )}
       </div>
 
       {/* Signatories and Stamps Section */}
@@ -322,19 +341,24 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     try {
       let courseId = createdCourseId;
       if (!isEditing && currentStep === 1) {
+        const course_date = new Date(formData.date);
+        const deadline = course_date.setHours(0,0,0,0) + 2*24*60*60*1000 - 1000; 
+        console.log("course_date",course_date);
         const step1Data = {
           name: formData.name,
           date: formData.date
-            ? Math.floor(new Date(formData.date).getTime() / 1000)
+            ? Math.floor(course_date.setHours(0,0,0,0) / 1000)
             : null,
           enrollmentDeadline: formData.enrollmentDeadline
-            ? Math.floor(new Date(formData.enrollmentDeadline).getTime() / 1000)
-            : null,
+            ? Math.floor(new Date(formData.enrollmentDeadline).setHours(23,59,59,999) / 1000)
+            : Math.floor(deadline/1000), // Default to one day after start date,
           duration: formData.duration,
           organizingUnit: formData.organizingUnit,
           certificateNumberPattern: formData.certificateNumberPattern,
           courseCode: formData.courseCode,
         };
+        formData.enrollmentDeadline=step1Data.enrollmentDeadline * 1000;
+        console.log("step1Data",step1Data);
         const createdCourse = await courseMutation.mutateAsync(step1Data);
         setCreatedCourseId(createdCourse._id);
         courseId = createdCourse._id;
@@ -372,7 +396,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
           ? Math.floor(new Date(formData.date).getTime() / 1000)
           : null,
         enrollmentDeadline: formData.enrollmentDeadline
-          ? Math.floor(new Date(formData.enrollmentDeadline).getTime() / 1000)
+          ? Math.floor(new Date(formData.enrollmentDeadline).setHours(23,59,59,999) / 1000)
           : null,
         unitStamp: stampId1,
         unitStamp2: stampId2,

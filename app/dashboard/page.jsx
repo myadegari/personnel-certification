@@ -3,7 +3,8 @@ import { authOptions } from "../api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
 import Course from "@/models/Course";
-import {internalAxios} from '@/lib/axios'; // <-- Use the main axios library for server-side
+// import {internalAxios} from '@/lib/axios'; // <-- Use the main axios library for server-side
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ async function getInitialCourses() {
   
   try {
     // Use axios for the server-side fetch, passing the cookie for authentication
-    const { data } = await internalAxios.get(`/my-courses?page=1&limit=5`, {
+    const { data } = await axios.get(`http://localhost:3000/api/my-courses?page=1&limit=5`, {
       headers: { 'Cookie': cookie },
     });
     return data;

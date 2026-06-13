@@ -15,12 +15,14 @@ services:
       - internal_network
   minio:
     image: minio/minio:latest
-    # ports:
-    #   - "172.17.2.66:9000:9000"      # MinIO API
-    #   - "172.17.2.66:9001:9001"      # MinIO Console (UI)
+    ports:
+      - "127.0.0.1:9000:9000"      # MinIO API
+      - "127.0.0.1:9001:9001"      # MinIO Console (UI)
+    # expose:
+    #   - 9000
     environment:
       MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_PASSWORD: L4run1Cert2025Min10
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"

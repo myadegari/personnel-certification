@@ -11,7 +11,8 @@ import clsx from 'clsx';
 
 // API function to fetch sequences
 const fetchCertificateSequences = async () => {
-  const { data } = await internalAxios.get('/admin/certificate-sequences');
+  const { data } = await internalAxios.get('/admin/certificate-sequences/base');
+  console.log("Fetched certificate sequences:", data);
   return data;
 };
 
@@ -19,9 +20,10 @@ export default function CertificatePatternCombobox({ value, onChange, disabled }
   const [open, setOpen] = useState(false);
 
   const { data: sequences = [], isLoading } = useQuery({
-    queryKey: ['certificateSequences'],
+    queryKey: ['certificateSequencesBase'],
     queryFn: fetchCertificateSequences,
     enabled: open, // Only fetch when the popover is open
+    cacheTime: 0, // Cache for 5 minutes
   });
 
   const currentSequence = sequences.find(s => s.pattern === value);
@@ -77,6 +79,11 @@ export default function CertificatePatternCombobox({ value, onChange, disabled }
                     />
                     {sequence.pattern}
                   </div>
+                  {/* {sequence.status === 'available' && (
+                    <span className="text-xs text-yellow-600">
+                      (ظرفیت باقی‌مانده: {sequence.remaining})
+                    </span>
+                  )}
                   {sequence.status === 'warning' && (
                     <span className="text-xs text-yellow-600">
                       ({sequence.remaining} مانده)
@@ -84,7 +91,7 @@ export default function CertificatePatternCombobox({ value, onChange, disabled }
                   )}
                   {sequence.status === 'disabled' && (
                     <span className="text-xs text-red-600">(پایان یافته)</span>
-                  )}
+                  )} */}
                 </CommandItem>
               ))}
             </CommandGroup>

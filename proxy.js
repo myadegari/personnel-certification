@@ -23,7 +23,7 @@ export default withAuth(
     if (token.status === "VERIFIED") {
       // If a logged-in user lands on the homepage, send them to their correct dashboard.
       if (pathname === "/") {
-        if (token.role === "ADMIN") {
+        if (token.role === "ADMIN" || token.role === "SUPERADMIN") {
           return NextResponse.redirect(new URL("/admin", req.url));
         }
         // For any other role, redirect to the user dashboard.
@@ -32,7 +32,7 @@ export default withAuth(
 
       // --- EXISTING: Protect admin routes ---
       // If a non-admin tries to access an admin page, redirect them.
-      if (pathname.startsWith("/admin") && token.role !== "ADMIN") {
+      if (pathname.startsWith("/admin") && (token.role !== "ADMIN" && token.role !== "SUPERADMIN")) {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
     }

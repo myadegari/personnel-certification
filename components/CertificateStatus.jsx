@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
 // It's good practice to have the WebSocket URL in an environment variable.
-const MICROSERVICE_URL = process.env.NEXT_PUBLIC_MICROSERVICE_URL || 'http://localhost:8000';
+const MICROSERVICE_URL = process.env.MICROSERVICE_URL || 'http://fastapi:8000';
 const MICROSERVICE_WS_URL = MICROSERVICE_URL.replace('http', 'ws');
 
 // A simple utility to wait for a specific duration.
@@ -32,21 +32,50 @@ export default function CertificateStatus({ enrollment }) {
         return;
       }
 
-      // First, fetch the status from the REST API to get the current state.
-      try {
-        const response = await fetch(`${MICROSERVICE_URL}/certificates/status/${enrollment.jobId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch initial job status');
-        }
-        const data = await response.json();
-        // Update the status based on the fetched data.
-        if (isMounted) {
-          setStatus(data.status);
+      let data = null;
+      // تنظیمات تلاش مجدد
+      const MAX_RETRIES = 5; // حداکثر 5 بار تلاش
+      const RETRY_DELAY = 1000; // فاصله 1 ثانیه بین تلاش‌ها
+
+      // حلقه تلاش مجدد برای دریافت وضعیت اولیه
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        if (!isMounted) return; // اگر کامپوننت بسته شده بود، ادامه نده
+
+        try {
+          const response = await fetch(`/certengine/certificates/status/${enrollment.jobId}`);
+          if (response.ok) {
+            data = await response.json();
+            break; // اگر موفق شد، از حلقه خارج شو
+          } else {
+             console.warn(`Fetch attempt ${attempt + 1} returned status: ${response.status}`);
+          }
+        } catch (error) {
+          console.warn(`Fetch attempt ${attempt + 1} failed:`, error);
         }
 
-        // Only establish a WebSocket connection if the job is still in progress.
-        if (data.status !== 'completed' && data.status !== 'failed') {
-          ws = new WebSocket(`${MICROSERVICE_WS_URL}/ws/certificates?job_id=${enrollment.jobId.toString()}`);
+        // اگر هنوز به حداکثر تلاش نرسیده‌ایم، صبر می‌کنیم
+        if (attempt < MAX_RETRIES - 1) {
+          await sleep(RETRY_DELAY);
+        }
+      }
+
+      // اگر بعد از تمام تلاش‌ها هنوز دیتا نداریم، ارور نمایش بده
+      if (!data) {
+        console.error('Failed to fetch initial job status after retries');
+        if (isMounted) {
+          setStatus('error');
+        }
+        return;
+      }
+
+      // اگر موفق شدیم، وضعیت را آپدیت کن
+      if (isMounted) {
+        setStatus(data.status);
+      }
+
+      // ادامه منطق وب‌سوکت (بدون تغییر عمده)
+      if (data.status !== 'completed' && data.status !== 'failed') {
+          ws = new WebSocket(`ws://${window.location.host}/certws/ws/certificates?job_id=${enrollment.jobId.toString()}`);
 
           ws.onopen = () => {
             console.log('WebSocket connection established for job:', enrollment.jobId);
@@ -66,28 +95,18 @@ export default function CertificateStatus({ enrollment }) {
 
           ws.onerror = (error) => {
             console.error('WebSocket error:', error);
-            // Optional: You could retry the connection here after a delay.
           };
 
           ws.onclose = (event) => {
             console.log('WebSocket connection closed:', event.code, event.reason);
-            // Handle reconnect logic if needed, but for 'completed', it's intentional.
           };
         } else if (isMounted) {
-            // The job has already completed or failed, so we don't need a WebSocket.
             setStatus(data.status);
         }
-      } catch (error) {
-        console.error('Error fetching initial status or connecting WebSocket:', error);
-        if (isMounted) {
-          setStatus('error');
-        }
-      }
     };
     
     fetchStatusAndConnect();
 
-    // This cleanup function ensures the WebSocket is closed when the component unmounts.
     return () => {
       isMounted = false;
       if (ws) {
@@ -96,7 +115,6 @@ export default function CertificateStatus({ enrollment }) {
         }
       }
     };
-    // The dependency array ensures this effect runs only when the enrollment prop or its jobId changes.
   }, [enrollment.jobId]);
   
   

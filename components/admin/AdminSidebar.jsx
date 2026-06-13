@@ -6,7 +6,7 @@ import {
     SidebarGroup,
     SidebarHeader,
   } from "@/components/ui/sidebar"
-  import { LogOut, Users } from "lucide-react";
+  import { LogOut, Users ,MonitorDotIcon} from "lucide-react";
   import { useSession, signOut } from 'next-auth/react';
   import Link from 'next/link';
   import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import {
   import { LayoutDashboard,GraduationCap,Layers } from "lucide-react";
 import { useUser } from '@/hooks/useUser';
   import { useFileUrl } from "@/hooks/useFileUrl";
-   import { useState,useRef } from 'react'; 
+   import { useState,useRef,useEffect } from 'react'; 
 
   const HeaderSkeleton = () => (
     <div className="flex items-center gap-4 animate-pulse flex-row-reverse">
@@ -31,31 +31,37 @@ import { useUser } from '@/hooks/useUser';
   );
   
   export function AdminSidebar() {
-    const { data: session, status } = useSession();
-    const { data: userData, isLoading: isUserDataLoading } = useUser();
-
-    const [profileImageUrl, setProfileImageUrl] = useState(null);
-    const fileId = userData?.profileImage
-     const isFirstLoadProfile = useRef(true);
+     const { data: userData, isLoading: isUserDataLoading } = useUser();
+      console.log("userData",userData);
+      const { data: session, status } = useSession();
+      // ✅ Add state for profile image URL
+      const [profileImageUrl, setProfileImageUrl] = useState(null);
+      const fileId = userData?.profileImage;
+      //  const isFirstLoadProfile = useRef(true);
       const profileFileQuery = useFileUrl(fileId); // ✅ Use GET, not POST
-    
-      if (isFirstLoadProfile.current  && userData?.profileImage && status === 'authenticated' && !isUserDataLoading) {
-        if (!profileFileQuery.isLoading && profileFileQuery.data) {
-          setProfileImageUrl(profileFileQuery.data);
-          isFirstLoadProfile.current = false; 
+      useEffect(() => {
+        if (
+          userData?.profileImage &&
+          status === "authenticated" &&
+          !isUserDataLoading
+        ) {
+          if (!profileFileQuery.isLoading && profileFileQuery.data) {
+            setProfileImageUrl(profileFileQuery.data);
+          }
         }
-      }    
-
-    const getUserSubtitle = () => {
-     if (!session?.user) return '';
-     // اگر کاربر سمت خود را وارد کرده باشد، آن را نمایش بده
-     if (session.user.position) {
-       return session.user.position;
-     }
-     // در غیر این صورت، نقش پیش‌فرض را نمایش بده
-     return session.user.role === 'ADMIN' ? 'مدیر سیستم' : 'کاربر';
-   };
-   const pathname = usePathname();
+      }, [profileFileQuery]);
+    
+      const getUserSubtitle = () => {
+        ``;
+        if (!session?.user) return "";
+        // اگر کاربر سمت خود را وارد کرده باشد، آن را نمایش بده
+        if (userData.position) {
+          return userData.position;
+        }
+        // در غیر این صورت، نقش پیش‌فرض را نمایش بده
+        return userData.role === "ADMIN" || userData.role === "SUPERADMIN" ? "مدیر سیستم" : "کاربر";
+      };
+      const pathname = usePathname();
 
    const getLinkClassName = (path) => { 
     let isActive;
@@ -75,6 +81,11 @@ import { useUser } from '@/hooks/useUser';
       : "hover:bg-emerald-500/10  text-gray-700 hover:text-gray-900"
   );
 };
+if(isUserDataLoading){
+  return(<></>)
+}
+else{
+  console.log(userData)
     return (
       <Sidebar side="right">
         <SidebarHeader>
@@ -103,6 +114,13 @@ import { useUser } from '@/hooks/useUser';
             <Users size={25}/>
             مدیریت کاربران
           </Link>
+          <Link 
+            href="/dashboard" 
+            className={getLinkClassName('/dashboard')}
+          >
+            <MonitorDotIcon size={25}/>
+            پنل کاربری
+          </Link>
           </SidebarGroup>
           <SidebarGroup />
         </SidebarContent>
@@ -118,12 +136,13 @@ import { useUser } from '@/hooks/useUser';
           
                     {status === 'authenticated' && (
                       <>
-                      <div className='flex flex-row-reverse items-center gap-4'>
-          
-                        <div className="text-xs text-right">
-                          <div className="font-semibold">{session.user.name}</div>
-                          <div className="text-xs text-muted-foreground">{getUserSubtitle()}</div>
-                        </div>
+                     <div className="flex flex-row-reverse items-center gap-4">
+                <div className="text-xs text-right">
+                  <div className="font-semibold">{`${userData.firstName} ${userData.lastName}`}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {getUserSubtitle()}
+                  </div>
+                </div>
           
                        {profileFileQuery.isLoading ? (
                   <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
@@ -152,3 +171,4 @@ import { useUser } from '@/hooks/useUser';
       </Sidebar>
     )
   }
+}

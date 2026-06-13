@@ -7,7 +7,8 @@ import Enrollment from '@/models/Enrollment';
 export async function GET(request, { params }) {
   try {
     await dbConnect();
-    const course = await Course.findById(params.id)
+    const {id} = await params
+    const course = await Course.findById(id)
       .populate('signatory', 'firstName lastName')
       .populate('signatory2', 'firstName lastName');
       
@@ -24,7 +25,7 @@ export async function GET(request, { params }) {
 // PUT: Update a course
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     await dbConnect();
 
@@ -48,7 +49,7 @@ export async function PUT(request, { params }) {
 // DELETE: Delete a course
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     await dbConnect();
     
     // First, update related enrollments to reflect the course deletion

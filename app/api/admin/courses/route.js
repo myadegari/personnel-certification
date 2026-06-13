@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Course from "@/models/Course";
+import Indicator from "@/models/Indicator";
+import IndicatorUsage from "@/models/IndicatorUsage";
 
 // GET: Fetch all courses
 export async function GET(request) {
@@ -22,6 +24,12 @@ export async function POST(request) {
     // console.log("Request body:", body); // Debug log
     await dbConnect();
     const newCourse = await Course.create(body);
+    const BaseIndicatorPattern = body.certificateNumberPattern;
+    const indicator = await Indicator.findOneAndUpdate(
+        { pattern: BaseIndicatorPattern },
+        { $inc: { lastNumber: 0 } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
     return NextResponse.json(newCourse, { status: 201 });
   } catch (error) {
     console.error("Error creating course:", error); // Log the error for debugging

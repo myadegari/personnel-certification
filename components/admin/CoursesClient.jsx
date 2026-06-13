@@ -84,8 +84,7 @@ export default function CoursesClient({ initialCourses }) {
                     <span>
                         {new DateObject({ date: new Date(deadline * 1000), calendar: persian, locale: persian_fa }).format("YYYY/MM/DD")}
                     </span>
-                    {!isCustom && <span className="text-xs text-gray-500">(پیش‌فرض)</span>}
-                    {isCustom && <span className="text-xs text-blue-500 font-semibold">(سفارشی)</span>}
+                    
                 </div>
             );
         }

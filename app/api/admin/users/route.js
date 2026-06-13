@@ -10,11 +10,11 @@ export async function GET(request) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
-
+    const filter = { role: { $ne: 'SUPERADMIN' } };
     await dbConnect();
 
-    const users = await User.find().select('-password').skip(skip).limit(limit).sort({ createdAt: -1 });
-    const totalUsers = await User.countDocuments();
+    const users = await User.find(filter).select('-password').skip(skip).limit(limit).sort({ createdAt: -1 });
+    const totalUsers = await User.countDocuments(filter);
     const pageCount = Math.ceil(totalUsers / limit);
 
     return NextResponse.json({

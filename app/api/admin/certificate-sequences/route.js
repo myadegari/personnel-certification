@@ -8,7 +8,7 @@ export async function GET() {
   
   // افزودن وضعیت به هر الگو برای استفاده راحت‌تر در فرانت‌اند
   const sequencesWithStatus = sequences.map(seq => {
-    const remaining = 999 - seq.lastNumber;
+    const remaining = 9999 - seq.lastNumber; 
     let status = 'available';
     if (remaining < 10) {
       status = 'disabled';

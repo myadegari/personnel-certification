@@ -40,7 +40,7 @@ const UserSchema = new mongoose.Schema(
     signatureImage: { type: mongoose.Schema.Types.ObjectId, ref: "File" },
     role: {
       type: String,
-      enum: ["USER", "ADMIN"],
+      enum: ["USER", "ADMIN", "SUPERADMIN"],
       default: "USER",
     },
     status: {

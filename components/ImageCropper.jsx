@@ -4,6 +4,7 @@ import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { VisuallyHidden } from 'radix-ui';
 import { Button } from "@/components/ui/button";
 
 // Helper function to generate the cropped image
@@ -94,7 +95,10 @@ export default function ImageCropper({ isOpen, onOpenChange, image, onCropComple
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          {/* <DialogTitle>Crop Your Profile Picture</DialogTitle> */}
+          <VisuallyHidden.Root>
+
+          <DialogTitle>تنظیم تصویر پروفایل</DialogTitle>
+          </VisuallyHidden.Root>
         </DialogHeader>
         <div className="flex justify-center">
              <ReactCrop
