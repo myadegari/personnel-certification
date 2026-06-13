@@ -3,6 +3,7 @@
 # dependencies
 public/uploads
 /node_modules
+*.tar
 /.pnp
 .pnp.*
 .yarn/*
