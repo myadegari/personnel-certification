@@ -21,6 +21,7 @@ const EnrollmentSchema = new mongoose.Schema(
     certificateUrl: { type: String },
     issuedAt: { type: String },
     jobId: { type: String },
+    metadata: { type: mongoose.Schema.Types.Mixed },
   },
   { timestamps: true }
 );

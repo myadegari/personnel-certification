@@ -1,11 +1,14 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-// import crypto from "crypto";
 import otpGenerator from "otp-generator";
-// import nodemailer from "nodemailer"; // Import nodemailer
 import { sendForgetPasswordEmail } from "@/lib/mailer";
+import { hashOtp } from "@/lib/otp";
 
 export async function POST(request) {
+  const { rateLimit } = await import("@/lib/rateLimiter");
+  if (!rateLimit(request, 3)) {
+    return new Response(JSON.stringify({ message: "تعداد درخواست‌های مجاز را رد کرده‌اید. لطفاً بعداً تلاش کنید." }), { status: 429 });
+  }
   await dbConnect();
 
   try {
@@ -29,7 +32,7 @@ export async function POST(request) {
       specialChars: false,
     });
 
-    user.resetPasswordToken = resetToken;
+    user.resetPasswordToken = hashOtp(resetToken);
     user.resetPasswordExpires = Date.now() + 600000; // 10 minutes
 
     await user.save();

@@ -119,15 +119,15 @@ export default function CoursesClient({ initialCourses }) {
               className="rounded-l-3xl cursor-pointer transition-transform hover:scale-x-110"
               size="sm"
               onClick={() => handleDelete(row.original._id)}
-              disabled={deleteCourseMutation.isLoading}
+              disabled={deleteCourseMutation.isPending}
             >
-              {deleteCourseMutation.isLoading ? "در حال حذف..." : "حذف"}
+              {deleteCourseMutation.isPending ? "در حال حذف..." : "حذف"}
             </Button>
           </div>
         ),
       },
     ],
-    [deleteCourseMutation.isLoading]
+    [deleteCourseMutation.isPending]
   );
 
   const table = useReactTable({

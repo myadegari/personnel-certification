@@ -75,7 +75,8 @@ export default function CertificateStatus({ enrollment }) {
 
       // ادامه منطق وب‌سوکت (بدون تغییر عمده)
       if (data.status !== 'completed' && data.status !== 'failed') {
-          ws = new WebSocket(`ws://${window.location.host}/certws/ws/certificates?job_id=${enrollment.jobId.toString()}`);
+          const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          ws = new WebSocket(`${wsProtocol}//${window.location.host}/certws/ws/certificates?job_id=${enrollment.jobId.toString()}`);
 
           ws.onopen = () => {
             console.log('WebSocket connection established for job:', enrollment.jobId);

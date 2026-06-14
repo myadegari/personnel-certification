@@ -1,11 +1,17 @@
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
 import User from "@/models/User";
 import Course from "@/models/Course";
-import { processCertificateGeneration } from "@/lib/certificateService"; // <-- Import our new function
+import { processCertificateGeneration } from "@/lib/certificateService";
 
 export async function PUT(request, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session || !["ADMIN", "SUPERADMIN"].includes(session.user?.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
   try {
     const { id: enrollmentId } = await params;
     const { status } = await request.json();

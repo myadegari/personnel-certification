@@ -175,7 +175,7 @@ export default function UserManagementClient({ initialData }) {
                   onClick={() =>
                     handleStatusUpdate(row.original._id, "VERIFIED")
                   }
-                  disabled={statusMutation.isLoading}
+                  disabled={statusMutation.isPending}
                 >
                   تایید
                 </Button>
@@ -186,7 +186,7 @@ export default function UserManagementClient({ initialData }) {
                   onClick={() =>
                     handleStatusUpdate(row.original._id, "REJECTED")
                   }
-                  disabled={statusMutation.isLoading}
+                  disabled={statusMutation.isPending}
                 >
                   رد
                 </Button>

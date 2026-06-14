@@ -403,6 +403,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
       };
 
       await courseMutation.mutateAsync(finalData);
+      resetForm();
       onClose();
     } catch (err) {
       const errorMessage =

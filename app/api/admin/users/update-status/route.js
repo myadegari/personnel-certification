@@ -1,11 +1,14 @@
+import { getServerSession } from "next-auth";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import { sendAdminNotificationEmail } from "@/lib/mailer";
-
-// This route should be protected and only accessible by ADMIN users.
-// You should add middleware to check the user's role.
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function POST(request) {
+  const session = await getServerSession(authOptions);
+  if (!session || !["ADMIN", "SUPERADMIN"].includes(session.user?.role)) {
+    return new Response(JSON.stringify({ message: "دسترسی غیرمجاز" }), { status: 403 });
+  }
   await dbConnect();
 
   try {

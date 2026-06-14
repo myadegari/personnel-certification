@@ -1,4 +1,6 @@
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import Course from "@/models/Course";
 import Indicator from "@/models/Indicator";
@@ -6,6 +8,10 @@ import IndicatorUsage from "@/models/IndicatorUsage";
 
 // GET: Fetch all courses
 export async function GET(request) {
+  const session = await getServerSession(authOptions);
+  if (!session || !["ADMIN", "SUPERADMIN"].includes(session.user?.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
   try {
     await dbConnect();
     const courses = await Course.find({})
@@ -19,6 +25,10 @@ export async function GET(request) {
 
 // POST: Create a new course
 export async function POST(request) {
+  const session = await getServerSession(authOptions);
+  if (!session || !["ADMIN", "SUPERADMIN"].includes(session.user?.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
   try {
     const body = await request.json();
     // console.log("Request body:", body); // Debug log

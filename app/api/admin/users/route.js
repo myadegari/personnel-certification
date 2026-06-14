@@ -1,10 +1,14 @@
+import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import bcrypt from 'bcrypt';
 
 // GET: Fetch users with pagination
 export async function GET(request) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -32,6 +36,8 @@ export async function GET(request) {
 
 // POST: Create a new user
 export async function POST(request) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   try {
     const body = await request.json();
     const { personnelNumber, password, firstName, lastName, nationalId, email, role,gender,position,isProfessor } = body;
@@ -58,8 +64,18 @@ export async function POST(request) {
   }
 }
 
+async function requireAdmin() {
+  const session = await getServerSession(authOptions);
+  if (!session || !["ADMIN", "SUPERADMIN"].includes(session.user?.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+  return null;
+}
+
 // DELETE: Handle bulk deletion of users
 export async function DELETE(request) {
+  const authError = await requireAdmin();
+  if (authError) return authError;
   try {
     const { userIds } = await request.json();
     if (!userIds || userIds.length === 0) {

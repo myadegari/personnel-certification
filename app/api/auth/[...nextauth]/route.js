@@ -107,4 +107,14 @@ export const authOptions = {
 
 const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST };
+export async function GET(request, context) {
+  return handler(request, context);
+}
+
+export async function POST(request, context) {
+  const { rateLimit } = await import("@/lib/rateLimiter");
+  if (!rateLimit(request, 5)) {
+    return new Response(JSON.stringify({ message: "تعداد درخواست‌های مجاز را رد کرده‌اید. لطفاً بعداً تلاش کنید." }), { status: 429 });
+  }
+  return handler(request, context);
+}

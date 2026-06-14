@@ -1,10 +1,16 @@
+import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/dbConnect';
 import Course from '@/models/Course';
 import Enrollment from '@/models/Enrollment';
 
 // GET: Fetch a single course by ID
 export async function GET(request, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session || !["ADMIN", "SUPERADMIN"].includes(session.user?.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
   try {
     await dbConnect();
     const {id} = await params
@@ -24,6 +30,10 @@ export async function GET(request, { params }) {
 
 // PUT: Update a course
 export async function PUT(request, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session || !["ADMIN", "SUPERADMIN"].includes(session.user?.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
   try {
     const { id } = await params;
     const body = await request.json();
@@ -48,6 +58,10 @@ export async function PUT(request, { params }) {
 
 // DELETE: Delete a course
 export async function DELETE(request, { params }) {
+  const session = await getServerSession(authOptions);
+  if (!session || !["ADMIN", "SUPERADMIN"].includes(session.user?.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
   try {
     const { id } = await params;
     await dbConnect();

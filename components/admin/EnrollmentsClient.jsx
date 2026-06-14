@@ -52,7 +52,7 @@ function StatusSelector({ enrollment }) {
     <Select
       onValueChange={handleValueChange}
       defaultValue={enrollment.status}
-      disabled={mutation.isLoading}
+      disabled={mutation.isPending}
     >
       <SelectTrigger className="w-[180px]">
         <SelectValue placeholder="تغییر وضعیت" />

@@ -2,8 +2,13 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import bcrypt from "bcrypt";
+import { hashOtp, verifyOtp } from "@/lib/otp";
 
 export async function POST(request) {
+  const { rateLimit } = await import("@/lib/rateLimiter");
+  if (!rateLimit(request, 5)) {
+    return new Response(JSON.stringify({ message: "تعداد درخواست‌های مجاز را رد کرده‌اید. لطفاً بعداً تلاش کنید." }), { status: 429 });
+  }
   await dbConnect();
 
   try {
@@ -13,10 +18,10 @@ export async function POST(request) {
       return new Response(JSON.stringify({ message: "اطلاعات ناقص است." }), { status: 400 });
     }
 
-    // Find the user with a valid, non-expired token
+    const hashedToken = hashOtp(token);
     const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }, // Check if token is not expired
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {

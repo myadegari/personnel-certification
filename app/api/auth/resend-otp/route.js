@@ -2,6 +2,7 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import { sendVerificationEmail } from "@/lib/mailer";
 import otpGenerator from "otp-generator";
+import { hashOtp } from "@/lib/otp";
 
 const generateOTP = () =>
   otpGenerator.generate(6, {
@@ -12,6 +13,10 @@ const generateOTP = () =>
   });
 
 export async function POST(request) {
+  const { rateLimit } = await import("@/lib/rateLimiter");
+  if (!rateLimit(request, 3)) {
+    return new Response(JSON.stringify({ message: "تعداد درخواست‌های مجاز را رد کرده‌اید. لطفاً بعداً تلاش کنید." }), { status: 429 });
+  }
   await dbConnect();
 
   try {
@@ -38,7 +43,7 @@ export async function POST(request) {
     }
 
     const otp = generateOTP();
-    user.otp = otp;
+    user.otp = hashOtp(otp);
     user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 

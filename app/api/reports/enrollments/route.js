@@ -49,7 +49,7 @@ export async function POST(request) {
         return NextResponse.json({ error: `No approved enrollments found for year ${year}` }, { status: 404 });
     }
 
-    const pattern = "404/گ";
+    const pattern = process.env.REPORT_CERTIFICATE_PATTERN || "404/گ";
           let sequence = await CertificateSequence.findOne({ pattern: pattern });
     
           if (!sequence) {
@@ -114,7 +114,7 @@ export async function POST(request) {
                 year: yearNumber,
           },
         enrollments: enrollmentData,
-        total: totalDuration,
+        total: { duration: totalDuration.toString(), count: filteredEnrollments.length.toString() },
         reportuniqueid:certNumber
     };
     

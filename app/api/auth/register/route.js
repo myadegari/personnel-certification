@@ -4,6 +4,7 @@ import User from "@/models/User";
 import bcrypt from "bcrypt";
 import otpGenerator from "otp-generator";
 import { sendVerificationEmail } from "@/lib/mailer";
+import { hashOtp } from "@/lib/otp";
 
 const generateOTP = () =>
   otpGenerator.generate(6, {
@@ -14,7 +15,10 @@ const generateOTP = () =>
   });
 
 export async function POST(request) {
-  // Establish a connection to the database
+  const { rateLimit } = await import("@/lib/rateLimiter");
+  if (!rateLimit(request, 3)) {
+    return new Response(JSON.stringify({ message: "تعداد درخواست‌های مجاز را رد کرده‌اید. لطفاً بعداً تلاش کنید." }), { status: 429 });
+  }
   await dbConnect();
 
   try {
@@ -58,7 +62,7 @@ export async function POST(request) {
     if (existingUser) {
       if (existingUser.status === "pending") {
         const otp = generateOTP();
-        existingUser.otp = otp;
+        existingUser.otp = hashOtp(otp);
         existingUser.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
         await existingUser.save();
         await sendVerificationEmail(existingUser.email, otp);
@@ -104,7 +108,7 @@ export async function POST(request) {
       isProfessor,
       // Optional fields like profileImage and signatureImage can be added later
       status: "PENDING",
-      otp: otp,
+      otp: hashOtp(otp),
       otpExpires: Date.now() + 10 * 60 * 1000, // 10 minutes
     });
 

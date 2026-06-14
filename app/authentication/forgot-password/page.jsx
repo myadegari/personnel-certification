@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { toast } from 'react-toastify';
+import toast from 'react-hot-toast';
 import PasswordInput from "@/components/comp-23"
 
 export default function ForgotPasswordPage() {

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { join } from 'path';
 import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
 import path from 'path';
@@ -15,21 +14,18 @@ export async function GET(request) {
     }
 
     try {
-        // Get path from query parameter
         const { searchParams } = new URL(request.url);
-        const imagePath = searchParams.get('path');
+        const rawPath = searchParams.get('path');
 
-        if (!imagePath) {
+        if (!rawPath) {
             return NextResponse.json({ error: 'Image path is required' }, { status: 400 });
         }
 
-        // Sanitize the path to prevent directory traversal attacks
-        const normalizedPath = path.normalize(imagePath).replace(/^(\.\.(\/|\\|$))+/, '');
-        const fullPath = join(process.cwd(), 'public', normalizedPath);
+        const uploadsDir = path.resolve(process.cwd(), 'public', 'uploads');
+        const fullPath = path.resolve(uploadsDir, rawPath);
 
-        // Verify the path is within the uploads directory
-        const uploadsDir = join(process.cwd(), 'public', 'uploads');
-        if (!fullPath.startsWith(uploadsDir)) {
+        // Ensure the resolved path stays within uploads
+        if (!fullPath.startsWith(uploadsDir + path.sep)) {
             return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
         }
 

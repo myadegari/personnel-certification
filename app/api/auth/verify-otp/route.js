@@ -1,7 +1,12 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
+import { verifyOtp } from "@/lib/otp";
 
 export async function POST(request) {
+  const { rateLimit } = await import("@/lib/rateLimiter");
+  if (!rateLimit(request, 10)) {
+    return new Response(JSON.stringify({ message: "تعداد درخواست‌های مجاز را رد کرده‌اید. لطفاً بعداً تلاش کنید." }), { status: 429 });
+  }
   await dbConnect();
 
   try {
@@ -23,7 +28,7 @@ export async function POST(request) {
       );
     }
 
-    if (user.otp !== otp) {
+    if (!user.otp || !verifyOtp(otp, user.otp)) {
       return new Response(
         JSON.stringify({ message: "کد تایید وارد شده صحیح نیست." }),
         { status: 400 }
