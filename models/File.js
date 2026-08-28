@@ -16,7 +16,7 @@ const fileSchema = new mongoose.Schema(
     bucket: {
       type: String,
       required: true,
-      enum: ["profile", "signature", "stamp", "certificate", "report"],
+      enum: ["signature", "stamp", "certificate", "report"],
     },
     objectName: {
       type: String,

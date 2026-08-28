@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {internalAxios} from '@/lib/axios';
 import { Button } from "./ui/button";
@@ -9,7 +9,12 @@ const enrollInCourse = (courseId) => internalAxios.post('/enrollments', { course
 export default function EnrollButton({ courseId, status, enrollmentDeadline }) {
   const queryClient = useQueryClient();
   const [currentStatus, setCurrentStatus] = useState(status);
+  const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
   // const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    setIsDeadlinePassed(Math.floor(Date.now() / 1000) > enrollmentDeadline);
+  }, [enrollmentDeadline]);
 
   const mutation = useMutation({
     mutationFn: enrollInCourse,
@@ -27,8 +32,7 @@ const handleEnroll = () => {
     mutation.mutate(courseId);
   };
 
-  const nowInSeconds = Math.floor(Date.now() / 1000);
-  const isDeadlinePassed = nowInSeconds > enrollmentDeadline;
+
   
   if (currentStatus === 'APPROVED') {
     return <Button disabled className="w-full rounded-xl bg-green-200 border-green-600/15  text-green-600 disabled:opacity-100 ">ثبت‌نام شده (تایید شده)</Button>;

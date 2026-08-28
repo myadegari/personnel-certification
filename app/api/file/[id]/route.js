@@ -5,6 +5,7 @@ import { authOptions } from "../../auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import File from "@/models/File";
 import { getPresignedUrl } from '@/lib/storage';
+import { isStaffRole } from '@/lib/roles';
 
 export async function GET(request, { params }) {
   const session = await getServerSession(authOptions);
@@ -25,9 +26,9 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "File not found or access denied." }, { status: 404 });
   }
 
-  // Only the owner or an admin may access a file
+  // Only the owner or a staff user may access a file
   if (
-    session.user.role !== "ADMIN" &&
+    !isStaffRole(session.user.role) &&
     fileRecord.userId?.toString() !== session.user.id
   ) {
     return NextResponse.json({ error: "File not found or access denied." }, { status: 403 });

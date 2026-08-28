@@ -3,9 +3,10 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import { sendAdminNotificationEmail } from "@/lib/mailer";
 import { requireAdmin } from "@/lib/authGuard";
+import { canManageUser } from "@/lib/roles";
 
 export async function POST(request) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   await dbConnect();
@@ -33,7 +34,14 @@ export async function POST(request) {
       return NextResponse.json({ message: "کاربر یافت نشد." }, { status: 404 });
     }
 
-    if (user.status !== "NEED_TO_VERIFY") {
+    if (!canManageUser(session.user.role, user.role)) {
+      return NextResponse.json(
+        { message: "شما اجازه تغییر وضعیت این کاربر را ندارید." },
+        { status: 403 }
+      );
+    }
+
+    if (!["PENDING", "NEED_TO_VERIFY"].includes(user.status)) {
       return NextResponse.json(
         {
           message: `عملیات روی کاربر با وضعیت '${user.status}' مجاز نیست.`,

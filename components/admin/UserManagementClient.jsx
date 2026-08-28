@@ -8,6 +8,7 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import { internalAxios } from "@/lib/axios";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {Badge} from "@radix-ui/themes"
 // You will need to create this modal component
 import UserFormModal from "./UserFormModal";
+import { ROLE_LABELS_FA, canManageUser } from "@/lib/roles";
 
 const fetchUsers = async ({ queryKey }) => {
   const [_key, { page, limit }] = queryKey;
@@ -69,6 +71,9 @@ const StatusBadge = ({ status }) => {
 
 export default function UserManagementClient({ initialData }) {
   const queryClient = useQueryClient();
+  const { data: session } = useSession();
+  const currentRole = session?.user?.role;
+  const currentUserId = session?.user?.id;
   // const [data, setData] = useState(initialData.users);
   const [pagination, setPagination] = useState({
     pageIndex: initialData.pagination.currentPage - 1,
@@ -144,6 +149,10 @@ export default function UserManagementClient({ initialData }) {
           <Checkbox
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
+            disabled={
+              row.original._id === currentUserId ||
+              !canManageUser(currentRole, row.original.role)
+            }
             aria-label="Select row"
           />
         ),
@@ -155,7 +164,7 @@ export default function UserManagementClient({ initialData }) {
       },
       { accessorKey: "email", header: "ایمیل" },
       { accessorKey: "role", header: "نقش",
-        cell:({row})=> <p>{row.original.role == "ADMIN"?"مدیر":"کاربر"}</p>
+        cell: ({ row }) => <p>{ROLE_LABELS_FA[row.original.role] || row.original.role}</p>
       },
       {
         accessorKey: "status",
@@ -165,47 +174,53 @@ export default function UserManagementClient({ initialData }) {
       {
         id: "actions",
         header: "عملیات",
-        cell: ({ row }) => (
-          <div className="space-x-2 space-x-reverse flex flex-col gap-2">
-            {row.original.status === "NEED_TO_VERIFY" ? (
-              <div className="flex gap-1 w-full">
+        cell: ({ row }) => {
+          const manageable = canManageUser(currentRole, row.original.role);
+          if (!manageable) return <span className="text-sm text-gray-400">-</span>;
+
+          return (
+            <div className="space-x-2 space-x-reverse flex flex-col gap-2">
+              {["PENDING", "NEED_TO_VERIFY"].includes(row.original.status) ? (
+                <div className="flex gap-1 w-full">
+                  <Button
+                    variant="default"
+                    className="flex-1 rounded-r-3xl cursor-pointer"
+                    size="sm"
+                    onClick={() =>
+                      handleStatusUpdate(row.original._id, "VERIFIED")
+                    }
+                    disabled={statusMutation.isPending}
+                  >
+                    تایید
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1 rounded-l-3xl cursor-pointer"
+                    size="sm"
+                    onClick={() =>
+                      handleStatusUpdate(row.original._id, "REJECTED")
+                    }
+                    disabled={statusMutation.isPending}
+                  >
+                    رد
+                  </Button>
+                </div>
+              ) : (
                 <Button
-                  variant="default"
-                  className="flex-1 rounded-r-3xl cursor-pointer"
+                  variant="outline"
+                  className="cursor-pointer rounded-3xl"
                   size="sm"
-                  onClick={() =>
-                    handleStatusUpdate(row.original._id, "VERIFIED")
-                  }
-                  disabled={statusMutation.isPending}
+                  onClick={() => handleEdit(row.original)}
                 >
-                  تایید
+                  ویرایش
                 </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1 rounded-l-3xl cursor-pointer"
-                  size="sm"
-                  onClick={() =>
-                    handleStatusUpdate(row.original._id, "REJECTED")
-                  }
-                  disabled={statusMutation.isPending}
-                >
-                  رد
-                </Button>
-              </div>
-            ):( <Button
-              variant="outline"
-              className="cursor-pointer rounded-3xl"
-              size="sm"
-              onClick={() => handleEdit(row.original)}
-            >
-              ویرایش
-            </Button>)}
-           
-          </div>
-        ),
+              )}
+            </div>
+          );
+        },
       },
     ],
-    []
+    [currentRole, currentUserId, statusMutation.isPending]
   );
 
   const table = useReactTable({
@@ -221,7 +236,9 @@ export default function UserManagementClient({ initialData }) {
     },
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
-    enableRowSelection: true,
+    enableRowSelection: (row) =>
+      row.original._id !== currentUserId &&
+      canManageUser(currentRole, row.original.role),
   });
 
   const handleEdit = (user) => {

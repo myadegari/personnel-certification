@@ -35,20 +35,13 @@ export default function LoginPage() {
         });
 
         if (result.error) {
-            // NEW: Check for our custom error message here
-            if (result.error.startsWith('PENDING_VERIFICATION')) {
-                const email = result.error.split(',')[1];
-                // Redirect to the signup page with the necessary parameters
-                router.push(`/authentication/signup?step=3&email=${email}`);
-                      // Set the flag to true.
-                      isRedirecting = true; 
-                // toast.info('حساب کاربری شما هنوز فعال نشده است. لطفاً ایمیل خود را برای تایید بررسی کنید.',{  autoClose: 5000,});
-                // No need to set loading to false, as we are navigating away
-                return; 
+            if (result.error === 'ACCOUNT_NOT_ACTIVE') {
+                toast.error('حساب کاربری شما فعال نیست. با مدیر سیستم تماس بگیرید.', { autoClose: 5000 });
+            } else if (result.error === 'ACCOUNT_REJECTED') {
+                toast.error('حساب کاربری شما توسط مدیر رد شده است.', { autoClose: 5000 });
+            } else {
+                toast.error('شماره پرسنلی یا رمز عبور اشتباه است.',{ autoClose: 5000, });
             }
-            // For any other error, display a generic message
-            toast.error('شماره پرسنلی یا رمز عبور اشتباه است.',{ autoClose: 5000, });
-            // setError('شماره پرسنلی یا رمز عبور اشتباه است.');
         } else if (result.ok) {
             // On successful login, redirect to the root which will be handled by middleware
             router.push('/');
@@ -117,12 +110,6 @@ export default function LoginPage() {
           <div className="text-sm">
             <Link href="/authentication/forgot-password" className="text-blue-600 hover:underline">
               فراموشی رمز عبور
-            </Link>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            حساب کاربری ندارید؟{' '}
-            <Link href="/authentication/signup" className="font-semibold text-blue-600 hover:underline">
-              ثبت‌نام کنید
             </Link>
           </div>
         </CardFooter>

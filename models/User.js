@@ -36,11 +36,10 @@ const UserSchema = new mongoose.Schema(
       required: [true, "رمز عبور الزامی است."],
     },
     position: { type: String },
-    profileImage: { type: mongoose.Schema.Types.ObjectId, ref: "File" },
     signatureImage: { type: mongoose.Schema.Types.ObjectId, ref: "File" },
     role: {
       type: String,
-      enum: ["USER", "ADMIN"],
+      enum: ["USER", "ADMIN", "SUPERADMIN"],
       default: "USER",
     },
     status: {

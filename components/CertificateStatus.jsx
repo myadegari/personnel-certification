@@ -105,6 +105,28 @@ export default function CertificateStatus({ enrollment }) {
     }
   };
 
+  const downloadCertificate = async () => {
+    try {
+      const response = await fetch(`/api/verify/${enrollment._id}`);
+      if (!response.ok) {
+        throw new Error('امکان دریافت فایل گواهی وجود ندارد.');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `certificate-${enrollment.certificateUniqueId || enrollment._id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Certificate download error:', error);
+      alert(error.message || 'خطا در دانلود گواهی.');
+    }
+  };
+
   // Render the appropriate UI based on the current status.
   switch (status) {
     case 'loading':
@@ -114,8 +136,13 @@ export default function CertificateStatus({ enrollment }) {
     case 'processing':
       return <Badge variant="outline" className="animate-pulse">در حال پردازش...</Badge>;
     case 'completed':
-      // When complete, show a button to view the certificate.
-      return <Button size="sm" onClick={viewCertificate}>مشاهده گواهی</Button>;
+      // When complete, show buttons to view or download the certificate.
+      return (
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={viewCertificate}>مشاهده گواهی</Button>
+          <Button size="sm" variant="outline" onClick={downloadCertificate}>دانلود گواهی</Button>
+        </div>
+      );
     case 'failed':
       return <Badge variant="destructive">خطا در صدور</Badge>;
     case 'error':

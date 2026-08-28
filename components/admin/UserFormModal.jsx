@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,6 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useFileUrl } from "@/hooks/useFileUrl";
+import { useSession } from "next-auth/react";
+import { ASSIGNABLE_ROLES, ROLES, ROLE_LABELS_FA, canAssignRole, isSuperAdmin } from "@/lib/roles";
 
 const getBaseUrl = () => {
   // If we are on the server, use the internal Docker URL
@@ -30,25 +33,36 @@ const getBaseUrl = () => {
   // If on client, use relative path or public URL
   return ''; 
 };
+
+const emptyForm = {
+  firstName: '',
+  lastName: '',
+  personnelNumber: '',
+  password: '',
+  role: 'USER',
+  nationalId: "",
+  email: "",
+  gender: "",
+  position: "",
+  isProfessor: false
+};
+
 export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    personnelNumber: '',
-    password: '',
-    role: 'USER',
-    nationalId: "",
-    email: "",
-    gender: "",
-    position: "",
-    isProfessor: false
-  });
+  const { data: session } = useSession();
+  const [formData, setFormData] = useState(emptyForm);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [signatureFile, setSignatureFile] = useState(null);
+  const [signaturePreview, setSignaturePreview] = useState('');
+  const signatureInputRef = useRef(null);
 
   const isEditing = !!userData;
+  const currentRole = session?.user?.role || ROLES.USER;
+  const isSelf = isEditing && userData?._id === session?.user?.id;
+  const roleOptions = ASSIGNABLE_ROLES.filter((role) => canAssignRole(currentRole, role));
+  const canChangeRole = !isSelf && (isSuperAdmin(currentRole) || !isEditing);
+  const signatureFileQuery = useFileUrl(userData?.signatureImage);
 
-  // Populate form when userData for editing is passed
   useEffect(() => {
     if (isEditing) {
       setFormData({
@@ -59,25 +73,23 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
         role: userData.role || 'USER',
         nationalId: userData.nationalId || "",
         gender: userData.gender || "",
-        position:userData.position || "",
-        isProfessor: userData.isProfessor || false
+        position: userData.position || "",
+        isProfessor: userData.isProfessor || false,
+        password: '',
       });
     } else {
-      // Reset form for creating a new user
-      setFormData({
-        firstName: '',
-        lastName: '',
-        personnelNumber: '',
-        nationalId:'',
-        password: '',
-        role: 'USER',
-        email: "",
-        gender: "",
-        position: "",
-        isProfessor: false
-      });
+      setFormData(emptyForm);
     }
-  }, [userData, isOpen]);
+    setSignatureFile(null);
+    setSignaturePreview('');
+    setError('');
+  }, [userData, isOpen, isEditing]);
+
+  useEffect(() => {
+    if (!signatureFile && userData?.signatureImage && signatureFileQuery.data) {
+      setSignaturePreview(signatureFileQuery.data);
+    }
+  }, [signatureFile, userData?.signatureImage, signatureFileQuery.data]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -88,36 +100,58 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
     setFormData(prev => ({ ...prev, role: value }));
   };
 
+  const handleSignatureChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSignatureFile(file);
+    setSignaturePreview(URL.createObjectURL(file));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      let response;
-      if (isEditing) {
-        // Update user
-        response = await fetch(`${getBaseUrl()}/api/admin/users/${userData._id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        });
-      } else {
-        // Create user
-        response = await fetch(`${getBaseUrl()}/api/admin/users`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        });
+      if (!isEditing && formData.password.length < 8) {
+        throw new Error('رمز عبور باید حداقل ۸ کاراکتر باشد.');
       }
 
+      const payload = new FormData();
+      payload.append('firstName', formData.firstName);
+      payload.append('lastName', formData.lastName);
+      payload.append('personnelNumber', formData.personnelNumber);
+      payload.append('nationalId', formData.nationalId);
+      payload.append('email', formData.email);
+      payload.append('role', formData.role);
+      payload.append('gender', formData.gender);
+      payload.append('position', formData.position || '');
+      payload.append('isProfessor', String(Boolean(formData.isProfessor)));
+
+      if (!isEditing) {
+        payload.append('password', formData.password);
+      }
+
+      if (signatureFile) {
+        payload.append('signatureFile', signatureFile);
+      }
+
+      const url = isEditing
+        ? `${getBaseUrl()}/api/admin/users/${userData._id}`
+        : `${getBaseUrl()}/api/admin/users`;
+
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
+        body: payload,
+      });
+
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'عملیات با خطا مواجه شد.');
       }
 
-      onSave(); // Trigger data refetch in parent
-      onClose(); // Close the modal
+      onSave();
+      onClose();
 
     } catch (err) {
       setError(err.message);
@@ -164,21 +198,28 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
               <Label htmlFor="email" className="text-right">ایمیل</Label>
               <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="col-span-3" required />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="position" className="text-right">سمت</Label>
+              <Input id="position" name="position" value={formData.position} onChange={handleChange} className="col-span-3" />
+            </div>
             {!isEditing && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="password" className="text-right">رمز عبور</Label>
-                <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} className="col-span-3" required />
+                <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} className="col-span-3" required minLength={8} />
               </div>
             )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="role" className="text-right">نقش</Label>
-              <Select onValueChange={handleRoleChange} value={formData.role}>
+              <Select onValueChange={handleRoleChange} value={formData.role} disabled={!canChangeRole}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="انتخاب نقش" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="USER">کاربر</SelectItem>
-                  <SelectItem value="ADMIN">مدیر</SelectItem>
+                  {roleOptions.map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {ROLE_LABELS_FA[role]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -218,6 +259,28 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                 <Label htmlFor="isProfessor">بله</Label>
               </div>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label>امضای کاربر</Label>
+              {signaturePreview ? (
+                <div className="flex justify-center rounded-md border bg-gray-50 p-2">
+                  <img
+                    src={signaturePreview}
+                    alt="Signature preview"
+                    width={150}
+                    className="object-contain"
+                  />
+                </div>
+              ) : null}
+              <Input
+                ref={signatureInputRef}
+                id="signatureFile"
+                name="signatureFile"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleSignatureChange}
+                onClick={(e) => (e.target.value = null)}
+              />
             </div>
             {error && <p className="text-red-500 text-sm col-span-4">{error}</p>}
           </div>

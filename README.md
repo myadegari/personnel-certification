@@ -1,17 +1,22 @@
 # سامانه گواهی کارمندان — Personnel Certification System
 
-Internal portal for the Larestan Higher Education Complex: employee registration,
-course enrollment, admin approval workflow, PDF certificate generation via a
+Internal portal for the Larestan Higher Education Complex: admin-provisioned employee
+accounts, course enrollment, admin approval workflow, PDF certificate generation via a
 FastAPI microservice, and public certificate verification.
+
+Public signup is disabled. Superadmins create and manage admin accounts; admins
+create regular user accounts and set user fields such as position, professor
+status, and signature. Regular users can log in, view/enroll in courses,
+download certificates, and change their own password.
 
 ## Stack
 
 - **Next.js 16** (App Router) + React 19
 - **MongoDB** (mongoose 9)
-- **Alarik** — S3-compatible object storage (replaced MinIO)
+- **Alarik** — S3-compatible object storage
 - **NextAuth v4** (credentials provider, JWT sessions)
 - **FastAPI microservice** for certificate/report generation (WebSocket job status)
-- Docker Compose + nginx reverse proxy
+- Docker Compose orchestration from the parent `certificate-system` workspace
 
 ## Getting Started
 
@@ -36,68 +41,59 @@ See `.env.example`. Highlights:
 | `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` | S3 credentials (Alarik's `DEFAULT_ACCESS_KEY`/`DEFAULT_SECRET_KEY`) |
 | `STORAGE_PUBLIC_URL` | Base URL used to rewrite presigned URLs for browsers |
 | `MICROSERVICE_URL` | FastAPI certificate service base URL |
+| `SUPERADMIN_*` | Optional seed values used by `bun run seed:superadmin` |
 
 ## Deployment
 
-```bash
-cp .env.example .env         # docker compose reads this file
-docker compose up -d --build
-```
-
-Services: `nginx` (:80) → `nextjs` (:3000), `mongodb` (:27017), `alarik` (:8080).
-The optional Alarik web console can be enabled in `docker-compose.yml`.
-
-Buckets `profile`, `signature`, `stamp`, `certificate` are auto-seeded by Alarik
-(`DEFAULT_BUCKETS`) and are also created on demand by the upload route.
-
----
-
-## Migrating from MinIO to Alarik
-
-Alarik is S3-compatible, so bucket/object names stay identical and no database
-records need rewriting.
-
-### 1. Run Alarik alongside MinIO
-
-Add the `alarik` service from `docker-compose.yml` (keep `minio` temporarily).
-
-### 2. Copy existing objects
+This app is orchestrated from the parent `certificate-system` workspace. Run
+Docker Compose from the workspace root, not from this folder:
 
 ```bash
-# one-time rclone config for both endpoints, then per bucket:
-rclone sync minio:profile  alarik:profile  --progress
-rclone sync minio:signature alarik:signature --progress
-rclone sync minio:stamp    alarik:stamp    --progress
-rclone sync minio:certificate alarik:certificate --progress
+cd ..
+cp .env.example .env                 # root infra credentials
+docker compose up -d --build nextjs
 ```
 
-(Any S3 tool works: `aws s3 sync --endpoint-url ...`.)
+Services started by the root compose file include `nextjs` (:3000), `mongodb`
+(:27017), `alarik` (:8080), `fastapi` (:8000), `worker`, `rabbitmq`, and
+`redis`.
 
-### 3. Repoint the app
+Buckets `signature`, `stamp`, `certificate`, and `report` are auto-seeded by
+Alarik (`DEFAULT_BUCKETS`) and are also created on demand by the upload routes.
 
-Set in `.env`:
+## Superadmin bootstrap
 
+Create the first `SUPERADMIN` account with a seed script. Set the
+`SUPERADMIN_*` variables in `.env.local` or `.env`, then run:
+
+```bash
+bun run seed:superadmin
 ```
-STORAGE_ENDPOINT=http://alarik:8080   # or http://localhost:8080 outside compose
-STORAGE_REGION=us-east-1              # must equal ALARIK_REGION
-STORAGE_ACCESS_KEY=<alarik key>
-STORAGE_SECRET_KEY=<alarik secret>
-STORAGE_PUBLIC_URL=<public base URL>
+
+Inside Docker:
+
+```bash
+docker compose exec nextjs bun run seed:superadmin
 ```
 
-Then rebuild/restart the `nextjs` container.
+The script upserts the user by `SUPERADMIN_PERSONNEL_NUMBER`, hashes the
+password, and sets the account to `role: "SUPERADMIN"` and `status: "VERIFIED"`.
 
-### 4. Verify
+## Profile image cleanup
 
-- Log in → profile image loads (presigned URL flow)
-- Admin course stamps render
-- Approve a test enrollment → certificate job starts
-- Open `/verify/<certificate-id>` → PDF streams
+Profile images are no longer part of the app. If an older database still has
+`profileImage` fields or `File` records in the `profile` bucket, preview the
+cleanup first:
 
-### 5. Decommission MinIO
+```bash
+bun scripts/cleanup-profile-images.js --dry-run
+```
 
-Remove the `minio` service from `docker-compose.yml` and drop the `minio_data`
-volume once confident.
+Then run it for real:
+
+```bash
+bun run cleanup:profile-images
+```
 
 ---
 
@@ -105,10 +101,10 @@ volume once confident.
 
 The certificate generator microservice also writes objects to storage and creates
 `File` records with `{ metadata: { job_id, type: "certificate" } }` — the public
-verification endpoint `/api/verify/[id]` depends on those records. When moving to
-Alarik, update it accordingly:
+verification endpoint `/api/verify/[id]` depends on those records. Keep these
+contracts when changing storage or certificate generation:
 
-1. Repoint its S3/minio client to the Alarik endpoint.
+1. Point both services at the same Alarik endpoint.
 2. Match `ALARIK_REGION` exactly and use **path-style** addressing.
 3. Keep bucket/object naming identical so existing `File` records remain valid.
 4. Confirm new certificates still persist `metadata.job_id` + `metadata.type`.

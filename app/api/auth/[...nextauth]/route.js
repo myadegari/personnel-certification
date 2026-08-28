@@ -4,16 +4,6 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import bcrypt from "bcrypt";
-import { sendVerificationEmail } from "@/lib/mailer";
-import otpGenerator from "otp-generator";
-
-const generateOTP = () =>
-  otpGenerator.generate(6, {
-    digits: true,
-    lowerCaseAlphabets: false,
-    upperCaseAlphabets: false,
-    specialChars: false,
-  });
 
 export const authOptions = {
   session: {
@@ -42,20 +32,11 @@ export const authOptions = {
           return null;
         }
         if (user.status === "PENDING") {
-          const otp = generateOTP();
-          user.otp = otp;
-          user.otpExpires = Date.now() + 10 * 60 * 1000; // OTP expires in 10 minutes
-          await user.save();
-          await sendVerificationEmail(user.email, otp);
-
-          // This special error message will be sent to the login page's URL query.
-          // Your login page can then read this and redirect the user.
-          // Format: "ERROR_CODE,user_email"
-          throw new Error(`PENDING_VERIFICATION,${user.email}`);
+          throw new Error("ACCOUNT_NOT_ACTIVE");
         }
 
         if (user.status === "REJECTED") {
-          throw new Error("حساب کاربری شما توسط مدیر رد شده است.");
+          throw new Error("ACCOUNT_REJECTED");
         }
         const isPasswordValid = await bcrypt.compare(
           credentials.password,
@@ -70,10 +51,9 @@ export const authOptions = {
           id: user._id.toString(),
           name: `${user.firstName} ${user.lastName}`,
           email: user.email,
-          role: user.role || "USER", // Make sure you have a role field in your User model
-          profileImage: user.profileImage,
+          role: user.role || "USER",
           position: user.position,
-          status: user.status, // Include status
+          status: user.status,
         };
       },
     }),

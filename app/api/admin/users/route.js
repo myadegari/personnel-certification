@@ -3,10 +3,47 @@ import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import bcrypt from 'bcrypt';
 import { requireAdmin } from '@/lib/authGuard';
+import { uploadUserSignature } from '@/lib/signatureUpload';
+import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
+
+async function parseUserPayload(request) {
+  const contentType = request.headers.get('content-type') || '';
+
+  if (contentType.includes('multipart/form-data')) {
+    const data = await request.formData();
+    const value = (key) => {
+      const entry = data.get(key);
+      return entry === null ? undefined : entry;
+    };
+    const optionalValue = (key) => {
+      const entry = data.get(key);
+      return entry === null ? undefined : entry;
+    };
+
+    return {
+      fields: {
+        personnelNumber: value('personnelNumber'),
+        password: value('password'),
+        firstName: value('firstName'),
+        lastName: value('lastName'),
+        nationalId: value('nationalId'),
+        email: value('email'),
+        role: value('role'),
+        gender: value('gender'),
+        position: optionalValue('position'),
+        isProfessor: value('isProfessor') === 'true',
+      },
+      signatureFile: data.get('signatureFile') || undefined,
+    };
+  }
+
+  const body = await request.json();
+  return { fields: body, signatureFile: undefined };
+}
 
 // GET: Fetch users with pagination
 export async function GET(request) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   try {
@@ -17,8 +54,9 @@ export async function GET(request) {
 
     await dbConnect();
 
-    const users = await User.find().select('-password').skip(skip).limit(limit).sort({ createdAt: -1 });
-    const totalUsers = await User.countDocuments();
+    const filter = isSuperAdmin(session.user.role) ? {} : { role: ROLES.USER };
+    const users = await User.find(filter).select('-password').skip(skip).limit(limit).sort({ createdAt: -1 });
+    const totalUsers = await User.countDocuments(filter);
     const pageCount = Math.ceil(totalUsers / limit);
 
     return NextResponse.json({
@@ -36,18 +74,24 @@ export async function GET(request) {
 
 // POST: Create a new user
 export async function POST(request) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   try {
-    const body = await request.json();
-    const { personnelNumber, password, firstName, lastName, nationalId, email, role, gender, position, isProfessor } = body;
+    const { fields, signatureFile } = await parseUserPayload(request);
+    const { personnelNumber, password, firstName, lastName, nationalId, email, role, gender, position, isProfessor } = fields;
 
     if (!personnelNumber || !password || !firstName || !lastName || !nationalId || !email || !gender) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
-    if (!['USER', 'ADMIN'].includes(role)) {
+    if (typeof password !== 'string' || password.length < 8) {
+      return NextResponse.json({ error: 'رمز عبور باید حداقل ۸ کاراکتر باشد.' }, { status: 400 });
+    }
+    if (!isValidRole(role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    }
+    if (!canAssignRole(session.user.role, role)) {
+      return NextResponse.json({ error: 'You cannot assign this role' }, { status: 403 });
     }
 
     await dbConnect();
@@ -64,7 +108,20 @@ export async function POST(request) {
       position,
       isProfessor,
       role,
+      status: 'VERIFIED',
     });
+
+    if (signatureFile) {
+      try {
+        await uploadUserSignature(newUser, signatureFile);
+      } catch (uploadError) {
+        await User.findByIdAndDelete(newUser._id);
+        return NextResponse.json(
+          { error: uploadError.message || 'Failed to upload signature.' },
+          { status: uploadError.status || 500 }
+        );
+      }
+    }
 
     const safeUser = newUser.toObject();
     delete safeUser.password;
@@ -93,9 +150,23 @@ export async function DELETE(request) {
 
     await dbConnect();
 
-    // Prevent an admin from deleting their own account
     if (userIds.includes(session.user.id)) {
       return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 });
+    }
+
+    const targets = await User.find({ _id: { $in: userIds } }).select('role');
+    for (const target of targets) {
+      if (!canManageUser(session.user.role, target.role)) {
+        return NextResponse.json({ error: 'You cannot delete this user' }, { status: 403 });
+      }
+    }
+
+    if (isSuperAdmin(session.user.role)) {
+      const superAdminCount = await User.countDocuments({ role: ROLES.SUPERADMIN });
+      const deletingSuperAdmins = targets.filter((target) => target.role === ROLES.SUPERADMIN).length;
+      if (superAdminCount - deletingSuperAdmins < 1) {
+        return NextResponse.json({ error: 'Cannot delete the last superadmin' }, { status: 400 });
+      }
     }
 
     await User.deleteMany({ _id: { $in: userIds } });

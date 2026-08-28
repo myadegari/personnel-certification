@@ -14,9 +14,7 @@ import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 import { LayoutDashboard, GraduationCap, Settings } from "lucide-react";
 import { useUser } from "@/hooks/useUser";
-// import axios from 'axios'; // ✅ Make sure you import axios
-import { useEffect, useState, useRef } from "react"; // ✅ Add these
-import { useFileUrl } from "@/hooks/useFileUrl";
+import { ROLE_LABELS_FA } from "@/lib/roles";
 
 const HeaderSkeleton = () => (
   <div className="flex items-center gap-4 animate-pulse flex-row-reverse">
@@ -62,13 +60,6 @@ const UserStatusIndicator = ({ children, state, className }) => {
 export function UserSidebar() {
   const { data: userData, isLoading: isUserDataLoading } = useUser();
   const { data: session, status } = useSession();
-  const fileId = userData?.profileImage;
-  const profileFileQuery = useFileUrl(fileId);
-  // Derive the image URL directly from the query - no local state needed
-  const profileImageUrl =
-    status === "authenticated" && !isUserDataLoading
-      ? profileFileQuery.data || null
-      : null;
 
   const getUserSubtitle = () => {
     if (!session?.user) return "";
@@ -77,7 +68,7 @@ export function UserSidebar() {
       return userData.position;
     }
     // در غیر این صورت، نقش پیش‌فرض را نمایش بده
-    return userData.role === "ADMIN" ? "مدیر سیستم" : "کاربر";
+    return ROLE_LABELS_FA[userData.role] || "کاربر";
   };
   const pathname = usePathname();
 
@@ -149,27 +140,9 @@ export function UserSidebar() {
                   </div>
                 </div>
 
-                {profileFileQuery.isLoading ? (
-                  <div className="h-[35px] w-[35px] rounded-full bg-gray-200 animate-pulse"></div>
-                ) : profileImageUrl ? (
-                  <UserStatusIndicator
-                    state={userData.status}
-                    className="-right-0.5"
-                  >
-                    <img
-                      src={profileImageUrl}
-                      alt="Profile Picture"
-                      width={40}
-                      height={40}
-                      className="rounded-full object-cover border-2 border-gray-200"
-                      onError={() => setProfileImageUrl(null)} // fallback if image fails
-                    />
-                  </UserStatusIndicator>
-                ) : (
-                  <UserStatusIndicator state={userData.status}>
-                    <UserIcon />
-                  </UserStatusIndicator>
-                )}
+                <UserStatusIndicator state={userData.status}>
+                  <UserIcon />
+                </UserStatusIndicator>
               </div>
 
               <Button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -21,13 +21,8 @@ const fetchUserCourses = async ({ queryKey }) => {
 };
 
 const ClientSideDate = ({ timestamp }) => {
-  const [formattedDate, setFormattedDate] = useState('');
-  useEffect(() => {
-    if (timestamp) {
-      setFormattedDate(new Date(timestamp * 1000).toLocaleDateString('fa-IR'));
-    }
-  }, [timestamp]);
-  return <>{formattedDate || '...'}</>;
+  if (!timestamp) return <>...</>;
+  return <>{new Date(timestamp * 1000).toLocaleDateString('fa-IR')}</>;
 };
 
 export default function UserCoursesTable({ initialData }) {

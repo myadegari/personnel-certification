@@ -5,7 +5,7 @@ import { internalAxios } from "@/lib/axios";
  * Uploads a file to /api/upload.
  * @param {object} payload
  * @param {File} payload.file
- * @param {"profile"|"signature"|"stamp1"|"stamp2"} payload.fileType
+ * @param {"stamp1"|"stamp2"} payload.fileType
  * @param {string} [payload.courseCode] - required for stamp uploads
  * @returns {Promise<string>} the stored file id (url field)
  */

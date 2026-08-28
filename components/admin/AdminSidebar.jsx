@@ -13,8 +13,7 @@ import {
   import { usePathname } from 'next/navigation';
   import { clsx } from "clsx";
   import { LayoutDashboard,GraduationCap,Layers } from "lucide-react";
-import { useUser } from '@/hooks/useUser';
-  import { useFileUrl } from "@/hooks/useFileUrl";
+import { ROLE_LABELS_FA } from "@/lib/roles";
 
   const HeaderSkeleton = () => (
     <div className="flex items-center gap-4 animate-pulse flex-row-reverse">
@@ -31,15 +30,6 @@ import { useUser } from '@/hooks/useUser';
   
   export function AdminSidebar() {
     const { data: session, status } = useSession();
-    const { data: userData, isLoading: isUserDataLoading } = useUser();
-
-    const fileId = userData?.profileImage;
-    const profileFileQuery = useFileUrl(fileId);
-    // Derive the image URL directly from the query - no local state needed
-    const profileImageUrl =
-      status === 'authenticated' && !isUserDataLoading
-        ? profileFileQuery.data || null
-        : null;
 
     const getUserSubtitle = () => {
      if (!session?.user) return '';
@@ -48,7 +38,7 @@ import { useUser } from '@/hooks/useUser';
        return session.user.position;
      }
      // در غیر این صورت، نقش پیش‌فرض را نمایش بده
-     return session.user.role === 'ADMIN' ? 'مدیر سیستم' : 'کاربر';
+      return ROLE_LABELS_FA[session.user.role] || 'کاربر';
    };
    const pathname = usePathname();
 
@@ -120,20 +110,7 @@ import { useUser } from '@/hooks/useUser';
                           <div className="text-xs text-muted-foreground">{getUserSubtitle()}</div>
                         </div>
           
-                       {profileFileQuery.isLoading ? (
-                  <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
-                ) : profileImageUrl ? (
-                  <img
-                    src={profileImageUrl}
-                    alt="Profile Picture"
-                    width={45}
-                    height={45}
-                    className="rounded-full object-cover border-2 border-gray-200"
-                    onError={() => setProfileImageUrl(null)} // fallback if image fails
-                  />
-                ) : (
-                  <UserIcon />
-                )}
+                       <UserIcon />
                       </div>
                         
                         <Button variant="destructive" size="sm" className='cursor-pointer w-10/12 px-8 hover:bg-red-700' onClick={() => signOut()}>
