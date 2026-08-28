@@ -23,6 +23,9 @@ COPY --from=builder --chown=bun:bun /app/node_modules ./node_modules
 COPY --from=builder --chown=bun:bun /app/.next ./.next
 COPY --from=builder --chown=bun:bun /app/public ./public
 COPY --from=builder --chown=bun:bun /app/next.config.mjs ./next.config.mjs
+COPY --from=builder --chown=bun:bun /app/scripts ./scripts
+COPY --from=builder --chown=bun:bun /app/lib ./lib
+COPY --from=builder --chown=bun:bun /app/models ./models
 
 USER bun
 

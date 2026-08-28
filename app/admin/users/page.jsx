@@ -1,6 +1,4 @@
 import UserManagementClient from "@/components/admin/UserManagementClient";
-import Link from 'next/link';
-import { Button } from "@/components/ui/button";
 // import {internalAxios} from '@/lib/axios';
 import axios from "axios";
 import { headers } from "next/headers";
@@ -34,10 +32,6 @@ export default async function UserManagementPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">مدیریت کاربران</h1>
-        
-      </div>
       <UserManagementClient initialData={initialData} />
     </div>
   );

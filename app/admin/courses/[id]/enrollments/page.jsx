@@ -2,14 +2,14 @@ import EnrollmentsClient from "@/components/admin/EnrollmentsClient";
 import Link from 'next/link';
 import axios from "axios";
 import { Button } from "@/components/ui/button";
-const NEXTJS_APP_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
+import PageHeader from "@/components/admin/ui/PageHeader";
+import { ArrowRight } from "lucide-react";
+
 const getBaseUrl = () => {
-  // If we are on the server, use the internal Docker URL
   if (typeof window === 'undefined') {
     return process.env.INTERNAL_API_URL || 'http://localhost:3000';
   }
-  // If on client, use relative path or public URL
-  return ''; 
+  return '';
 };
 
 async function getEnrollmentData(courseId, page = 1) {
@@ -28,20 +28,29 @@ export default async function CourseEnrollmentsPage({ params }) {
   const initialData = await getEnrollmentData(courseId);
 
   if (!initialData.course) {
-    return <div>دوره مورد نظر یافت نشد.</div>;
+    return (
+      <div className="flex flex-col items-center gap-4 py-20 text-center">
+        <p className="text-lg font-medium">دوره مورد نظر یافت نشد.</p>
+        <Button asChild variant="outline" className="cursor-pointer">
+          <Link href="/admin/courses">بازگشت به دوره‌ها</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">مدیریت ثبت‌نام‌ها</h1>
-          <p className="text-muted-foreground">دوره: {initialData.course.name}</p>
-        </div>
-        <Button asChild variant="outline">
-          <Link href="/admin/courses">بازگشت به لیست دوره‌ها</Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="مدیریت ثبت‌نام‌ها"
+        description={`دوره: ${initialData.course.name}`}
+        actions={
+          <Button asChild variant="outline" className="cursor-pointer">
+            <Link href="/admin/courses">
+              <ArrowRight className="h-4 w-4" /> بازگشت به دوره‌ها
+            </Link>
+          </Button>
+        }
+      />
       <EnrollmentsClient initialData={initialData} courseId={courseId} />
     </div>
   );

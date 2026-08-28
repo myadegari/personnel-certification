@@ -41,7 +41,64 @@ async function parseUserPayload(request) {
   return { fields: body, signatureFile: undefined };
 }
 
-// GET: Fetch users with pagination
+// Escape user input so it is treated literally inside $regex
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+const SORTABLE_FIELDS = [
+  'personnelNumber',
+  'firstName',
+  'lastName',
+  'email',
+  'role',
+  'status',
+  'createdAt',
+];
+
+const VALID_STATUSES = ['PENDING', 'NEED_TO_VERIFY', 'VERIFIED', 'REJECTED'];
+
+function buildUserFilter(session, searchParams) {
+  const filter = isSuperAdmin(session.user.role) ? {} : { role: ROLES.USER };
+
+  const q = (searchParams.get('q') || '').trim().slice(0, 100);
+  if (q) {
+    const rx = new RegExp(escapeRegex(q), 'i');
+    filter.$or = [
+      { firstName: rx },
+      { lastName: rx },
+      { personnelNumber: rx },
+      { email: rx },
+      { nationalId: rx },
+    ];
+  }
+
+  const status = searchParams.get('status');
+  if (status && VALID_STATUSES.includes(status)) {
+    filter.status = status;
+  }
+
+  const role = searchParams.get('role');
+  if (role && isValidRole(role)) {
+    // Normal admins are already scoped to USER; only superadmins may filter by role.
+    if (isSuperAdmin(session.user.role)) {
+      filter.role = role;
+    }
+  }
+
+  return filter;
+}
+
+function buildSort(searchParams) {
+  const sort = searchParams.get('sort');
+  const order = searchParams.get('order') === 'asc' ? 1 : -1;
+  if (sort && SORTABLE_FIELDS.includes(sort)) {
+    return { [sort]: order };
+  }
+  return { createdAt: -1 };
+}
+
+// GET: Fetch users with pagination, search, filtering and sorting
 export async function GET(request) {
   const { session, error } = await requireAdmin();
   if (error) return error;
@@ -54,8 +111,10 @@ export async function GET(request) {
 
     await dbConnect();
 
-    const filter = isSuperAdmin(session.user.role) ? {} : { role: ROLES.USER };
-    const users = await User.find(filter).select('-password').skip(skip).limit(limit).sort({ createdAt: -1 });
+    const filter = buildUserFilter(session, searchParams);
+    const sort = buildSort(searchParams);
+
+    const users = await User.find(filter).select('-password').skip(skip).limit(limit).sort(sort);
     const totalUsers = await User.countDocuments(filter);
     const pageCount = Math.ceil(totalUsers / limit);
 

@@ -162,7 +162,7 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px] max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'ویرایش کاربر' : 'ایجاد کاربر جدید'}</DialogTitle>
           <DialogDescription>
@@ -170,106 +170,106 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="firstName" className="text-right">نام</Label>
-              <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} className="col-span-3" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="lastName" className="text-right">نام خانوادگی</Label>
-              <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} className="col-span-3" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="personnelNumber" className="text-right">شماره پرسنلی</Label>
-              <Input id="personnelNumber" name="personnelNumber" value={formData.personnelNumber} onChange={handleChange} className="col-span-3" required />
-            </div>
-            <div>
-                <Label htmlFor="nationalId">کد ملی</Label>
-                <Input
-                  dir="ltr"
-                  id="nationalId"
-                  name="nationalId"
-                  value={formData.nationalId}
-                  onChange={handleChange}
-                  required
-                />
+          <div className="grid gap-5 py-2">
+            <fieldset className="grid gap-3">
+              <legend className="mb-1 text-sm font-semibold text-emerald-800">اطلاعات فردی</legend>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="firstName">نام</Label>
+                  <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lastName">نام خانوادگی</Label>
+                  <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
+                </div>
               </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">ایمیل</Label>
-              <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="col-span-3" required />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="position" className="text-right">سمت</Label>
-              <Input id="position" name="position" value={formData.position} onChange={handleChange} className="col-span-3" />
-            </div>
-            {!isEditing && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="password" className="text-right">رمز عبور</Label>
-                <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} className="col-span-3" required minLength={8} />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="nationalId">کد ملی</Label>
+                  <Input dir="ltr" id="nationalId" name="nationalId" value={formData.nationalId} onChange={handleChange} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="personnelNumber">شماره پرسنلی</Label>
+                  <Input dir="ltr" id="personnelNumber" name="personnelNumber" value={formData.personnelNumber} onChange={handleChange} required />
+                </div>
               </div>
-            )}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="role" className="text-right">نقش</Label>
-              <Select onValueChange={handleRoleChange} value={formData.role} disabled={!canChangeRole}>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="انتخاب نقش" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roleOptions.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {ROLE_LABELS_FA[role]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex justify-around">
-                <Label className="mb-0">جنسیت</Label>
+              <div className="space-y-1.5">
+                <Label>جنسیت</Label>
                 <RadioGroup
                   name="gender"
                   value={formData.gender}
-                  onValueChange={(v) =>
-                    setFormData((p) => ({ ...p, gender: v }))
-                  }
-                  className="flex gap-4 mt-2"
+                  onValueChange={(v) => setFormData((p) => ({ ...p, gender: v }))}
+                  className="flex gap-6"
                   required
                 >
-                  <div className="flex space-x-2">
+                  <div className="flex items-center gap-2">
                     <RadioGroupItem value="Male" id="Male" />
-                    <Label htmlFor="Male">آقا</Label>
+                    <Label htmlFor="Male" className="font-normal">آقا</Label>
                   </div>
-                  <div className="flex  space-x-2">
+                  <div className="flex items-center gap-2">
                     <RadioGroupItem value="Female" id="Female" />
-                    <Label htmlFor="Female">خانم</Label>
+                    <Label htmlFor="Female" className="font-normal">خانم</Label>
                   </div>
                 </RadioGroup>
               </div>
-            <div className="grid grid-cols-3 place-content-center border-r pr-4">
-              <Label className="mb-0 col-span-2">عضو هیات علمی</Label>
-              <div className="flex mt-2">
+            </fieldset>
 
-                <Checkbox
-                  id="isProfessor"
-                  checked={formData.isProfessor}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, isProfessor: checked }))
-                  }
-                />
-                <Label htmlFor="isProfessor">بله</Label>
+            <fieldset className="grid gap-3">
+              <legend className="mb-1 text-sm font-semibold text-emerald-800">اطلاعات تماس و سازمانی</legend>
+              <div className="space-y-1.5">
+                <Label htmlFor="email">ایمیل</Label>
+                <Input dir="ltr" id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="position">سمت</Label>
+                  <Input id="position" name="position" value={formData.position} onChange={handleChange} />
+                </div>
+                <div className="flex items-end gap-2 pb-2">
+                  <Checkbox
+                    id="isProfessor"
+                    checked={formData.isProfessor}
+                    onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isProfessor: checked }))}
+                  />
+                  <Label htmlFor="isProfessor" className="font-normal">عضو هیات علمی</Label>
+                </div>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>امضای کاربر</Label>
+            </fieldset>
+
+            <fieldset className="grid gap-3">
+              <legend className="mb-1 text-sm font-semibold text-emerald-800">دسترسی و احراز هویت</legend>
+              <div className="space-y-1.5">
+                <Label htmlFor="role">نقش</Label>
+                <Select onValueChange={handleRoleChange} value={formData.role} disabled={!canChangeRole}>
+                  <SelectTrigger id="role">
+                    <SelectValue placeholder="انتخاب نقش" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roleOptions.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {ROLE_LABELS_FA[role]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!canChangeRole && (
+                  <p className="text-xs text-muted-foreground">امکان تغییر نقش این کاربر را ندارید.</p>
+                )}
+              </div>
+              {!isEditing && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="password">رمز عبور</Label>
+                  <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required minLength={8} />
+                  <p className="text-xs text-muted-foreground">حداقل ۸ کاراکتر.</p>
+                </div>
+              )}
+            </fieldset>
+
+            <fieldset className="grid gap-2">
+              <legend className="mb-1 text-sm font-semibold text-emerald-800">امضای کاربر</legend>
               {signaturePreview ? (
                 <div className="flex justify-center rounded-md border bg-gray-50 p-2">
-                  <img
-                    src={signaturePreview}
-                    alt="Signature preview"
-                    width={150}
-                    className="object-contain"
-                  />
+                  <img src={signaturePreview} alt="Signature preview" width={150} className="object-contain" />
                 </div>
               ) : null}
               <Input
@@ -281,12 +281,13 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                 onChange={handleSignatureChange}
                 onClick={(e) => (e.target.value = null)}
               />
-            </div>
-            {error && <p className="text-red-500 text-sm col-span-4">{error}</p>}
+            </fieldset>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>انصراف</Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="cursor-pointer">
               {isLoading ? 'در حال ذخیره...' : 'ذخیره'}
             </Button>
           </DialogFooter>

@@ -125,3 +125,49 @@
     @apply bg-background text-foreground;
   }
 }
+
+@theme {
+  --animate-shimmer: shimmer 1.8s linear infinite;
+  --animate-float: float 8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, -30px) scale(1.08);
+  }
+}
+
+@utility shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-muted) 0%,
+    color-mix(in oklab, var(--color-muted) 30%, transparent) 50%,
+    var(--color-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

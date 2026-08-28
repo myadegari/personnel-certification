@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { UserSidebar } from '@/components/UserSidebar';
+import ImpersonationBanner from "@/components/ImpersonationBanner";
 
 // This is a server component
 export default function AdminLayout({ children }) {
@@ -12,6 +13,7 @@ export default function AdminLayout({ children }) {
       <UserSidebar />
       <main className="flex flex-col p-4 lg:p-6 w-full bg-stone-300/20">
       {/* <SidebarTrigger /> */}
+        <ImpersonationBanner />
         {children}
       </main>
     </SidebarProvider>

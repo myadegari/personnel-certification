@@ -1,10 +1,11 @@
 'use client';
 import CoursesClient from "@/components/admin/CoursesClient";
-// import Link from 'next/link';
-import {internalAxios} from '@/lib/axios';
-// import { Button } from "@/components/ui/button";
+import { internalAxios } from '@/lib/axios';
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
+import PageHeader from "@/components/admin/ui/PageHeader";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const getCourses = async () => {
   const { data } = await internalAxios.get('/admin/courses');
@@ -12,19 +13,28 @@ const getCourses = async () => {
 };
 
 export default function CoursesManagementPage() {
-  const { data: courses, isLoading, error } = useQuery({ 
-    queryKey: ['adminCourses'], // یک کلید یکتا برای این کوئری
+  const { data: courses, isLoading, error, refetch } = useQuery({
+    queryKey: ['adminCourses'],
     queryFn: getCourses,
   });
 
-
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">مدیریت دوره‌ها</h1>
-      </div>
-      {isLoading && <Skeleton className="w-full h-[300px]" />}
-      {error && <p className="text-red-500">خطا در بارگذاری دوره‌ها: {error.message}</p>}
+      <PageHeader title="مدیریت دوره‌ها" description="ایجاد، ویرایش و مدیریت دوره‌های آموزشی" />
+      {isLoading && (
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-12 rounded-xl shimmer" />
+          ))}
+        </div>
+      )}
+      {error && (
+        <div className="flex flex-col items-center gap-3 py-16 text-center">
+          <AlertTriangle className="size-8 text-rose-500" />
+          <p className="text-sm text-muted-foreground">خطا در بارگذاری دوره‌ها.</p>
+          <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => refetch()}>تلاش مجدد</Button>
+        </div>
+      )}
       {courses && <CoursesClient initialCourses={courses} />}
     </div>
   );

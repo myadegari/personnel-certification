@@ -22,6 +22,8 @@ import { useFileUrl } from "@/hooks/useFileUrl";
 import { useCourseMutation } from "@/hooks/useCourseMutation";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import UserSearchCombobox from "./UserSearchCombobox";
+import { motion, AnimatePresence } from "motion/react";
+import { spring } from "@/lib/motion";
 
 const fetchCertificateSequences = async () => {
   const { data } = await internalAxios.get("/admin/certificate-sequences");
@@ -562,7 +564,17 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
               </DialogFooter>
             </>
           ) : (
-            renderCreateMode()
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={currentStep}
+                initial={{ opacity: 0, x: -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 24 }}
+                transition={spring}
+              >
+                {renderCreateMode()}
+              </motion.div>
+            </AnimatePresence>
           )}
         </form>
       </DialogContent>

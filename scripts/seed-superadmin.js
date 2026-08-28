@@ -1,14 +1,10 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
-import dbConnect from "../lib/dbConnect.js";
 import User from "../models/User.js";
 
 function required(name) {
   const value = process.env[name]?.trim();
-  if (!value) {
-    return null;
-  }
-  return value;
+  return value || null;
 }
 
 function optional(name, fallback = "") {
@@ -17,6 +13,27 @@ function optional(name, fallback = "") {
 
 function parseBoolean(value) {
   return ["1", "true", "yes", "y", "on"].includes(String(value).toLowerCase());
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function connectWithRetry(url, { attempts = 10, delayMs = 3000 } = {}) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await mongoose.connect(url, { bufferCommands: false, serverSelectionTimeoutMS: delayMs });
+      return;
+    } catch (error) {
+      lastError = error;
+      console.warn(
+        `Database not ready (attempt ${attempt}/${attempts}): ${error.message || error}`
+      );
+      if (attempt < attempts) {
+        await sleep(delayMs);
+      }
+    }
+  }
+  throw lastError;
 }
 
 async function main() {
@@ -44,7 +61,12 @@ async function main() {
     throw new Error("SUPERADMIN_GENDER must be Male or Female.");
   }
 
-  await dbConnect();
+  const mongoUrl = process.env.MONGODB_URL?.trim();
+  if (!mongoUrl) {
+    throw new Error("MONGODB_URL environment variable is not set.");
+  }
+
+  await connectWithRetry(mongoUrl);
 
   const hashedPassword = await bcrypt.hash(password, 10);
   const existing = await User.findOne({ personnelNumber });
@@ -84,8 +106,7 @@ async function main() {
 
 main()
   .catch((error) => {
-    console.error(error.message || error);
-    process.exitCode = 1;
+    console.error(`Superadmin seed failed: ${error.message || error}`);
   })
   .finally(async () => {
     await mongoose.connection.close();

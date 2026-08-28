@@ -1,17 +1,34 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   useReactTable,
   getCoreRowModel,
-  getPaginationRowModel,
   flexRender,
 } from "@tanstack/react-table";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { internalAxios } from "@/lib/axios";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -20,118 +37,205 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { clsx } from "clsx";
 import { Checkbox } from "@/components/ui/checkbox";
-// import { Badge } from "@/components/ui/badge"; // Assuming you have a Badge component
-import {Badge} from "@radix-ui/themes"
-// You will need to create this modal component
+import { Badge } from "@radix-ui/themes";
+import { clsx } from "clsx";
+import {
+  Search,
+  RefreshCw,
+  Download,
+  Upload,
+  MoreVertical,
+  Eye,
+  Pencil,
+  Check,
+  X,
+  Trash2,
+  LogIn,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  UserPlus,
+  AlertTriangle,
+} from "lucide-react";
+import { ROLE_LABELS_FA, ASSIGNABLE_ROLES, isSuperAdmin, canManageUser, canImpersonate } from "@/lib/roles";
+import { motion, AnimatePresence } from "motion/react";
+import { fadeUp } from "@/lib/motion";
 import UserFormModal from "./UserFormModal";
-import { ROLE_LABELS_FA, canManageUser } from "@/lib/roles";
+import UserDetailSheet from "./UserDetailSheet";
+import UserImportDialog from "./UserImportDialog";
+import ConfirmDialog from "./ConfirmDialog";
+import PageHeader from "./ui/PageHeader";
+
+const STATUS_META = {
+  PENDING: { label: "در انتظار تکمیل", color: "orange" },
+  NEED_TO_VERIFY: { label: "در انتظار تایید", color: "yellow" },
+  VERIFIED: { label: "تایید شده", color: "green" },
+  REJECTED: { label: "رد شده", color: "ruby" },
+};
+
+const StatusBadge = ({ status }) => {
+  const meta = STATUS_META[status] || { label: "نامشخص", color: "gray" };
+  return (
+    <Badge color={meta.color} radius="full">
+      {meta.label}
+    </Badge>
+  );
+};
 
 const fetchUsers = async ({ queryKey }) => {
-  const [_key, { page, limit }] = queryKey;
-  const { data } = await internalAxios.get(
-    `/admin/users?page=${page}&limit=${limit}`
-  );
+  const [, params] = queryKey;
+  const { data } = await internalAxios.get("/admin/users", { params });
   return data;
-};
-const deleteUsers = (userIds) =>
-  internalAxios.delete("/admin/users", { data: { userIds } });
-const updateUserStatus = ({ userId, status }) => {
-  return internalAxios.post("/admin/users/update-status", { userId, status });
-};
-// const StatusBadge = ({ status }) => {
-//   switch (status) {
-//     case "PENDING":
-//       return <Badge variant="outline">در انتظار تکمیل</Badge>;
-//     case "NEED_TO_VERIFY":
-//       return <Badge variant="secondary">در انتظار تایید</Badge>;
-//     case "VERIFIED":
-//       return <Badge>تایید شده</Badge>;
-//     case "REJECTED":
-//       return <Badge variant="destructive">رد شده</Badge>;
-//     default:
-//       return <Badge variant="outline">نامشخص</Badge>;
-//   }
-// };
-const StatusBadge = ({ status }) => {
-  switch (status) {
-    case "PENDING":
-      return <Badge color="orange" radius="full">در انتظار تکمیل</Badge>;
-    case "NEED_TO_VERIFY":
-      return <Badge color="yellow" radius="full">در انتظار تایید</Badge>;
-    case "VERIFIED":
-      return <Badge color="green" radius="full">تایید شده</Badge>;
-    case "REJECTED":
-      return <Badge color="ruby" radius="full">رد شده</Badge>;
-    default:
-      return <Badge color="gray" radius="full">نامشخص</Badge>;
-  }
 };
 
 export default function UserManagementClient({ initialData }) {
   const queryClient = useQueryClient();
   const { data: session } = useSession();
+  const router = useRouter();
   const currentRole = session?.user?.role;
   const currentUserId = session?.user?.id;
-  // const [data, setData] = useState(initialData.users);
+  const isSuper = isSuperAdmin(currentRole);
+
   const [pagination, setPagination] = useState({
-    pageIndex: initialData.pagination.currentPage - 1,
+    pageIndex: initialData?.pagination?.currentPage ? initialData.pagination.currentPage - 1 : 0,
     pageSize: 10,
   });
-  const [pageCount, setPageCount] = useState(initialData.pagination.pageCount);
   const [rowSelection, setRowSelection] = useState({});
+
+  const [qInput, setQInput] = useState("");
+  const [filters, setFilters] = useState({ q: "", role: "", status: "" });
+  const [sort, setSort] = useState({ field: "createdAt", order: "desc" });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [detailUser, setDetailUser] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [confirm, setConfirm] = useState(null); // { type, user }
 
-  const { data: tableData } = useQuery({
-    queryKey: [
-      "adminUsers",
-      { page: pagination.pageIndex + 1, limit: pagination.pageSize },
-    ],
+  // Debounced search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setFilters((f) => ({ ...f, q: qInput.trim() }));
+      setPagination((p) => ({ ...p, pageIndex: 0 }));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [qInput]);
+
+  const queryParams = useMemo(
+    () => ({
+      page: pagination.pageIndex + 1,
+      limit: pagination.pageSize,
+      q: filters.q || undefined,
+      role: filters.role || undefined,
+      status: filters.status || undefined,
+      sort: sort.field,
+      order: sort.order,
+    }),
+    [pagination, filters, sort]
+  );
+
+  const { data: tableData, isLoading, isError, refetch, isFetching } = useQuery({
+    queryKey: ["adminUsers", queryParams],
     queryFn: fetchUsers,
     initialData,
     placeholderData: keepPreviousData,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteUsers,
+    mutationFn: (userIds) => internalAxios.delete("/admin/users", { data: { userIds } }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       table.resetRowSelection();
+      toast.success("کاربران با موفقیت حذف شدند.");
     },
-  });
-  const statusMutation = useMutation({
-    mutationFn: updateUserStatus,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
-    },
-    onError: (error) => {
-      toast.error("خطا در تغییر وضعیت کاربر: " + error.response?.data?.message);
-    },
+    onError: (e) => toast.error(e.response?.data?.error || "خطا در حذف کاربران."),
   });
 
-  const handleStatusUpdate = (userId, status) => {
-    const action = status === "VERIFIED" ? "تایید" : "رد";
-    if (confirm(`آیا از ${action} کردن این کاربر اطمینان دارید؟`)) {
-      statusMutation.mutate({ userId, status });
+  const statusMutation = useMutation({
+    mutationFn: ({ userId, status }) =>
+      internalAxios.post("/admin/users/update-status", { userId, status }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      toast.success(res.data?.message || "وضعیت کاربر تغییر کرد.");
+    },
+    onError: (e) => toast.error(e.response?.data?.message || "خطا در تغییر وضعیت کاربر."),
+  });
+
+  const impersonateMutation = useMutation({
+    mutationFn: async (user) => {
+      await internalAxios.post(`/admin/users/${user._id}/impersonate`);
+      return signIn("impersonation", { targetUserId: user._id, redirect: false });
+    },
+    onSuccess: (result) => {
+      if (result?.error) {
+        toast.error("خطا در ورود به حساب کاربر.");
+        return;
+      }
+      toast.success("وارد حساب کاربر شدید.");
+      router.push("/");
+      router.refresh();
+    },
+    onError: (e) => toast.error(e.response?.data?.error || "امکان ورود به این حساب وجود ندارد."),
+  });
+
+  const handleConfirm = useCallback(() => {
+    if (!confirm) return;
+    const { type, user } = confirm;
+    if (type === "delete") {
+      deleteMutation.mutate([user._id]);
+    } else if (type === "status") {
+      statusMutation.mutate({ userId: user._id, status: user.nextStatus });
+    } else if (type === "impersonate") {
+      impersonateMutation.mutate(user);
+    }
+    setConfirm(null);
+  }, [confirm, deleteMutation, statusMutation, impersonateMutation]);
+
+  const toggleSort = (field) => {
+    setSort((s) =>
+      s.field === field
+        ? { field, order: s.order === "asc" ? "desc" : "asc" }
+        : { field, order: "asc" }
+    );
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
+  };
+
+  const downloadCsv = async (url, filename) => {
+    try {
+      const res = await internalAxios.get(url, { responseType: "blob" });
+      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast.error("خطا در دریافت فایل خروجی.");
     }
   };
 
-  // Fetch data from API when pagination changes
-  // useEffect(() => {
-  //   async function fetchData() {
-  //     const page = pagination.pageIndex + 1;
-  //     const limit = pagination.pageSize;
-  //     const res = await fetch(`/api/admin/users?page=${page}&limit=${limit}`);
-  //     const newData = await res.json();
-  //     setData(newData.users);
-  //     setPageCount(newData.pagination.pageCount);
-  //   }
-  //   fetchData();
-  // }, [pagination]);
+  const handleExportAll = () => {
+    const params = new URLSearchParams();
+    if (filters.q) params.set("q", filters.q);
+    if (filters.role) params.set("role", filters.role);
+    if (filters.status) params.set("status", filters.status);
+    downloadCsv(`/admin/users/export?${params.toString()}`, `users-${Date.now()}.csv`);
+  };
 
-  // Define table columns
+  const handleExportSelected = () => {
+    const ids = table.getSelectedRowModel().rows.map((r) => r.original._id);
+    if (!ids.length) return;
+    downloadCsv(`/admin/users/export?ids=${ids.join(",")}`, `users-selected-${Date.now()}.csv`);
+  };
+
+  const handleBulkDelete = () => {
+    const ids = table.getSelectedRowModel().rows.map((r) => r.original._id);
+    if (ids.length) {
+      setConfirm({ type: "bulk-delete", count: ids.length, ids });
+    }
+  };
+
   const columns = useMemo(
     () => [
       {
@@ -139,9 +243,7 @@ export default function UserManagementClient({ initialData }) {
         header: ({ table }) => (
           <Checkbox
             checked={table.getIsAllPageRowsSelected()}
-            onCheckedChange={(value) =>
-              table.toggleAllPageRowsSelected(!!value)
-            }
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
             aria-label="Select all"
           />
         ),
@@ -149,22 +251,46 @@ export default function UserManagementClient({ initialData }) {
           <Checkbox
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
-            disabled={
-              row.original._id === currentUserId ||
-              !canManageUser(currentRole, row.original.role)
-            }
+            disabled={!row.getCanSelect()}
             aria-label="Select row"
           />
         ),
       },
-      { accessorKey: "personnelNumber", header: "شماره پرسنلی" },
       {
+        accessorKey: "personnelNumber",
+        header: "شماره پرسنلی",
+        cell: ({ row }) => <span dir="ltr" className="tabular-nums">{row.original.personnelNumber}</span>,
+      },
+      {
+        id: "name",
         accessorFn: (row) => `${row.firstName} ${row.lastName}`,
         header: "نام کامل",
+        cell: ({ row }) => {
+          const u = row.original;
+          return (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-emerald-100 text-xs text-emerald-700">
+                  {u.firstName?.[0]}
+                  {u.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col leading-tight">
+                <span className="font-medium">{u.firstName} {u.lastName}</span>
+                <span className="text-xs text-muted-foreground" dir="ltr">{u.email}</span>
+              </div>
+            </div>
+          );
+        },
       },
-      { accessorKey: "email", header: "ایمیل" },
-      { accessorKey: "role", header: "نقش",
-        cell: ({ row }) => <p>{ROLE_LABELS_FA[row.original.role] || row.original.role}</p>
+      {
+        accessorKey: "role",
+        header: "نقش",
+        cell: ({ row }) => (
+          <Badge color="blue" variant="outline" radius="full">
+            {ROLE_LABELS_FA[row.original.role] || row.original.role}
+          </Badge>
+        ),
       },
       {
         accessorKey: "status",
@@ -172,207 +298,372 @@ export default function UserManagementClient({ initialData }) {
         cell: ({ row }) => <StatusBadge status={row.original.status} />,
       },
       {
+        accessorKey: "createdAt",
+        header: "عضویت",
+        cell: ({ row }) =>
+          row.original.createdAt
+            ? new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(new Date(row.original.createdAt))
+            : "—",
+      },
+      {
         id: "actions",
         header: "عملیات",
         cell: ({ row }) => {
-          const manageable = canManageUser(currentRole, row.original.role);
-          if (!manageable) return <span className="text-sm text-gray-400">-</span>;
+          const u = row.original;
+          const manageable = canManageUser(currentRole, u.role);
+          const canImp = canImpersonate(currentRole, u.role) && u._id !== currentUserId && u.status === "VERIFIED";
+          const pending = ["PENDING", "NEED_TO_VERIFY"].includes(u.status);
 
           return (
-            <div className="space-x-2 space-x-reverse flex flex-col gap-2">
-              {["PENDING", "NEED_TO_VERIFY"].includes(row.original.status) ? (
-                <div className="flex gap-1 w-full">
-                  <Button
-                    variant="default"
-                    className="flex-1 rounded-r-3xl cursor-pointer"
-                    size="sm"
-                    onClick={() =>
-                      handleStatusUpdate(row.original._id, "VERIFIED")
-                    }
-                    disabled={statusMutation.isPending}
-                  >
-                    تایید
+            <div className="flex items-center justify-start">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                    <MoreVertical className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="destructive"
-                    className="flex-1 rounded-l-3xl cursor-pointer"
-                    size="sm"
-                    onClick={() =>
-                      handleStatusUpdate(row.original._id, "REJECTED")
-                    }
-                    disabled={statusMutation.isPending}
-                  >
-                    رد
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  className="cursor-pointer rounded-3xl"
-                  size="sm"
-                  onClick={() => handleEdit(row.original)}
-                >
-                  ویرایش
-                </Button>
-              )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-40">
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => setDetailUser(u)}>
+                    <Eye className="h-4 w-4" /> مشاهده جزئیات
+                  </DropdownMenuItem>
+                  {manageable && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => { setEditingUser(u); setIsModalOpen(true); }}
+                    >
+                      <Pencil className="h-4 w-4" /> ویرایش
+                    </DropdownMenuItem>
+                  )}
+                  {manageable && pending && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => setConfirm({ type: "status", user: { ...u, nextStatus: "VERIFIED" } })}
+                    >
+                      <Check className="h-4 w-4 text-green-600" /> تایید کاربر
+                    </DropdownMenuItem>
+                  )}
+                  {manageable && pending && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => setConfirm({ type: "status", user: { ...u, nextStatus: "REJECTED" } })}
+                    >
+                      <X className="h-4 w-4 text-red-600" /> رد کاربر
+                    </DropdownMenuItem>
+                  )}
+                  {canImp && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => setConfirm({ type: "impersonate", user: u })}
+                    >
+                      <LogIn className="h-4 w-4 text-amber-600" /> ورود به حساب کاربری
+                    </DropdownMenuItem>
+                  )}
+                  {manageable && u._id !== currentUserId && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="cursor-pointer text-red-600 focus:text-red-600"
+                        onClick={() => setConfirm({ type: "delete", user: u })}
+                      >
+                        <Trash2 className="h-4 w-4" /> حذف
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           );
         },
       },
     ],
-    [currentRole, currentUserId, statusMutation.isPending]
+    [currentRole, currentUserId]
   );
 
   const table = useReactTable({
-    data: tableData?.users,
+    data: tableData?.users ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true,
-    pageCount,
-    state: {
-      pagination,
-      rowSelection,
-    },
+    pageCount: tableData?.pagination?.pageCount ?? 1,
+    state: { pagination, rowSelection },
     onPaginationChange: setPagination,
     onRowSelectionChange: setRowSelection,
     enableRowSelection: (row) =>
-      row.original._id !== currentUserId &&
-      canManageUser(currentRole, row.original.role),
+      row.original._id !== currentUserId && canManageUser(currentRole, row.original.role),
   });
 
-  const handleEdit = (user) => {
-    setEditingUser(user);
-    setIsModalOpen(true);
-  };
+  const selectedCount = Object.keys(rowSelection).length;
+  const total = tableData?.pagination?.totalUsers ?? 0;
+  const from = total === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
+  const to = Math.min(total, (pagination.pageIndex + 1) * pagination.pageSize);
 
-  const handleCreate = () => {
-    setEditingUser(null);
-    setIsModalOpen(true);
-  };
-  const handleBulkDelete = () => {
-    const selectedIds = table
-      .getSelectedRowModel()
-      .rows.map((row) => row.original._id);
-    if (
-      selectedIds.length > 0 &&
-      confirm(`آیا از حذف ${selectedIds.length} کاربر اطمینان دارید؟`)
-    ) {
-      deleteMutation.mutate(selectedIds);
-    }
-    table.resetRowSelection();
-  };
-  // const handleBulkDelete = async () => {
-  //   const selectedIds = table.getSelectedRowModel().rows.map(row => row.original._id);
-  //   if (selectedIds.length === 0) return;
+  const SortHeader = ({ field, children }) => (
+    <button
+      type="button"
+      onClick={() => toggleSort(field)}
+      className={clsx(
+        "flex items-center gap-1 cursor-pointer select-none hover:text-foreground",
+        sort.field === field && "text-emerald-700"
+      )}
+    >
+      {children}
+      <ArrowUpDown className="h-3.5 w-3.5" />
+    </button>
+  );
 
-  //   if (confirm(`آیا از حذف ${selectedIds.length} کاربر اطمینان دارید؟`)) {
-  //     await fetch('/api/admin/users', {
-  //       method: 'DELETE',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({ userIds: selectedIds }),
-  //     });
-  //     // Refetch data
-  //     table.resetRowSelection();
-  //     setPagination(prev => ({ ...prev })); // Trigger useEffect
-  //   }
-  // };
+  const confirmConfig = (() => {
+    if (!confirm) return {};
+    if (confirm.type === "delete")
+      return { title: "حذف کاربر", description: `آیا از حذف «${confirm.user.firstName} ${confirm.user.lastName}» اطمینان دارید؟`, confirmText: "حذف", destructive: true };
+    if (confirm.type === "bulk-delete")
+      return { title: "حذف گروهی", description: `آیا از حذف ${confirm.count.toLocaleString("fa-IR")} کاربر انتخاب‌شده اطمینان دارید؟`, confirmText: "حذف", destructive: true };
+    if (confirm.type === "status")
+      return {
+        title: confirm.user.nextStatus === "VERIFIED" ? "تایید کاربر" : "رد کاربر",
+        description: `آیا از ${confirm.user.nextStatus === "VERIFIED" ? "تایید" : "رد"} «${confirm.user.firstName} ${confirm.user.lastName}» اطمینان دارید؟`,
+        confirmText: confirm.user.nextStatus === "VERIFIED" ? "تایید" : "رد",
+        destructive: confirm.user.nextStatus === "REJECTED",
+      };
+    if (confirm.type === "impersonate")
+      return {
+        title: "ورود به حساب کاربری",
+        description: `شما در حال ورود به حساب «${confirm.user.firstName} ${confirm.user.lastName}» هستید و دقیقاً همان دسترسی‌های این کاربر را خواهید داشت.`,
+        confirmText: "ورود",
+      };
+    return {};
+  })();
+
+  const isConfirmLoading =
+    deleteMutation.isPending || statusMutation.isPending || impersonateMutation.isPending;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <Button className="cursor-pointer rounded-xl" onClick={handleCreate}>ایجاد کاربر جدید</Button>
-        <Button
-          variant="destructive"
-          className={clsx("rounded-xl",Object.keys(rowSelection).length === 0 ? "" : "cursor-pointer")}
-          onClick={handleBulkDelete}
-          disabled={Object.keys(rowSelection).length === 0}
+    <div className="space-y-4">
+      <PageHeader
+        title="مدیریت کاربران"
+        description={`${total.toLocaleString("fa-IR")} کاربر ${isSuper ? "" : "(قابل مدیریت)"}`}
+        actions={
+          <>
+            <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setImportOpen(true)}>
+              <Upload className="h-4 w-4" /> وارد کردن (CSV)
+            </Button>
+            <Button variant="outline" size="sm" className="cursor-pointer" onClick={handleExportAll}>
+              <Download className="h-4 w-4" /> خروجی (CSV)
+            </Button>
+            <Button size="sm" className="cursor-pointer" onClick={() => { setEditingUser(null); setIsModalOpen(true); }}>
+              <UserPlus className="h-4 w-4" /> ایجاد کاربر جدید
+            </Button>
+          </>
+        }
+      />
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-black/5 bg-white/80 p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+        <div className="relative min-w-52 flex-1">
+          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={qInput}
+            onChange={(e) => setQInput(e.target.value)}
+            placeholder="جستجوی نام، شماره پرسنلی، ایمیل یا کد ملی..."
+            className="pr-9"
+          />
+        </div>
+        {isSuper && (
+          <Select
+            value={filters.role || "all"}
+            onValueChange={(v) => { setFilters((f) => ({ ...f, role: v === "all" ? "" : v })); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
+          >
+            <SelectTrigger className="w-36"><SelectValue placeholder="نقش" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">همه نقش‌ها</SelectItem>
+              {ASSIGNABLE_ROLES.map((r) => <SelectItem key={r} value={r}>{ROLE_LABELS_FA[r]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        <Select
+          value={filters.status || "all"}
+          onValueChange={(v) => { setFilters((f) => ({ ...f, status: v === "all" ? "" : v })); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
         >
-          حذف انتخاب شده‌ها
+          <SelectTrigger className="w-40"><SelectValue placeholder="وضعیت" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">همه وضعیت‌ها</SelectItem>
+            {Object.entries(STATUS_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={clsx("h-4 w-4", isFetching && "animate-spin")} />
         </Button>
       </div>
 
-      {/* A modal for creating/editing users would go here */}
+      {/* Bulk action bar */}
+      <AnimatePresence>
+        {selectedCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -8, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+              <span className="text-sm font-medium text-emerald-800">{selectedCount.toLocaleString("fa-IR")} کاربر انتخاب شده</span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="cursor-pointer" onClick={handleExportSelected}>
+                  <Download className="h-4 w-4" /> خروجی انتخاب‌شده
+                </Button>
+                <Button variant="destructive" size="sm" className="cursor-pointer" onClick={handleBulkDelete}>
+                  <Trash2 className="h-4 w-4" /> حذف انتخاب‌شده‌ها
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Table */}
+      <div className="overflow-hidden rounded-2xl border border-black/5 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-stone-50">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const key = header.column.id;
+                    const sortable = ["personnelNumber", "role", "status", "createdAt"].includes(key);
+                    return (
+                      <TableHead key={header.id}>
+                        {sortable ? (
+                          <SortHeader field={key}>
+                            {flexRender(header.column.columnDef.header, header.getContext())}
+                          </SortHeader>
+                        ) : (
+                          flexRender(header.column.columnDef.header, header.getContext())
+                        )}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: pagination.pageSize }).map((_, i) => (
+                  <TableRow key={i}>
+                    {columns.map((c) => (
+                      <TableCell key={c.id}>
+                        <Skeleton className="h-5 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : isError ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-32 text-center">
+                    <div className="flex flex-col items-center gap-2 text-red-600">
+                      <AlertTriangle className="h-6 w-6" />
+                      <span>خطا در بارگذاری اطلاعات.</span>
+                      <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => refetch()}>تلاش مجدد</Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows?.length ? (
+                <AnimatePresence initial={false}>
+                  {table.getRowModel().rows.map((row, i) => (
+                    <motion.tr
+                      key={row.id}
+                      variants={fadeUp}
+                      initial="hidden"
+                      animate="show"
+                      exit="hidden"
+                      transition={{ delay: i * 0.02 }}
+                      data-state={row.getIsSelected() && "selected"}
+                      className="border-b transition-colors hover:bg-emerald-50/40 data-[state=selected]:bg-muted"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                    کاربری یافت نشد.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {/* Pagination */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>نمایش {from.toLocaleString("fa-IR")}–{to.toLocaleString("fa-IR")} از {total.toLocaleString("fa-IR")}</span>
+          <Select
+            value={String(pagination.pageSize)}
+            onValueChange={(v) => { setPagination({ pageIndex: 0, pageSize: Number(v) }); setRowSelection({}); }}
+          >
+            <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[10, 25, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{n} ردیف</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="cursor-pointer"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronRight className="h-4 w-4" /> قبلی
+          </Button>
+          <span className="text-sm">
+            صفحه <strong>{pagination.pageIndex + 1}</strong> از <strong>{table.getPageCount() || 1}</strong>
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="cursor-pointer"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            بعدی <ChevronLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Modals / dialogs */}
       <UserFormModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         userData={editingUser}
         onSave={() => {
           setIsModalOpen(false);
-          setPagination((prev) => ({ ...prev })); // Refetch
+          setEditingUser(null);
+          queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
         }}
       />
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {flexRender(
-                      header.column.columnDef.header,
-                      header.getContext()
-                    )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  کاربری یافت نشد.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-center space-x-2 space-x-reverse py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          قبلی
-        </Button>
-        <span>
-          صفحه{" "}
-          <strong>
-            {table.getState().pagination.pageIndex + 1} از{" "}
-            {table.getPageCount()}
-          </strong>
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          بعدی
-        </Button>
-      </div>
+      <UserDetailSheet user={detailUser} open={!!detailUser} onOpenChange={(o) => !o && setDetailUser(null)} />
+      <UserImportDialog open={importOpen} onOpenChange={setImportOpen} />
+      <ConfirmDialog
+        open={!!confirm}
+        onOpenChange={(o) => !o && setConfirm(null)}
+        {...confirmConfig}
+        loading={isConfirmLoading}
+        onConfirm={() => {
+          if (confirm?.type === "bulk-delete") {
+            deleteMutation.mutate(confirm.ids);
+            setConfirm(null);
+          } else {
+            handleConfirm();
+          }
+        }}
+      />
     </div>
   );
 }
