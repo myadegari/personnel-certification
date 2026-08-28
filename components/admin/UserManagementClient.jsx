@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { internalAxios } from "@/lib/axios";
-import toast from "react-hot-toast";
+import { gooeyToast } from "goey-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -147,9 +147,9 @@ export default function UserManagementClient({ initialData }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
       table.resetRowSelection();
-      toast.success("کاربران با موفقیت حذف شدند.");
+      gooeyToast.success("کاربران با موفقیت حذف شدند.");
     },
-    onError: (e) => toast.error(e.response?.data?.error || "خطا در حذف کاربران."),
+    onError: (e) => gooeyToast.error(e.response?.data?.error || "خطا در حذف کاربران."),
   });
 
   const statusMutation = useMutation({
@@ -157,9 +157,9 @@ export default function UserManagementClient({ initialData }) {
       internalAxios.post("/admin/users/update-status", { userId, status }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
-      toast.success(res.data?.message || "وضعیت کاربر تغییر کرد.");
+      gooeyToast.success(res.data?.message || "وضعیت کاربر تغییر کرد.");
     },
-    onError: (e) => toast.error(e.response?.data?.message || "خطا در تغییر وضعیت کاربر."),
+    onError: (e) => gooeyToast.error(e.response?.data?.message || "خطا در تغییر وضعیت کاربر."),
   });
 
   const impersonateMutation = useMutation({
@@ -169,14 +169,14 @@ export default function UserManagementClient({ initialData }) {
     },
     onSuccess: (result) => {
       if (result?.error) {
-        toast.error("خطا در ورود به حساب کاربر.");
+        gooeyToast.error("خطا در ورود به حساب کاربر.");
         return;
       }
-      toast.success("وارد حساب کاربر شدید.");
+      gooeyToast.success("وارد حساب کاربر شدید.");
       router.push("/");
       router.refresh();
     },
-    onError: (e) => toast.error(e.response?.data?.error || "امکان ورود به این حساب وجود ندارد."),
+    onError: (e) => gooeyToast.error(e.response?.data?.error || "امکان ورود به این حساب وجود ندارد."),
   });
 
   const handleConfirm = useCallback(() => {
@@ -211,7 +211,7 @@ export default function UserManagementClient({ initialData }) {
       a.click();
       URL.revokeObjectURL(blobUrl);
     } catch {
-      toast.error("خطا در دریافت فایل خروجی.");
+      gooeyToast.error("خطا در دریافت فایل خروجی.");
     }
   };
 

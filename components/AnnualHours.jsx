@@ -1,9 +1,5 @@
 "use client";
 import React from "react";
-import DatePicker from "react-multi-date-picker";
-import persian from "react-date-object/calendars/persian";
-import persian_fa from "react-date-object/locales/persian_fa";
-import DateObject from "react-date-object";
 import {
   Card,
   CardContent,
@@ -12,6 +8,8 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { useSession } from "next-auth/react";
+import { PersianYearPicker } from "@/components/admin/PersianDatePicker";
+import { toShamsi, fromShamsi } from "@/lib/persian-date";
 
 const getBaseUrl = () => {
   // If we are on the server, use the internal Docker URL
@@ -38,39 +36,22 @@ function AnnualHours() {
   const { data: session, status } = useSession();
   const [loading, setLoading] = React.useState(true);
   const [annualHours, setAnnualHours] = React.useState(0);
-  const [selectedJalaliYear, setSelectedJalaliYear] = React.useState(
-    new DateObject({ date: new Date(), calendar: persian, locale: persian_fa })
+  const [selectedYear, setSelectedYear] = React.useState(
+    () => toShamsi(new Date()).year
   );
 
   const getJalaliYearTimestamps = (jalaliYear) => {
-    // Get the start and end of the Jalali year in Gregorian
-    const date = new DateObject({
-      date: jalaliYear,
-      calendar: persian,
-      locale: persian_fa,
-    });
-    const startJalaliDate = new DateObject({
-      year: date.year,
-      month: 1,
-      day: 1,
-      calendar: persian,
-      locale: persian_fa,
-    });
-    const endJalaliDate = new DateObject({
-      year: date.year + 1,
-      month: 1,
-      day: 1,
-      calendar: persian,
-      locale: persian_fa,
-    }); // Accounts for leap years
-    const startTimestamp = startJalaliDate.valueOf()/1000;
-    const endTimestamp = endJalaliDate.valueOf()/1000;
-    return { startTimestamp, endTimestamp };
+    const start = fromShamsi({ year: jalaliYear, month: 1, day: 1 });
+    const end = fromShamsi({ year: jalaliYear + 1, month: 1, day: 1 });
+    return {
+      startTimestamp: start.getTime() / 1000,
+      endTimestamp: end.getTime() / 1000,
+    };
   };
 
   React.useEffect(() => {
     async function fetchData() {
-      const { startTimestamp, endTimestamp } = getJalaliYearTimestamps(selectedJalaliYear);
+      const { startTimestamp, endTimestamp } = getJalaliYearTimestamps(selectedYear);
       const data = await getAnnualHours(startTimestamp, endTimestamp);
       if (data) {
         setAnnualHours(data.annualHours);
@@ -78,22 +59,14 @@ function AnnualHours() {
       setLoading(false);
     }
     fetchData();
-  }, [selectedJalaliYear]); // The effect now depends only on the selected year
+  }, [selectedYear]); // The effect now depends only on the selected year
 
   return (
     <Card className="rounded-2xl cursor-default hover:z-10 bg-white dark:bg-gray-800 shadow-md">
       <CardHeader className="text-center flex-col space-y-2">
         <CardTitle>مجموع ساعات آموزشی سالانه</CardTitle>
         <div className="flex justify-center items-center">
-          <DatePicker
-            calendar={persian}
-            locale={persian_fa}
-            onlyYearPicker
-            value={selectedJalaliYear}
-            onChange={(date) => setSelectedJalaliYear(date)}
-            className="prime"
-            inputClass="text-center w-20 bg-transparent border-none focus:outline-none"
-          />
+          <PersianYearPicker year={selectedYear} onYearChange={setSelectedYear} />
         </div>
       </CardHeader>
       <CardContent className="text-center">

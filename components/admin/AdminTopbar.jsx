@@ -19,6 +19,7 @@ const LABELS = {
   courses: "دوره‌ها",
   enrollments: "ثبت‌نام‌ها",
   users: "کاربران",
+  media: "کتابخانه رسانه",
   "impersonation-logs": "گزارش ورود به حساب‌ها",
 };
 

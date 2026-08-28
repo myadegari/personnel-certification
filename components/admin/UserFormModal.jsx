@@ -24,6 +24,7 @@ import {
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { useSession } from "next-auth/react";
 import { ASSIGNABLE_ROLES, ROLES, ROLE_LABELS_FA, canAssignRole, isSuperAdmin } from "@/lib/roles";
+import MediaPickerDialog from "./MediaPickerDialog";
 
 const getBaseUrl = () => {
   // If we are on the server, use the internal Docker URL
@@ -53,7 +54,9 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [signatureFile, setSignatureFile] = useState(null);
+  const [signatureFileId, setSignatureFileId] = useState(null);
   const [signaturePreview, setSignaturePreview] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const signatureInputRef = useRef(null);
 
   const isEditing = !!userData;
@@ -81,15 +84,16 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
       setFormData(emptyForm);
     }
     setSignatureFile(null);
+    setSignatureFileId(null);
     setSignaturePreview('');
     setError('');
   }, [userData, isOpen, isEditing]);
 
   useEffect(() => {
-    if (!signatureFile && userData?.signatureImage && signatureFileQuery.data) {
+    if (!signatureFile && !signatureFileId && userData?.signatureImage && signatureFileQuery.data) {
       setSignaturePreview(signatureFileQuery.data);
     }
-  }, [signatureFile, userData?.signatureImage, signatureFileQuery.data]);
+  }, [signatureFile, signatureFileId, userData?.signatureImage, signatureFileQuery.data]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -104,7 +108,16 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setSignatureFile(file);
+    setSignatureFileId(null);
     setSignaturePreview(URL.createObjectURL(file));
+  };
+
+  const handlePickSignature = (item) => {
+    if (!item) return;
+    setSignatureFileId(item.id);
+    setSignatureFile(null);
+    setSignaturePreview(item.url || '');
+    setPickerOpen(false);
   };
 
   const handleSubmit = async (e) => {
@@ -134,6 +147,8 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
 
       if (signatureFile) {
         payload.append('signatureFile', signatureFile);
+      } else if (signatureFileId) {
+        payload.append('signatureFileId', signatureFileId);
       }
 
       const url = isEditing
@@ -161,6 +176,7 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
   };
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[480px] max-h-[88vh] overflow-y-auto">
         <DialogHeader>
@@ -272,15 +288,27 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                   <img src={signaturePreview} alt="Signature preview" width={150} className="object-contain" />
                 </div>
               ) : null}
-              <Input
-                ref={signatureInputRef}
-                id="signatureFile"
-                name="signatureFile"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleSignatureChange}
-                onClick={(e) => (e.target.value = null)}
-              />
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="cursor-pointer"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  انتخاب از کتابخانه
+                </Button>
+                <Input
+                  ref={signatureInputRef}
+                  id="signatureFile"
+                  name="signatureFile"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleSignatureChange}
+                  onClick={(e) => (e.target.value = null)}
+                  className="flex-1"
+                />
+              </div>
             </fieldset>
 
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -294,5 +322,11 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
         </form>
       </DialogContent>
     </Dialog>
+    <MediaPickerDialog
+      open={pickerOpen}
+      onOpenChange={setPickerOpen}
+      onSelect={handlePickSignature}
+    />
+    </>
   );
 }

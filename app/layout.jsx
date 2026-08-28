@@ -4,7 +4,7 @@ import "./globals.css";
 import AuthProvider from "./context/AuthProvider";
 import Providers from "@/components/Providers";
 import { Theme } from "@radix-ui/themes";
-import { Toaster } from 'react-hot-toast';
+import AppToaster from "@/components/AppToaster";
 // const vazirmatn = Vazirmatn({ subsets: ["arabic"] });
 const sahel = localFont({
   src: [
@@ -44,7 +44,7 @@ export default function RootLayout({ children }) {
             <div className="min-h-screen bg-gray-50">
                 {children}
             </div>
-            <Toaster position="top-center" reverseOrder={false} />
+            <AppToaster />
             </Theme>
           </Providers>
         </AuthProvider>

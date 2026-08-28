@@ -34,18 +34,9 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: "File not found or access denied." }, { status: 403 });
   }
 
-  const now = new Date();
-
-  // --- If URL is still valid, return it ---
-  if (fileRecord.expiresAt > now) {
-    return NextResponse.json({
-      url: fileRecord.presignedUrl,
-      expiresAt: fileRecord.expiresAt.toISOString(),
-      isRegenerated: false,
-    });
-  }
-
-  // --- Otherwise, generate new presigned URL ---
+  // Always regenerate a fresh, browser-facing (public-signed) presigned URL.
+  // Stored URLs may have been signed against the internal host and would fail
+  // signature validation in the browser.
   const expirySeconds = 7 * 24 * 60 * 60;
   let newPresignedUrl;
   try {
@@ -55,13 +46,12 @@ export async function GET(request, { params }) {
       expiresInSeconds: expirySeconds,
     });
   } catch (error) {
-    console.error("Failed to regenerate presigned URL:", error);
-    return NextResponse.json({ error: "Could not regenerate access link." }, { status: 500 });
+    console.error("Failed to generate presigned URL:", error);
+    return NextResponse.json({ error: "Could not generate access link." }, { status: 500 });
   }
 
   const newExpiresAt = new Date(Date.now() + expirySeconds * 1000);
 
-  // --- Update DB with new URL ---
   fileRecord.presignedUrl = newPresignedUrl;
   fileRecord.expiresAt = newExpiresAt;
   await fileRecord.save();

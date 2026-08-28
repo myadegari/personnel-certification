@@ -13,7 +13,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { LogOut, Users, LayoutDashboard, Layers, ShieldCheck, GraduationCap } from "lucide-react";
+import { LogOut, Users, LayoutDashboard, Layers, ShieldCheck, GraduationCap, ImagePlus } from "lucide-react";
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -84,6 +84,7 @@ export function AdminSidebar() {
     { href: "/admin", label: "داشبورد", icon: LayoutDashboard },
     { href: "/admin/courses", label: "مدیریت دوره‌ها", icon: Layers },
     { href: "/admin/users", label: "مدیریت کاربران", icon: Users },
+    { href: "/admin/media", label: "کتابخانه رسانه", icon: ImagePlus },
   ];
   if (isSuperAdmin(session?.user?.role)) {
     items.push({ href: "/admin/impersonation-logs", label: "گزارش ورود به حساب‌ها", icon: ShieldCheck });

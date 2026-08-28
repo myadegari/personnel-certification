@@ -26,7 +26,7 @@ import ConfirmDialog from "./ConfirmDialog";
 import DataTableShell from "./ui/DataTableShell";
 import { internalAxios } from "@/lib/axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
+import { gooeyToast } from "goey-toast";
 import { DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
@@ -51,10 +51,10 @@ export default function CoursesClient({ initialCourses }) {
   const deleteCourseMutation = useMutation({
     mutationFn: (courseId) => internalAxios.delete(`/admin/courses/${courseId}`),
     onSuccess: () => {
-      toast.success("دوره با موفقیت حذف شد.");
+      gooeyToast.success("دوره با موفقیت حذف شد.");
       invalidateCourses();
     },
-    onError: (error) => toast.error(`خطا در حذف دوره: ${error.message}`),
+    onError: (error) => gooeyToast.error(`خطا در حذف دوره: ${error.message}`),
   });
 
   const filtered = useMemo(() => {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
+import File from '@/models/File';
 import bcrypt from 'bcrypt';
 import { requireAdmin } from '@/lib/authGuard';
 import { uploadUserSignature } from '@/lib/signatureUpload';
@@ -34,11 +35,12 @@ async function parseUserPayload(request) {
         isProfessor: value('isProfessor') === 'true',
       },
       signatureFile: data.get('signatureFile') || undefined,
+      signatureFileId: data.get('signatureFileId') || undefined,
     };
   }
 
   const body = await request.json();
-  return { fields: body, signatureFile: undefined };
+  return { fields: body, signatureFile: undefined, signatureFileId: undefined };
 }
 
 // Escape user input so it is treated literally inside $regex
@@ -137,7 +139,7 @@ export async function POST(request) {
   if (error) return error;
 
   try {
-    const { fields, signatureFile } = await parseUserPayload(request);
+    const { fields, signatureFile, signatureFileId } = await parseUserPayload(request);
     const { personnelNumber, password, firstName, lastName, nationalId, email, role, gender, position, isProfessor } = fields;
 
     if (!personnelNumber || !password || !firstName || !lastName || !nationalId || !email || !gender) {
@@ -180,6 +182,14 @@ export async function POST(request) {
           { status: uploadError.status || 500 }
         );
       }
+    } else if (signatureFileId) {
+      const fileRecord = await File.findById(signatureFileId);
+      if (!fileRecord) {
+        await User.findByIdAndDelete(newUser._id);
+        return NextResponse.json({ error: 'Selected signature media not found' }, { status: 404 });
+      }
+      newUser.signatureImage = fileRecord._id;
+      await newUser.save();
     }
 
     const safeUser = newUser.toObject();

@@ -26,7 +26,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { internalAxios } from "@/lib/axios";
 import CertificateStatus from "@/components/CertificateStatus";
-import toast from "react-hot-toast";
+import { gooeyToast } from "goey-toast";
 import { motion, AnimatePresence } from "motion/react";
 import { fadeUp } from "@/lib/motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -45,9 +45,9 @@ function StatusSelector({ enrollment }) {
       internalAxios.put(`/admin/enrollments/${enrollmentId}`, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["enrollments", enrollment.course] });
-      toast.success("وضعیت به‌روزرسانی شد.");
+      gooeyToast.success("وضعیت به‌روزرسانی شد.");
     },
-    onError: (error) => toast.error(`خطا در به‌روزرسانی وضعیت: ${error.message}`),
+    onError: (error) => gooeyToast.error(`خطا در به‌روزرسانی وضعیت: ${error.message}`),
   });
 
   return (

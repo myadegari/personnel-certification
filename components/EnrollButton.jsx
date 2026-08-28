@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {internalAxios} from '@/lib/axios';
+import { gooeyToast } from 'goey-toast';
 import { Button } from "./ui/button";
 
 const enrollInCourse = (courseId) => internalAxios.post('/enrollments', { courseId });
@@ -24,7 +25,7 @@ export default function EnrollButton({ courseId, status, enrollmentDeadline }) {
         queryClient.invalidateQueries({ queryKey: ['courses'] });
     }, onError: (error) => {
       const errorMessage = error.response?.data?.message || "An error occurred during enrollment.";
-      alert(errorMessage); // For a better UX, consider using a toast notification library
+      gooeyToast.error(errorMessage);
   }
 });
   

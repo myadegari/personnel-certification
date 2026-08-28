@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Papa from "papaparse";
-import toast from "react-hot-toast";
+import { gooeyToast } from "goey-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { internalAxios } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
 
   const runImport = async (mode) => {
     if (!file) {
-      toast.error("ابتدا یک فایل CSV انتخاب کنید.");
+      gooeyToast.error("ابتدا یک فایل CSV انتخاب کنید.");
       return;
     }
     setLoading(true);
@@ -88,10 +88,10 @@ export default function UserImportDialog({ open, onOpenChange }) {
         setResults(data);
         setStep("results");
         queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
-        toast.success("ایمپورت با موفقیت انجام شد.");
+        gooeyToast.success("ایمپورت با موفقیت انجام شد.");
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || "خطا در پردازش فایل.");
+      gooeyToast.error(err.response?.data?.error || "خطا در پردازش فایل.");
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
       .filter((r) => r.status === "error")
       .map((r) => ({ line: r.line, personnelNumber: r.personnelNumber || "", errors: (r.errors || []).join(" | ") }));
     if (!errorRows.length) {
-      toast("خطایی برای دانلود وجود ندارد.");
+      gooeyToast("خطایی برای دانلود وجود ندارد.");
       return;
     }
     downloadTextFile("import-errors.csv", Papa.unparse(errorRows));
@@ -113,7 +113,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
       .filter((r) => r.generatedPassword)
       .map((r) => ({ personnelNumber: r.personnelNumber, password: r.generatedPassword }));
     if (!rows.length) {
-      toast("رمز عبور تولیدشده‌ای وجود ندارد.");
+      gooeyToast("رمز عبور تولیدشده‌ای وجود ندارد.");
       return;
     }
     downloadTextFile("generated-passwords.csv", Papa.unparse(rows));

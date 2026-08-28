@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
+import File from '@/models/File';
 import { requireAdmin } from '@/lib/authGuard';
 import { uploadUserSignature } from '@/lib/signatureUpload';
 import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
@@ -30,11 +31,12 @@ async function parseUserPayload(request) {
         isProfessor: value('isProfessor') === 'true',
       },
       signatureFile: data.get('signatureFile') || undefined,
+      signatureFileId: data.get('signatureFileId') || undefined,
     };
   }
 
   const body = await request.json();
-  return { fields: body, signatureFile: undefined };
+  return { fields: body, signatureFile: undefined, signatureFileId: undefined };
 }
 
 // PUT: Update a user
@@ -44,7 +46,7 @@ export async function PUT(request, { params }) {
 
   try {
     const { id } = await params;
-    const { fields, signatureFile } = await parseUserPayload(request);
+    const { fields, signatureFile, signatureFileId } = await parseUserPayload(request);
 
     if (fields.role && !isValidRole(fields.role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
@@ -86,7 +88,7 @@ export async function PUT(request, { params }) {
       }
     }
 
-    if (!hasFieldUpdate && !signatureFile) {
+    if (!hasFieldUpdate && !signatureFile && !signatureFileId) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
     }
 
@@ -96,6 +98,13 @@ export async function PUT(request, { params }) {
 
     if (signatureFile) {
       await uploadUserSignature(user, signatureFile);
+    } else if (signatureFileId) {
+      const fileRecord = await File.findById(signatureFileId);
+      if (!fileRecord) {
+        return NextResponse.json({ error: 'Selected signature media not found' }, { status: 404 });
+      }
+      user.signatureImage = fileRecord._id;
+      await user.save();
     }
 
     const safeUser = user.toObject();

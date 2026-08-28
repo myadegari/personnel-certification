@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import toast from 'react-hot-toast';
+import { gooeyToast } from 'goey-toast';
 import PasswordInput from "@/components/password-input"
 
 export default function ForgotPasswordPage() {
@@ -33,11 +33,11 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      toast.success(data.message);
+      gooeyToast.success(data.message);
       // setMessage(data.message);
       setStep(2); // Move to the next step regardless of whether email exists
     } catch (err) {
-      toast.error('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
+      gooeyToast.error('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
       // setError('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
     } finally {
       setIsLoading(false);
@@ -62,10 +62,10 @@ export default function ForgotPasswordPage() {
         throw new Error(data.message || 'خطا در بازنشانی رمز عبور.');
       }
 
-      toast.success(data.message);
+      gooeyToast.success(data.message);
       setTimeout(() => router.push('/authentication/login'), 3000);
     } catch (err) {
-      toast.error(err.message);
+      gooeyToast.error(err.message);
     } finally {
       setIsLoading(false);
     }

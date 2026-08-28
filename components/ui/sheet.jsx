@@ -1,21 +1,58 @@
-"use client"
-
-import * as React from "react"
-import * as SheetPrimitive from "@radix-ui/react-dialog"
+"use client";
+import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
 import { XIcon } from "lucide-react"
+import * as React from "react"
 
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+
+/**
+ * SheetContent renders through a Portal, so it doesn't inherit `dir` from a
+ * nearby wrapper (only from document.documentElement). SheetTrigger measures
+ * the ambient direction where it's actually rendered and pushes it here so
+ * SheetContent can apply it explicitly to the portaled popup, and so a
+ * logical `side="start"`/`"end"` can resolve to the correct physical edge.
+ */
+const SheetDirContext = React.createContext({ dir: "ltr", setDir: () => {} })
 
 function Sheet({
   ...props
 }) {
-  return <SheetPrimitive.Root data-slot="sheet" {...props} />;
+  const [dir, setDir] = React.useState("ltr")
+  const contextValue = React.useMemo(() => ({ dir, setDir }), [dir])
+
+  return (
+    <SheetDirContext.Provider value={contextValue}>
+      <SheetPrimitive.Root data-slot="sheet" {...props} />
+    </SheetDirContext.Provider>
+  );
 }
 
 function SheetTrigger({
   ...props
 }) {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" {...props} />;
+  const ref = React.useRef(null)
+  const { setDir } = React.useContext(SheetDirContext)
+
+  React.useEffect(() => {
+    function update() {
+      if (!ref.current) return
+      setDir(getComputedStyle(ref.current).direction === "rtl" ? "rtl" : "ltr")
+    }
+
+    update()
+
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["dir"],
+      subtree: true,
+    })
+
+    return () => observer.disconnect();
+  }, [setDir])
+
+  return (<SheetPrimitive.Trigger ref={ref} data-slot="sheet-trigger" {...props} />);
 }
 
 function SheetClose({
@@ -35,10 +72,10 @@ function SheetOverlay({
   ...props
 }) {
   return (
-    <SheetPrimitive.Overlay
+    <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
+        "fixed inset-0 z-50 bg-black/10 transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
         className
       )}
       {...props} />
@@ -48,34 +85,60 @@ function SheetOverlay({
 function SheetContent({
   className,
   children,
-  side = "right",
+  side = "end",
+  showCloseButton = true,
   ...props
 }) {
+  const { dir } = React.useContext(SheetDirContext)
+
+  // Resolve logical start/end to the physical edge for the ambient direction.
+  const resolvedSide =
+    side === "start"
+      ? dir === "rtl"
+        ? "right"
+        : "left"
+      : side === "end"
+        ? dir === "rtl"
+          ? "left"
+          : "right"
+        : side
+
   return (
     <SheetPortal>
       <SheetOverlay />
-      <SheetPrimitive.Content
+      <SheetPrimitive.Popup
+        dir={dir}
         data-slot="sheet-content"
+        data-side={resolvedSide}
         className={cn(
-          "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
-          side === "right" &&
-            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
-          side === "left" &&
-            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
-          side === "top" &&
-            "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto border-b",
-          side === "bottom" &&
-            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
+          "fixed z-50 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg transition-[opacity,translate] duration-200 ease-in-out data-ending-style:opacity-0 data-starting-style:opacity-0 data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:h-auto data-[side=bottom]:border-t data-[side=bottom]:data-ending-style:translate-y-[2.5rem] data-[side=bottom]:data-starting-style:translate-y-[2.5rem] data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=left]:data-ending-style:translate-x-[-2.5rem] data-[side=left]:data-starting-style:translate-x-[-2.5rem] data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=right]:data-ending-style:translate-x-[2.5rem] data-[side=right]:data-starting-style:translate-x-[2.5rem] data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=top]:data-ending-style:translate-y-[-2.5rem] data-[side=top]:data-starting-style:translate-y-[-2.5rem] data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm",
           className
         )}
         {...props}>
-        {children}
-        <SheetPrimitive.Close
-          className="ring-offset-background focus:ring-ring data-[state=open]:bg-secondary absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-          <XIcon className="size-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-      </SheetPrimitive.Content>
+        {/* Safe-area padding lives on this inner, non-animated wrapper rather
+            than the translate-animated Popup above — env() padding on the
+            same element being translated caused visibly laggy open/close
+            transitions. */}
+        <div
+          className={cn(
+            "flex h-full flex-col gap-4",
+            resolvedSide === "bottom" && "pb-[env(safe-area-inset-bottom)]",
+            resolvedSide === "left" && "pl-[env(safe-area-inset-left)]",
+            resolvedSide === "right" && "pr-[env(safe-area-inset-right)]"
+          )}>
+          {children}
+        </div>
+        {showCloseButton && (
+          <SheetPrimitive.Close
+            data-slot="sheet-close"
+            render={
+              <Button variant="ghost" className="absolute end-3 top-3" size="icon-sm" />
+            }>
+            <XIcon />
+            <span className="sr-only">Close</span>
+          </SheetPrimitive.Close>
+        )}
+      </SheetPrimitive.Popup>
     </SheetPortal>
   );
 }
@@ -87,7 +150,7 @@ function SheetHeader({
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex flex-col gap-1.5 p-4", className)}
+      className={cn("flex flex-col gap-0.5 p-4", className)}
       {...props} />
   );
 }
@@ -111,7 +174,7 @@ function SheetTitle({
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn("text-foreground font-semibold", className)}
+      className={cn("text-base font-medium text-foreground", className)}
       {...props} />
   );
 }
@@ -123,18 +186,20 @@ function SheetDescription({
   return (
     <SheetPrimitive.Description
       data-slot="sheet-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-sm text-muted-foreground", className)}
       {...props} />
   );
 }
 
 export {
   Sheet,
-  SheetTrigger,
   SheetClose,
   SheetContent,
-  SheetHeader,
-  SheetFooter,
-  SheetTitle,
   SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetOverlay,
+  SheetPortal,
+  SheetTitle,
+  SheetTrigger,
 }

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PasswordInput from "@/components/password-input"
-import toast, { Toaster } from 'react-hot-toast';
+import { gooeyToast } from 'goey-toast';
 import { Label } from '@/components/ui/label';
 
 export default function LoginPage() {
@@ -36,25 +36,23 @@ export default function LoginPage() {
 
         if (result.error) {
             if (result.error === 'ACCOUNT_NOT_ACTIVE') {
-                toast.error('حساب کاربری شما فعال نیست. با مدیر سیستم تماس بگیرید.', { autoClose: 5000 });
+                gooeyToast.error('حساب کاربری شما فعال نیست. با مدیر سیستم تماس بگیرید.', { duration: 5000 });
             } else if (result.error === 'ACCOUNT_REJECTED') {
-                toast.error('حساب کاربری شما توسط مدیر رد شده است.', { autoClose: 5000 });
+                gooeyToast.error('حساب کاربری شما توسط مدیر رد شده است.', { duration: 5000 });
             } else {
-                toast.error('شماره پرسنلی یا رمز عبور اشتباه است.',{ autoClose: 5000, });
+                gooeyToast.error('شماره پرسنلی یا رمز عبور اشتباه است.', { duration: 5000 });
             }
         } else if (result.ok) {
             // On successful login, redirect to the root which will be handled by middleware
             router.push('/');
-            toast.success('ورود با موفقیت انجام شد.',{
-              autoClose: 5000,
-            });
+            gooeyToast.success('ورود با موفقیت انجام شد.', { duration: 5000 });
              // Set the flag to true.
              isRedirecting = true; 
         }
     } catch (err) {
         // Catch any unexpected network errors
         if (!isRedirecting) {
-        toast.error('خطایی در ارتباط با سرور رخ داد.',{  autoClose: 5000,});
+        gooeyToast.error('خطایی در ارتباط با سرور رخ داد.', { duration: 5000 });
         }
 
         // setError('خطایی در ارتباط با سرور رخ داد.');
