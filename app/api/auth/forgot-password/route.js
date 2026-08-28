@@ -1,7 +1,7 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import crypto from "crypto";
-import { sendForgetPasswordEmail } from "@/lib/mailer";
+import { sendForgotPasswordEmail } from "@/lib/mailer";
 
 // Human-friendly but cryptographically random reset code.
 // Avoids lookalike characters; ~47 bits of entropy.
@@ -44,7 +44,7 @@ export async function POST(request) {
     await user.save();
 
     // Send the raw code to the user - never the stored hash
-    await sendForgetPasswordEmail(user.email, resetToken);
+    await sendForgotPasswordEmail(user.email, resetToken);
 
     return new Response(
       JSON.stringify({

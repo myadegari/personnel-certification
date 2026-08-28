@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
 import User from "@/models/User";
-import CertificateSequence from "@/models/Indicator";
+import Indicator from "@/models/Indicator";
 import { microserviceAxios } from "@/lib/axios";
 import { INDICATOR_MAX_NUMBER } from "@/lib/certificateService";
 import { requireAdmin } from "@/lib/authGuard";
@@ -19,7 +19,7 @@ const REPORT_PATTERN_FIRST_NUMBER = 100;
  * first creation is retried once.
  */
 async function reserveReportNumber() {
-  const incremented = await CertificateSequence.findOneAndUpdate(
+  const incremented = await Indicator.findOneAndUpdate(
     { pattern: REPORT_PATTERN },
     { $inc: { lastNumber: 1 } },
     { new: true }
@@ -27,13 +27,13 @@ async function reserveReportNumber() {
   if (incremented) return incremented;
 
   try {
-    return await CertificateSequence.create({
+    return await Indicator.create({
       pattern: REPORT_PATTERN,
       lastNumber: REPORT_PATTERN_FIRST_NUMBER,
     });
   } catch (err) {
     if (err?.code === 11000) {
-      const raced = await CertificateSequence.findOneAndUpdate(
+      const raced = await Indicator.findOneAndUpdate(
         { pattern: REPORT_PATTERN },
         { $inc: { lastNumber: 1 } },
         { new: true }
@@ -92,7 +92,7 @@ export async function POST(request) {
     let sequence = await reserveReportNumber();
 
     if (sequence.lastNumber > INDICATOR_MAX_NUMBER) {
-      await CertificateSequence.updateOne(
+      await Indicator.updateOne(
         { pattern: REPORT_PATTERN },
         { $inc: { lastNumber: -1 } }
       );
@@ -106,26 +106,23 @@ export async function POST(request) {
 
     const certNumber = `${REPORT_PATTERN}/${sequence.lastNumber}`;
 
-    // Calculate total duration and format data for the microservice
+    // Calculate total duration and format data for the microservice.
+    // The report template renders a 3-column table: labels supplies the
+    // header cells and every enrollment supplies exactly 3 cell values.
     let totalDuration = 0;
     const enrollmentData = filteredEnrollments.map((enrollment) => {
       totalDuration += enrollment.course.duration;
       return {
-        course: {
-          name: enrollment.course.name,
-          organizingUnit: enrollment.course.organizingUnit,
-          date: new DateObject({
-            date: new Date(enrollment.course.date * 1000),
-            calendar: persian,
-          }).format("YYYY/MM/DD"),
-          duration: enrollment.course.duration,
-        },
-        certificateUniqueId: enrollment.certificateUniqueId,
-        issuedAt: enrollment.issuedAt,
+        course: enrollment.course.name,
+        organizingUnit: enrollment.course.organizingUnit,
+        date: new DateObject({
+          date: new Date(enrollment.course.date * 1000),
+          calendar: persian,
+        }).format("YYYY/MM/DD"),
       };
     });
 
-    // Data to send to FastAPI
+    // Payload must match models/report.py ReportRequest in certificate-service
     const reportPayload = {
       user: {
         userId: user._id,
@@ -136,15 +133,22 @@ export async function POST(request) {
       },
       date: {
         issue: new DateObject({ calendar: persian }).format("YYYY/MM/DD"),
-        year: yearNumber,
+        year: yearNumber.toString(),
       },
+      total: {
+        duration: totalDuration.toString(),
+        count: filteredEnrollments.length.toString(),
+      },
+      labels: ["عنوان دوره", "واحد برگزارکننده", "تاریخ برگزاری"],
       enrollments: enrollmentData,
-      total: totalDuration,
       reportuniqueid: certNumber,
     };
 
     // Trigger the microservice
-    const { data } = await microserviceAxios.post("/reports/generate", reportPayload);
+    const { data } = await microserviceAxios.post(
+      "/reports/generate/",
+      reportPayload
+    );
 
     // Return the job_id to the client
     return NextResponse.json({ jobId: data.job_id });

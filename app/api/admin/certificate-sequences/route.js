@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
-import CertificateSequence from '@/models/Indicator';
+import Indicator from '@/models/Indicator';
 import { requireAdmin } from '@/lib/authGuard';
 import { INDICATOR_MAX_NUMBER } from '@/lib/certificateService';
 
@@ -9,7 +9,7 @@ export async function GET() {
   if (error) return error;
 
   await dbConnect();
-  const sequences = await CertificateSequence.find({}).lean();
+  const sequences = await Indicator.find({}).lean();
 
   // افزودن وضعیت به هر الگو برای استفاده راحت‌تر در فرانت‌اند
   const sequencesWithStatus = sequences.map((seq) => {

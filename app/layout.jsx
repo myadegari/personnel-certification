@@ -1,4 +1,4 @@
-/* FILE: app/layout.js */
+/* FILE: app/layout.jsx */
 import localFont from 'next/font/local';
 import "./globals.css";
 import AuthProvider from "./context/AuthProvider";

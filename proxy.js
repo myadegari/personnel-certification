@@ -1,4 +1,4 @@
-// File: middleware.js
+// File: proxy.js (Next.js middleware)
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 

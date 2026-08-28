@@ -35,6 +35,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 opencode.json
 # vercel
 .vercel
@@ -42,3 +43,6 @@ opencode.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local AI tool config (never commit)
+opencode.json
