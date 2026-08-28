@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query"; // <-- Import hooks
 // import axios from "@/lib/axios"; // <-- Import custom axios instance
 // import { Card, CardContent, Label, Input, Button } from "@/components/ui";
@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ImageCropper from "./ImageCropper";
-import { useUploadFile, useUpdateProfile } from "@/hooks/useProfileMutations";
+import { useUpdateProfile } from "@/hooks/useProfileMutations";
+import { useUploadFile } from "@/hooks/useUploadFile";
 import { useFileUrl } from "@/hooks/useFileUrl"; // ✅ Import new hook
 
 const UserIcon = () => (
@@ -55,28 +56,18 @@ export default function ProfileForm({ user }) {
   // ✅ Fetch existing image URLs with TanStack Query
   const profileFileQuery = useFileUrl(user?.profileImage);
   const signatureFileQuery = useFileUrl(user?.signatureImage);
-  // ✅ Sync query data → preview state (only on first load or when IDs change)
-  // We use this to avoid flicker when switching between new upload and existing
-  const isFirstLoadProfile = useRef(true);
-  const isFirstLoadSignature = useRef(true);
-
-  if (isFirstLoadProfile.current && !profileImageFile && user?.profileImage) {
-    if (!profileFileQuery.isLoading && profileFileQuery.data) {
+  // ✅ Sync query data → preview state (only while no new file was chosen)
+  useEffect(() => {
+    if (!profileImageFile && user?.profileImage && profileFileQuery.data) {
       setProfilePreview(profileFileQuery.data);
-      isFirstLoadProfile.current = false;
     }
-  }
+  }, [profileImageFile, user?.profileImage, profileFileQuery.data]);
 
-  if (
-    isFirstLoadSignature.current &&
-    !signatureImageFile &&
-    user?.signatureImage
-  ) {
-    if (!signatureFileQuery.isLoading && signatureFileQuery.data) {
+  useEffect(() => {
+    if (!signatureImageFile && user?.signatureImage && signatureFileQuery.data) {
       setSignaturePreview(signatureFileQuery.data);
-      isFirstLoadSignature.current = false;
     }
-  }
+  }, [signatureImageFile, user?.signatureImage, signatureFileQuery.data]);
 
   const handleTextChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });

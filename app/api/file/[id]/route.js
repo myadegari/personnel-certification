@@ -4,16 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import File from "@/models/File";
-// import * as Minio from 'minio';
-import { minioClient } from '@/lib/minio';
-
-// const minioClient = new Minio.Client({
-//   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
-//   port: parseInt(process.env.MINIO_PORT) || 9000,
-//   useSSL: process.env.MINIO_USE_SSL === 'false',
-//   accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-//   secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
-// });
+import { getPresignedUrl } from '@/lib/storage';
 
 export async function GET(request, { params }) {
   const session = await getServerSession(authOptions);
@@ -22,7 +13,6 @@ export async function GET(request, { params }) {
   }
 
   const { id } = await params;
-  console.log("id:",id)
 
   await dbConnect();
 
@@ -33,6 +23,14 @@ export async function GET(request, { params }) {
 
   if (!fileRecord) {
     return NextResponse.json({ error: "File not found or access denied." }, { status: 404 });
+  }
+
+  // Only the owner or an admin may access a file
+  if (
+    session.user.role !== "ADMIN" &&
+    fileRecord.userId?.toString() !== session.user.id
+  ) {
+    return NextResponse.json({ error: "File not found or access denied." }, { status: 403 });
   }
 
   const now = new Date();
@@ -50,7 +48,11 @@ export async function GET(request, { params }) {
   const expirySeconds = 7 * 24 * 60 * 60;
   let newPresignedUrl;
   try {
-    newPresignedUrl = await minioClient.presignedGetObject(fileRecord.bucket, fileRecord.objectName, expirySeconds);
+    newPresignedUrl = await getPresignedUrl({
+      bucket: fileRecord.bucket,
+      objectName: fileRecord.objectName,
+      expiresInSeconds: expirySeconds,
+    });
   } catch (error) {
     console.error("Failed to regenerate presigned URL:", error);
     return NextResponse.json({ error: "Could not regenerate access link." }, { status: 500 });

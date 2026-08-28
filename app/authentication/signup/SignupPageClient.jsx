@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { internalAxios } from "@/lib/axios";
 import toast from "react-hot-toast";
-import PasswordInput from "@/components/comp-23";
+import PasswordInput from "@/components/password-input";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function SignupPageClient() {

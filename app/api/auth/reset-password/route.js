@@ -1,7 +1,12 @@
 // File: app/api/auth/reset-password/route.js
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
+import crypto from "crypto";
 import bcrypt from "bcrypt";
+
+function hashCode(code) {
+  return crypto.createHash("sha256").update(code).digest("hex");
+}
 
 export async function POST(request) {
   await dbConnect();
@@ -13,9 +18,16 @@ export async function POST(request) {
       return new Response(JSON.stringify({ message: "اطلاعات ناقص است." }), { status: 400 });
     }
 
-    // Find the user with a valid, non-expired token
+    if (typeof password !== "string" || password.length < 8) {
+      return new Response(
+        JSON.stringify({ message: "رمز عبور باید حداقل ۸ کاراکتر باشد." }),
+        { status: 400 }
+      );
+    }
+
+    // Find the user with a valid, non-expired token (token stored hashed)
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: hashCode(token),
       resetPasswordExpires: { $gt: Date.now() }, // Check if token is not expired
     });
 
@@ -26,7 +38,7 @@ export async function POST(request) {
     // --- Update the password ---
     const hashedPassword = await bcrypt.hash(password, 10);
     user.password = hashedPassword;
-    
+
     // --- Invalidate the token ---
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
@@ -34,7 +46,6 @@ export async function POST(request) {
     await user.save();
 
     return new Response(JSON.stringify({ message: "رمز عبور شما با موفقیت تغییر کرد. اکنون می‌توانید وارد شوید." }), { status: 200 });
-
   } catch (error) {
     console.error("Reset Password Error:", error);
     return new Response(JSON.stringify({ message: "خطایی در سرور رخ داد." }), { status: 500 });

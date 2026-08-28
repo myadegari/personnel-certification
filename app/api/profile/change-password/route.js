@@ -8,18 +8,34 @@ export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!session) return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
 
-  const { currentPassword, newPassword } = await request.json();
-  
-  await dbConnect();
-  const user = await User.findById(session.user.id);
+  try {
+    const { currentPassword, newPassword } = await request.json();
 
-  const isMatch = await bcrypt.compare(currentPassword, user.password);
-  if (!isMatch) {
-    return new Response(JSON.stringify({ message: "رمز عبور فعلی اشتباه است." }), { status: 400 });
+    if (!currentPassword || !newPassword) {
+      return new Response(JSON.stringify({ message: "اطلاعات ناقص است." }), { status: 400 });
+    }
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
+      return new Response(
+        JSON.stringify({ message: "رمز عبور جدید باید حداقل ۸ کاراکتر باشد." }),
+        { status: 400 }
+      );
+    }
+
+    await dbConnect();
+    const user = await User.findById(session.user.id);
+    if (!user) return new Response(JSON.stringify({ message: "User not found" }), { status: 404 });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return new Response(JSON.stringify({ message: "رمز عبور فعلی اشتباه است." }), { status: 400 });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    return new Response(JSON.stringify({ message: "رمز عبور با موفقیت تغییر کرد." }), { status: 200 });
+  } catch (error) {
+    console.error("Change password error:", error);
+    return new Response(JSON.stringify({ message: "خطایی در سرور رخ داد." }), { status: 500 });
   }
-
-  user.password = await bcrypt.hash(newPassword, 10);
-  await user.save();
-
-  return new Response(JSON.stringify({ message: "رمز عبور با موفقیت تغییر کرد." }), { status: 200 });
 }

@@ -61,27 +61,16 @@ const UserStatusIndicator = ({ children, state, className }) => {
 
 export function UserSidebar() {
   const { data: userData, isLoading: isUserDataLoading } = useUser();
-  console.log("userData",userData);
   const { data: session, status } = useSession();
-  // ✅ Add state for profile image URL
-  const [profileImageUrl, setProfileImageUrl] = useState(null);
   const fileId = userData?.profileImage;
-  //  const isFirstLoadProfile = useRef(true);
-  const profileFileQuery = useFileUrl(fileId); // ✅ Use GET, not POST
-  useEffect(() => {
-    if (
-      userData?.profileImage &&
-      status === "authenticated" &&
-      !isUserDataLoading
-    ) {
-      if (!profileFileQuery.isLoading && profileFileQuery.data) {
-        setProfileImageUrl(profileFileQuery.data);
-      }
-    }
-  }, [profileFileQuery]);
+  const profileFileQuery = useFileUrl(fileId);
+  // Derive the image URL directly from the query - no local state needed
+  const profileImageUrl =
+    status === "authenticated" && !isUserDataLoading
+      ? profileFileQuery.data || null
+      : null;
 
   const getUserSubtitle = () => {
-    ``;
     if (!session?.user) return "";
     // اگر کاربر سمت خود را وارد کرده باشد، آن را نمایش بده
     if (userData.position) {

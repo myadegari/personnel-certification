@@ -1,9 +1,25 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-// import crypto from "crypto";
-import otpGenerator from "otp-generator";
-// import nodemailer from "nodemailer"; // Import nodemailer
+import crypto from "crypto";
 import { sendForgetPasswordEmail } from "@/lib/mailer";
+
+// Human-friendly but cryptographically random reset code.
+// Avoids lookalike characters; ~47 bits of entropy.
+const ALPHABET = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function generateResetCode(length = 8) {
+  const bytes = crypto.randomBytes(length);
+  let out = "";
+  for (const b of bytes) {
+    out += ALPHABET[b % ALPHABET.length];
+  }
+  return out;
+}
+
+// Only a SHA-256 hash of the code is persisted, so a database leak
+// cannot reveal usable reset codes.
+function hashCode(code) {
+  return crypto.createHash("sha256").update(code).digest("hex");
+}
 
 export async function POST(request) {
   await dbConnect();
@@ -21,20 +37,13 @@ export async function POST(request) {
       );
     }
 
-    // --- NEW: Generate a secure 6-digit OTP ---
-    const resetToken = otpGenerator.generate(6, {
-      digits: true,
-      lowerCaseAlphabets: true,
-      upperCaseAlphabets: false,
-      specialChars: false,
-    });
-
-    user.resetPasswordToken = resetToken;
+    const resetToken = generateResetCode();
+    user.resetPasswordToken = hashCode(resetToken);
     user.resetPasswordExpires = Date.now() + 600000; // 10 minutes
 
     await user.save();
 
-    // 3. Send the email
+    // Send the raw code to the user - never the stored hash
     await sendForgetPasswordEmail(user.email, resetToken);
 
     return new Response(

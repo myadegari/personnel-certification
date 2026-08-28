@@ -1,15 +1,10 @@
 /* FILE: app/layout.js */
-// import { Vazirmatn } from "next/font/google";
 import localFont from 'next/font/local';
 import "./globals.css";
 import AuthProvider from "./context/AuthProvider";
-import Header from "@/components/Header";
 import Providers from "@/components/Providers";
-import Image from "next/image";
-import universityLogo from '@/public/universityLogo.jpg';
 import { Theme } from "@radix-ui/themes";
-// import { ToastContainer, ToastContentProps } from 'react-toastify';
-import toast, { Toaster } from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 // const vazirmatn = Vazirmatn({ subsets: ["arabic"] });
 const sahel = localFont({
   src: [
@@ -47,16 +42,9 @@ export default function RootLayout({ children }) {
           <Providers>
             <Theme>
             <div className="min-h-screen bg-gray-50">
-              {/* Header commented out as in your original code */}
-              {/* <Header /> */}
-              
-          
                 {children}
-       
-              
             </div>
-                <Toaster   position="top-center"
-  reverseOrder={false} />
+            <Toaster position="top-center" reverseOrder={false} />
             </Theme>
           </Providers>
         </AuthProvider>

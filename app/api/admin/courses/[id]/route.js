@@ -2,69 +2,102 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Course from '@/models/Course';
 import Enrollment from '@/models/Enrollment';
+import { requireAdmin } from '@/lib/authGuard';
+
+const ALLOWED_FIELDS = [
+  "courseCode",
+  "name",
+  "date",
+  "duration",
+  "enrollmentDeadline",
+  "enrollmentLimit",
+  "organizingUnit",
+  "signatory",
+  "unitStamp",
+  "signatory2",
+  "unitStamp2",
+  "certificateNumberPattern",
+];
 
 // GET: Fetch a single course by ID
 export async function GET(request, { params }) {
+  const { error } = await requireAdmin();
+  if (error) return error;
+
   try {
+    const { id } = await params;
     await dbConnect();
-    const course = await Course.findById(params.id)
+    const course = await Course.findById(id)
       .populate('signatory', 'firstName lastName')
       .populate('signatory2', 'firstName lastName');
-      
+
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
     return NextResponse.json(course);
-  } catch (error) {
+  } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch course' }, { status: 500 });
   }
 }
 
-
 // PUT: Update a course
 export async function PUT(request, { params }) {
-  try {
-    const { id } = params;
-    const body = await request.json();
-    await dbConnect();
+  const { error } = await requireAdmin();
+  if (error) return error;
 
-    // Ensure empty strings for optional fields are converted to null
-    // so they don't cause issues with ObjectId references.
-    if (body.signatory === '') body.signatory = null;
-    if (body.signatory2 === '') body.signatory2 = null;
-    
-    const updatedCourse = await Course.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+  try {
+    const { id } = await params;
+    const body = await request.json();
+
+    // Whitelist fields to prevent mass assignment
+    const update = {};
+    for (const field of ALLOWED_FIELDS) {
+      if (field in body) update[field] = body[field];
+    }
+
+    // Ensure empty strings for optional ObjectId references are converted to null
+    if (update.signatory === '') update.signatory = null;
+    if (update.signatory2 === '') update.signatory2 = null;
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+    }
+
+    await dbConnect();
+    const updatedCourse = await Course.findByIdAndUpdate(id, update, { new: true, runValidators: true });
 
     if (!updatedCourse) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
     return NextResponse.json(updatedCourse);
-  } catch (error) {
-     console.error("Course Update Error:", error);
+  } catch (err) {
+    console.error('Course Update Error:', err);
     return NextResponse.json({ error: 'Failed to update course' }, { status: 500 });
   }
 }
 
 // DELETE: Delete a course
 export async function DELETE(request, { params }) {
+  const { error } = await requireAdmin();
+  if (error) return error;
+
   try {
-    const { id } = params;
+    const { id } = await params;
     await dbConnect();
-    
-    // First, update related enrollments to reflect the course deletion
+
+    // Mark related enrollments so their history reflects the course deletion
     await Enrollment.updateMany(
       { course: id },
-      { $set: { "metadata.courseStatus": "PERISH" } }
+      { $set: { metadata: { courseStatus: 'PERISH' } } }
     );
-    
-    // Then, delete the course itself
+
     const deletedCourse = await Course.findByIdAndDelete(id);
     if (!deletedCourse) {
-        return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Course deleted and enrollments updated successfully."});
-  } catch (error) {
+    return NextResponse.json({ message: 'Course deleted and enrollments updated successfully.' });
+  } catch (err) {
     return NextResponse.json({ error: 'Failed to delete course' }, { status: 500 });
   }
 }

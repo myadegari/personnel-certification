@@ -3,18 +3,42 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-// import * as Minio from 'minio';
-import path from "path"; // ✅ Make sure this is imported
-// import { v4 as uuidv4 } from "uuid";
-import File from "@/models/File"; // ✅ Import as FileModel
+import path from "path";
+import File from "@/models/File";
 import Course from "@/models/Course";
-import { minioClient } from "@/lib/minio";
-// import { useQueryClient } from "@tanstack/react-query";
+import {
+  ensureBucket,
+  putBuffer,
+  getPresignedUrl,
+} from "@/lib/storage";
+
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+// Verify the actual bytes match the declared image type (cheap magic-number check)
+function matchesImageSignature(buffer, mimeType) {
+  const b = buffer;
+  if (mimeType === "image/jpeg") {
+    return b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+  }
+  if (mimeType === "image/png") {
+    return (
+      b.length > 8 &&
+      b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47
+    );
+  }
+  if (mimeType === "image/webp") {
+    return (
+      b.length > 12 &&
+      b.toString("ascii", 0, 4) === "RIFF" &&
+      b.toString("ascii", 8, 12) === "WEBP"
+    );
+  }
+  return false;
+}
 
 
 export async function POST(request) {
-  const publicBaseUrl = process.env.MINIO_PUBLIC_URL; 
-
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,6 +53,21 @@ export async function POST(request) {
     return NextResponse.json(
       { error: "File or file type not provided" },
       { status: 400 }
+    );
+  }
+
+  // --- Validate size and type ---
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return NextResponse.json(
+      { error: "File is too large. Maximum allowed size is 5 MB." },
+      { status: 413 }
+    );
+  }
+  const mimeType = file.type || "";
+  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+    return NextResponse.json(
+      { error: "Only JPEG, PNG or WebP images are allowed." },
+      { status: 415 }
     );
   }
 
@@ -75,11 +114,7 @@ export async function POST(request) {
 
   // --- Ensure bucket exists ---
   try {
-    const bucketExists = await minioClient.bucketExists(bucketName);
-    if (!bucketExists) {
-      await minioClient.makeBucket(bucketName, "us-east-1");
-      console.log(`Bucket created: ${bucketName}`);
-    }
+    await ensureBucket(bucketName);
   } catch (err) {
     console.error(`Error checking/creating bucket ${bucketName}:`, err);
     return NextResponse.json(
@@ -105,22 +140,27 @@ export async function POST(request) {
   // --- Read file buffer ---
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-  const metaData = {
-    "Content-Type": file.type || "application/octet-stream",
-  };
 
-  // --- Upload to MinIO ---
+  // Reject files whose contents don't match an allowed image format
+  if (!matchesImageSignature(buffer, mimeType)) {
+    return NextResponse.json(
+      { error: "File content does not look like a valid image." },
+      { status: 415 }
+    );
+  }
+
+  const metaData = mimeType;
+
+  // --- Upload to object storage ---
   try {
-    await minioClient.putObject(
-      bucketName,
+    await putBuffer({
+      bucket: bucketName,
       objectName,
       buffer,
-      buffer.length,
-      metaData
-    );
-    console.log(`File uploaded to MinIO: ${bucketName}/${objectName}`);
+      contentType: metaData,
+    });
   } catch (error) {
-    console.error("Error uploading to MinIO:", error);
+    console.error("Error uploading file to storage:", error);
     return NextResponse.json(
       { error: "Failed to upload file to storage." },
       { status: 500 }
@@ -129,11 +169,11 @@ export async function POST(request) {
   const expirySeconds = 7 * 24 * 60 * 60;
   let presignedUrl;
   try {
-    presignedUrl = await minioClient.presignedGetObject(
-      bucketName,
+    presignedUrl = await getPresignedUrl({
+      bucket: bucketName,
       objectName,
-      expirySeconds
-    );
+      expiresInSeconds: expirySeconds,
+    });
   } catch (error) {
     console.error("Presigned URL generation failed:", error);
     return NextResponse.json(
@@ -145,10 +185,9 @@ export async function POST(request) {
   const fileRecord = await File.findOne({
     objectName: objectName,
   });
-  presignedUrl = presignedUrl.replace(`http://${process.env.MINIO_ENDPOINT}:9000`, publicBaseUrl);
   if (fileRecord) {
     fileRecord.originalName = file.name;
-    fileRecord.mimeType = file.type;
+    fileRecord.mimeType = mimeType;
     fileRecord.size = buffer.length;
     fileRecord.presignedUrl = presignedUrl;
     fileRecord.expiresAt = expiresAt;
@@ -169,7 +208,7 @@ export async function POST(request) {
       bucket: bucketName,
       objectName: objectName,
       originalName: file.name,
-      mimeType: file.type,
+      mimeType: mimeType,
       size: buffer.length,
       presignedUrl: presignedUrl,
       expiresAt: expiresAt,
@@ -208,4 +247,3 @@ export async function POST(request) {
     return NextResponse.json({ file: newFile });
   }
 }
-// ✅ --- UPDATE USER IF PROFILE OR SIGNATURE ---

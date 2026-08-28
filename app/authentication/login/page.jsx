@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import PasswordInput from "@/components/comp-23"
+import PasswordInput from "@/components/password-input"
 import toast, { Toaster } from 'react-hot-toast';
 import { Label } from '@/components/ui/label';
 

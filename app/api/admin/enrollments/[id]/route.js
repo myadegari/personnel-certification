@@ -3,9 +3,13 @@ import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
 import User from "@/models/User";
 import Course from "@/models/Course";
-import { processCertificateGeneration } from "@/lib/certificateService"; // <-- Import our new function
+import { processCertificateGeneration } from "@/lib/certificateService";
+import { requireAdmin } from "@/lib/authGuard";
 
 export async function PUT(request, { params }) {
+  const { error } = await requireAdmin();
+  if (error) return error;
+
   try {
     const { id: enrollmentId } = await params;
     const { status } = await request.json();

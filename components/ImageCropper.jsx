@@ -69,7 +69,6 @@ export default function ImageCropper({ isOpen, onOpenChange, image, onCropComple
 
  async function handleCrop() {
     if (!imgRef.current || !completedCrop) {
-      console.warn('No completed crop available');
       return;
     }
       // ✅ Ensure crop is perfectly 1:1 before cropping

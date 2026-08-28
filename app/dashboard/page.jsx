@@ -21,7 +21,6 @@ async function getDashboardStats(userId) {
   const enrollments = await Enrollment.find({ user: userId, status: 'APPROVED' }).populate('course', 'duration').lean();
   const totalCourses = enrollments.length;
   const totalHours = enrollments.reduce((acc, curr) => acc + (curr.course?.duration || 0), 0);
-  console.log("Total Courses:", totalCourses);
   return { totalCourses, totalHours };
 }
 

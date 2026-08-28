@@ -4,54 +4,73 @@ services:
     ports:
       - "127.0.0.1:27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: L4run1Cert2025
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
       MONGO_INITDB_DATABASE: certification
     volumes:
       - mongodb_data:/data/db
     command: --auth
     restart: unless-stopped
-    networks:
-      - internal_network
-  minio:
-    image: minio/minio:latest
-    # ports:
-    #   - "172.17.2.66:9000:9000"      # MinIO API
-    #   - "172.17.2.66:9001:9001"      # MinIO Console (UI)
+    # networks:
+    #   - internal_network
+  alarik:
+    image: ghcr.io/achtungsoftware/alarik:latest
+    # NOTE: STORAGE_REGION (app) must exactly match ALARIK_REGION below,
+    # otherwise S3 requests are rejected with a region-mismatch error.
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      API_BASE_URL: ${ALARIK_API_BASE_URL:-http://alarik:8080}
+      CONSOLE_BASE_URL: ${ALARIK_CONSOLE_BASE_URL:-http://localhost:3001}
+      ALARIK_REGION: ${ALARIK_REGION:-us-east-1}
+      ADMIN_USERNAME: ${ALARIK_ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ALARIK_ADMIN_PASSWORD}
+      JWT: ${ALARIK_JWT}
+      DEFAULT_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      DEFAULT_SECRET_KEY: ${STORAGE_SECRET_KEY}
+      DEFAULT_BUCKETS: profile,signature,stamp,certificate
+      ALLOW_ACCOUNT_CREATION: "false"
     volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
+      - alarik_storage:/app/Storage
     restart: unless-stopped
-    networks:
-      - internal_network
-  nextjs:
-    build: .
-    container_name: nextjs
-    
-    # ports:
-    #   - "3000:3000" # Expose Next.js on port 3000
-    depends_on:
-      - mongodb # Add dependency so Next.js starts after MongoDB
-      - minio
-    networks:
-      - internal_network
-  nginx:
-    image: nginx:alpine
-    container_name: nginx-proxy
-    depends_on:
-      - nextjs
+    # networks:
+    #   - internal_network
+  # Optional web console for Alarik. Uncomment to manage buckets/keys via UI.
+  alarik-console:
+    image: ghcr.io/achtungsoftware/alarik-console:latest
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-    networks:
-      - internal_network
-networks:
-  internal_network:
-    driver: bridge  
+      - "3001:3000"
+    environment:
+      NUXT_PUBLIC_API_BASE_URL: ${ALARIK_PUBLIC_API_URL:-http://localhost:8080}
+      NUXT_PUBLIC_CONSOLE_BASE_URL: http://localhost:3001
+      NUXT_PUBLIC_ALLOW_ACCOUNT_CREATION: "false"
+    depends_on:
+      - alarik
+    # networks:
+    #   - internal_network
+  # nextjs:
+  #   build: .
+  #   container_name: nextjs
+
+  #   # ports:
+  #   #   - "3000:3000" # Expose Next.js on port 3000
+  #   depends_on:
+  #     - mongodb # Add dependency so Next.js starts after MongoDB
+  #     - alarik
+  #   networks:
+  #     - internal_network
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: nginx-proxy
+  #   depends_on:
+  #     - nextjs
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/conf.d/default.conf
+  #   networks:
+  #     - internal_network
+# networks:
+#   internal_network:
+#     driver: bridge
 volumes:
   mongodb_data:
-  minio_data:
+  alarik_storage:

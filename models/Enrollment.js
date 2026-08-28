@@ -21,6 +21,12 @@ const EnrollmentSchema = new mongoose.Schema(
     certificateUrl: { type: String },
     issuedAt: { type: String },
     jobId: { type: String },
+    // Free-form metadata (e.g. courseStatus: "PERISH" when the parent
+    // course is deleted) - written by admin course DELETE.
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
   { timestamps: true }
 );

@@ -7,8 +7,9 @@ import {
   getPaginationRowModel,
   flexRender,
 } from "@tanstack/react-table";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { internalAxios } from "@/lib/axios";
+import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -85,7 +86,7 @@ export default function UserManagementClient({ initialData }) {
     ],
     queryFn: fetchUsers,
     initialData,
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const deleteMutation = useMutation({
@@ -101,7 +102,7 @@ export default function UserManagementClient({ initialData }) {
       queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
     },
     onError: (error) => {
-      alert("خطا در تغییر وضعیت کاربر: " + error.response?.data?.message);
+      toast.error("خطا در تغییر وضعیت کاربر: " + error.response?.data?.message);
     },
   });
 
@@ -175,7 +176,7 @@ export default function UserManagementClient({ initialData }) {
                   onClick={() =>
                     handleStatusUpdate(row.original._id, "VERIFIED")
                   }
-                  disabled={statusMutation.isLoading}
+                  disabled={statusMutation.isPending}
                 >
                   تایید
                 </Button>
@@ -186,7 +187,7 @@ export default function UserManagementClient({ initialData }) {
                   onClick={() =>
                     handleStatusUpdate(row.original._id, "REJECTED")
                   }
-                  disabled={statusMutation.isLoading}
+                  disabled={statusMutation.isPending}
                 >
                   رد
                 </Button>

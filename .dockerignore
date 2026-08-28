@@ -1,7 +1,13 @@
 Dockerfile
 .dockerignore
+docker-compose.yml
+.env
+.env.*
+!.env.example
 node_modules
-npm-debug.log
+npm-debug.log*
 README.md
 .next
 .git
+.gitignore
+.vscode

@@ -1,21 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {internalAxios} from '@/lib/axios';
 
-export function useUploadFile() {
-  return useMutation({
-    mutationFn: async ({ file, fileType }) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('fileType', fileType);
-      
-      const { data } = await internalAxios.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      return data.url;
-    }
-  });
-}
-
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
   

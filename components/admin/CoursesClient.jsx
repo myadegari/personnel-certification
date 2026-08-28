@@ -22,6 +22,7 @@ import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import {internalAxios} from "@/lib/axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 
 export default function CoursesClient({ initialCourses }) {
   const queryClient = useQueryClient();
@@ -30,14 +31,18 @@ export default function CoursesClient({ initialCourses }) {
 
   const data = initialCourses || [];
 
+  const invalidateCourses = () =>
+    queryClient.invalidateQueries({ queryKey: ["adminCourses"] });
+
   const deleteCourseMutation = useMutation({
     mutationFn: (courseId) =>
       internalAxios.delete(`/admin/courses/${courseId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries(["adminCourses"]);
+      toast.success("دوره با موفقیت حذف شد.");
+      invalidateCourses();
     },
     onError: (error) => {
-      alert(`خطا در حذف دوره: ${error.message}`);
+      toast.error(`خطا در حذف دوره: ${error.message}`);
     },
   });
 
@@ -120,15 +125,15 @@ export default function CoursesClient({ initialCourses }) {
               className="rounded-l-3xl cursor-pointer transition-transform hover:scale-x-110"
               size="sm"
               onClick={() => handleDelete(row.original._id)}
-              disabled={deleteCourseMutation.isLoading}
+              disabled={deleteCourseMutation.isPending}
             >
-              {deleteCourseMutation.isLoading ? "در حال حذف..." : "حذف"}
+              {deleteCourseMutation.isPending ? "در حال حذف..." : "حذف"}
             </Button>
           </div>
         ),
       },
     ],
-    [deleteCourseMutation.isLoading]
+    [deleteCourseMutation.isPending]
   );
 
   const table = useReactTable({
@@ -149,7 +154,7 @@ export default function CoursesClient({ initialCourses }) {
         courseData={editingCourse}
         onSave={() => {
           setIsModalOpen(false);
-          refetchCourses();
+          invalidateCourses();
         }}
       />
 

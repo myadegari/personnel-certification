@@ -17,6 +17,9 @@ const CourseSchema = new mongoose.Schema({
    enrollmentDeadline: {
     type: Number, // Optional custom deadline, Unix timestamp in seconds
   },
+   enrollmentLimit: {
+    type: Number, // Optional maximum number of APPROVED enrollments (enforced by /api/enrollments)
+  },
   duration: {
     type: Number, // مدت زمان به ساعت
     required: true,

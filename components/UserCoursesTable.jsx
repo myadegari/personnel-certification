@@ -8,7 +8,7 @@ import {
   flexRender,
 } from '@tanstack/react-table';
 import { Button } from "@/components/ui/button";
-import { useQuery } from '@tanstack/react-query'; // <-- Import useQuery
+import { useQuery, keepPreviousData } from '@tanstack/react-query'; // <-- Import useQuery
 import {internalAxios} from '@/lib/axios';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import CertificateStatus from '@/components/CertificateStatus';
@@ -41,7 +41,7 @@ export default function UserCoursesTable({ initialData }) {
     queryKey: ['myCourses', { page: pagination.pageIndex + 1, limit: pagination.pageSize }],
     queryFn: fetchUserCourses,
     initialData: initialData, // Use the server-fetched data for the first load
-    keepPreviousData: true, // Provides a smoother UX during pagination
+    placeholderData: keepPreviousData, // Provides a smoother UX during pagination
   });
   const tableData = useMemo(() => data?.enrollments || [], [data]);
   const pageCount = useMemo(() => data?.pagination?.pageCount || 0, [data]);

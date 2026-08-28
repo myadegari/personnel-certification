@@ -48,14 +48,11 @@ export default function CertificateStatus({ enrollment }) {
         if (data.status !== 'completed' && data.status !== 'failed') {
           ws = new WebSocket(`${MICROSERVICE_WS_URL}/ws/certificates?job_id=${enrollment.jobId.toString()}`);
 
-          ws.onopen = () => {
-            console.log('WebSocket connection established for job:', enrollment.jobId);
-          };
+          ws.onopen = () => {};
 
           ws.onmessage = (event) => {
             try {
               const message = JSON.parse(event.data);
-              console.log('Received status update:', message);
               if (isMounted) {
                 setStatus(message.status);
               }
@@ -64,13 +61,11 @@ export default function CertificateStatus({ enrollment }) {
             }
           };
 
-          ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            // Optional: You could retry the connection here after a delay.
+          ws.onerror = () => {
+            // Connection errors are surfaced through the status UI
           };
 
-          ws.onclose = (event) => {
-            console.log('WebSocket connection closed:', event.code, event.reason);
+          ws.onclose = () => {
             // Handle reconnect logic if needed, but for 'completed', it's intentional.
           };
         } else if (isMounted) {

@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Enrollment from '@/models/Enrollment';
 import Course from '@/models/Course';
+import { requireAdmin } from '@/lib/authGuard';
 
 export async function GET(request, { params }) {
+  const { error } = await requireAdmin();
+  if (error) return error;
+
   try {
     const { id: courseId } = await params;
     const { searchParams } = new URL(request.url);

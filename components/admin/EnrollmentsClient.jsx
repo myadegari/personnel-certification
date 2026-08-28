@@ -23,9 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import {internalAxios} from "@/lib/axios";
 import CertificateStatus from "@/components/CertificateStatus";
+import toast from "react-hot-toast";
 
 // --- کامپوننت برای تغییر وضعیت ---
 function StatusSelector({ enrollment }) {
@@ -34,10 +35,10 @@ function StatusSelector({ enrollment }) {
     mutationFn: ({ enrollmentId, status }) =>
       internalAxios.put(`/admin/enrollments/${enrollmentId}`, { status }),
     onSuccess: () => {
-      queryClient.invalidateQueries(["enrollments", enrollment.course]);
+      queryClient.invalidateQueries({ queryKey: ["enrollments", enrollment.course] });
     },
     onError: (error) => {
-      alert(`خطا در به‌روزرسانی وضعیت: ${error.message}`);
+      toast.error(`خطا در به‌روزرسانی وضعیت: ${error.message}`);
     },
   });
 
@@ -52,7 +53,7 @@ function StatusSelector({ enrollment }) {
     <Select
       onValueChange={handleValueChange}
       defaultValue={enrollment.status}
-      disabled={mutation.isLoading}
+      disabled={mutation.isPending}
     >
       <SelectTrigger className="w-[180px]">
         <SelectValue placeholder="تغییر وضعیت" />
@@ -81,7 +82,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
       return res.data;
     },
     initialData: initialData,
-    keepPreviousData: true, // برای تجربه کاربری بهتر هنگام تغییر صفحه
+    placeholderData: keepPreviousData, // برای تجربه کاربری بهتر هنگام تغییر صفحه
   });
   const enrollmentsData = data?.enrollments || [];
   const pageCount = data?.pagination?.pageCount || 0;

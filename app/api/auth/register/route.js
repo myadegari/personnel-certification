@@ -30,7 +30,6 @@ export async function POST(request) {
       position,
       isProfessor,
     } = body;
-    console.log(body);
     // --- Input Validation ---
     if (
       !personnelNumber ||
@@ -56,7 +55,7 @@ export async function POST(request) {
     });
 
     if (existingUser) {
-      if (existingUser.status === "pending") {
+      if (existingUser.status === "PENDING") {
         const otp = generateOTP();
         existingUser.otp = otp;
         existingUser.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes

@@ -46,6 +46,12 @@ const fileSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    // Arbitrary storage metadata (e.g. { job_id, type } for generated
+    // certificates) - queried by the public /api/verify/[id] endpoint.
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
   { timestamps: true }
 );

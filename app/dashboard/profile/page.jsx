@@ -42,11 +42,3 @@ export default async function ProfilePage() {
     </div>
   );
 }
-`
-<div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-        <h1 className="text-3xl font-bold text-gray-800">پروفایل کاربری</h1>
-        {/* <Link href="/dashboard" passHref>
-          <Button variant="outline">بازگشت به داشبورد</Button>
-        </Link> */}
-      </div>
-`

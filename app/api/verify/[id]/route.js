@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from "@/lib/dbConnect";
 import File from "@/models/File";
-import { minioClient } from '@/lib/minio';
+import { getObjectBuffer } from '@/lib/storage';
 
 export async function GET(request, { params }) {
   try {
@@ -21,13 +21,10 @@ export async function GET(request, { params }) {
       return new NextResponse("Certificate not found", { status: 404 });
     }
 
-    const stream = await minioClient.getObject(fileRecord.bucket, fileRecord.objectName);
-    
-    const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-    const buffer = Buffer.concat(chunks);
+    const buffer = await getObjectBuffer({
+      bucket: fileRecord.bucket,
+      objectName: fileRecord.objectName,
+    });
 
     return new NextResponse(buffer, {
       status: 200,

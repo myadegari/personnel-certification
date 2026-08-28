@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query"; // <-- Import hooks
 // import axios from "@/lib/axios"; // <-- Import custom axios instance
 // import { Card, CardContent, Label, Input, Button } from "@/components/ui";
@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import ImageCropper from "./ImageCropper";
-import { useUploadFile, useUpdateProfile } from "@/hooks/useProfileMutations";
+import { useUpdateProfile } from "@/hooks/useProfileMutations";
+import { useUploadFile } from "@/hooks/useUploadFile";
 import { useFileUrl } from "@/hooks/useFileUrl"; // ✅ Import new hook
 // import { toast } from 'react-toastify';
 import toast, { Toaster } from 'react-hot-toast';
@@ -27,17 +28,12 @@ export default function UserSignature({ user }) {
   const uploadFileMutation = useUploadFile();
   const updateProfileMutation = useUpdateProfile();
   const signatureFileQuery = useFileUrl(user?.signatureImage);
-  const isFirstLoadSignature = useRef(true);
-  if (
-    isFirstLoadSignature.current &&
-    !signatureImageFile &&
-    user?.signatureImage
-  ) { 
-    if (!signatureFileQuery.isLoading && signatureFileQuery.data) {
+  // Sync query data → preview state (only while no new file was chosen)
+  useEffect(() => {
+    if (!signatureImageFile && user?.signatureImage && signatureFileQuery.data) {
       setSignaturePreview(signatureFileQuery.data);
-      isFirstLoadSignature.current = false;
     }
-  }
+  }, [signatureImageFile, user?.signatureImage, signatureFileQuery.data]);
 
   const handleTextChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });

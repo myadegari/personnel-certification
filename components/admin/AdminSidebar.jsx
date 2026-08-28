@@ -15,7 +15,6 @@ import {
   import { LayoutDashboard,GraduationCap,Layers } from "lucide-react";
 import { useUser } from '@/hooks/useUser';
   import { useFileUrl } from "@/hooks/useFileUrl";
-   import { useState,useRef } from 'react'; 
 
   const HeaderSkeleton = () => (
     <div className="flex items-center gap-4 animate-pulse flex-row-reverse">
@@ -34,17 +33,13 @@ import { useUser } from '@/hooks/useUser';
     const { data: session, status } = useSession();
     const { data: userData, isLoading: isUserDataLoading } = useUser();
 
-    const [profileImageUrl, setProfileImageUrl] = useState(null);
-    const fileId = userData?.profileImage
-     const isFirstLoadProfile = useRef(true);
-      const profileFileQuery = useFileUrl(fileId); // ✅ Use GET, not POST
-    
-      if (isFirstLoadProfile.current  && userData?.profileImage && status === 'authenticated' && !isUserDataLoading) {
-        if (!profileFileQuery.isLoading && profileFileQuery.data) {
-          setProfileImageUrl(profileFileQuery.data);
-          isFirstLoadProfile.current = false; 
-        }
-      }    
+    const fileId = userData?.profileImage;
+    const profileFileQuery = useFileUrl(fileId);
+    // Derive the image URL directly from the query - no local state needed
+    const profileImageUrl =
+      status === 'authenticated' && !isUserDataLoading
+        ? profileFileQuery.data || null
+        : null;
 
     const getUserSubtitle = () => {
      if (!session?.user) return '';

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useMutation } from '@tanstack/react-query';
 import {internalAxios} from '@/lib/axios';
-import PasswordInput from "@/components/comp-23"
+import PasswordInput from "@/components/password-input"
 
 const changePassword = async (passwords) => {
   const { data } = await internalAxios.post('/profile/change-password', passwords);

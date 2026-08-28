@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { toast } from 'react-toastify';
-import PasswordInput from "@/components/comp-23"
+import toast from 'react-hot-toast';
+import PasswordInput from "@/components/password-input"
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState(1); // 1: Enter email, 2: Enter token and new password
@@ -33,11 +33,11 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      toast.success(data.message,{autoClose:5000});
+      toast.success(data.message);
       // setMessage(data.message);
       setStep(2); // Move to the next step regardless of whether email exists
     } catch (err) {
-      toast.error('خطایی رخ داد. لطفاً دوباره تلاش کنید.', { autoClose: 5000 });
+      toast.error('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
       // setError('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
     } finally {
       setIsLoading(false);
@@ -62,10 +62,10 @@ export default function ForgotPasswordPage() {
         throw new Error(data.message || 'خطا در بازنشانی رمز عبور.');
       }
 
-      toast.success(data.message, { autoClose: 5000 });
-      setTimeout(() => router.push('/login'), 3000);
+      toast.success(data.message);
+      setTimeout(() => router.push('/authentication/login'), 3000);
     } catch (err) {
-      toast.error(err.message, { autoClose: 5000 });
+      toast.error(err.message);
     } finally {
       setIsLoading(false);
     }

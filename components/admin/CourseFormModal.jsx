@@ -19,7 +19,8 @@ import CertificatePatternCombobox from "./CertificatePatternCombobox";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { useFileUrl } from "@/hooks/useFileUrl";
-import { useUploadFile, useCourseMutation } from "@/hooks/useCourseMutation";
+import { useCourseMutation } from "@/hooks/useCourseMutation";
+import { useUploadFile } from "@/hooks/useUploadFile";
 import UserSearchCombobox from "./UserSearchCombobox";
 
 const fetchCertificateSequences = async () => {
