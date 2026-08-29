@@ -135,10 +135,18 @@ export default function UserManagementClient({ initialData }) {
     [pagination, filters, sort]
   );
 
+  const isDefaultQuery =
+    pagination.pageIndex === 0 &&
+    !filters.q &&
+    !filters.role &&
+    !filters.status &&
+    sort.field === "createdAt" &&
+    sort.order === "desc";
+
   const { data: tableData, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["adminUsers", queryParams],
     queryFn: fetchUsers,
-    initialData,
+    initialData: isDefaultQuery ? initialData : undefined,
     placeholderData: keepPreviousData,
   });
 

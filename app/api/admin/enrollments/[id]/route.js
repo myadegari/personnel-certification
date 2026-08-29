@@ -26,6 +26,18 @@ export async function PUT(request, { params }) {
 
     const previousStatus = enrollment.status;
 
+    // Enforce immutability: once an enrollment is APPROVED or REJECTED its
+    // status is final and can never be changed again (no reopening/rejecting).
+    if (
+      (previousStatus === "APPROVED" || previousStatus === "REJECTED") &&
+      status !== previousStatus
+    ) {
+      return NextResponse.json(
+        { error: "وضعیت نهایی شده و غیرقابل تغییر است." },
+        { status: 409 }
+      );
+    }
+
     // --- Certificate Generation Logic ---
     if (status === "APPROVED" && previousStatus !== "APPROVED") {
       const user = await User.findById(enrollment.user).lean();
