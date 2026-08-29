@@ -46,7 +46,7 @@ export async function DELETE(request, { params }) {
 
     if (PROTECTED_BUCKETS.has(fileDoc.bucket)) {
       return NextResponse.json(
-        { error: "گواهی‌ها و گزارش‌های سیستمی قابل حذف نیستند." },
+        { error: "گواهی‌های سیستمی قابل حذف نیستند." },
         { status: 403 }
       );
     }

@@ -5,7 +5,6 @@ import Enrollment from '@/models/Enrollment';
 import { requireAdmin } from '@/lib/authGuard';
 
 const ALLOWED_FIELDS = [
-  "courseCode",
   "name",
   "date",
   "duration",
@@ -16,7 +15,6 @@ const ALLOWED_FIELDS = [
   "unitStamp",
   "signatory2",
   "unitStamp2",
-  "certificateNumberPattern",
 ];
 
 // GET: Fetch a single course by ID

@@ -44,9 +44,6 @@ const CourseSchema = new mongoose.Schema({
      },
   unitStamp2: { type: mongoose.Schema.Types.ObjectId,
     ref: 'File' }, // مهر دوم
-
-  // --- اطلاعات گواهی ---
-  certificateNumberPattern: { type: String, required: true }, // مثلا: 404/الف
 }, { timestamps: true });
 
 export default mongoose.models.Course || mongoose.model('Course', CourseSchema);

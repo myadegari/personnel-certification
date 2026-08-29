@@ -8,6 +8,7 @@
     "start": "bun run seed:superadmin; next start",
     "lint": "eslint",
     "seed:superadmin": "bun scripts/seed-superadmin.js",
+    "assign:course-codes": "bun scripts/assign-course-codes.js",
     "cleanup:profile-images": "bun scripts/cleanup-profile-images.js"
   },
   "dependencies": {

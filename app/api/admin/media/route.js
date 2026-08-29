@@ -7,7 +7,7 @@ import { readValidatedImage } from "@/lib/uploadValidation";
 import { ensureBucket, putBuffer, getPresignedUrl } from "@/lib/storage";
 import { classifyKind, referencedFileIds, PROTECTED_BUCKETS } from "@/lib/media";
 
-const VALID_BUCKETS = ["media", "stamp", "signature", "certificate", "report"];
+const VALID_BUCKETS = ["media", "stamp", "signature", "certificate"];
 
 function escapeRegex(str) {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

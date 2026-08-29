@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, Fragment } from "react";
-import { internalAxios } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,9 +13,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import CertificatePatternCombobox from "./CertificatePatternCombobox";
-import { useQuery } from "@tanstack/react-query";
-import { v4 as uuidv4 } from "uuid";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { useCourseMutation } from "@/hooks/useCourseMutation";
 import { useUploadFile } from "@/hooks/useUploadFile";
@@ -41,11 +37,6 @@ import {
   Loader2,
   AlertTriangle,
 } from "lucide-react";
-
-const fetchCertificateSequences = async () => {
-  const { data } = await internalAxios.get("/admin/certificate-sequences");
-  return data;
-};
 
 function formatPersian(dateLike) {
   if (!dateLike) return "—";
@@ -131,8 +122,7 @@ function Stepper({ currentStep }) {
   );
 }
 
-function CourseDetailsFields({ formData, setFormData, sequences }) {
-  const currentSequence = sequences.find((s) => s.pattern === formData.certificateNumberPattern);
+function CourseDetailsFields({ formData, setFormData }) {
   return (
     <FormSection icon={Info} title="اطلاعات دوره">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -181,18 +171,18 @@ function CourseDetailsFields({ formData, setFormData, sequences }) {
             required
           />
         </Field>
-        <Field label="الگوی شماره گواهی" className="sm:col-span-2">
-          <CertificatePatternCombobox
-            value={formData.certificateNumberPattern}
-            onChange={(val) => setFormData((prev) => ({ ...prev, certificateNumberPattern: val }))}
+        <Field
+          label="کد دوره"
+          hint="کد ۵ رقمی یکتا؛ پس از ساخت دوره به‌صورت خودکار تخصیص می‌یابد."
+          className="sm:col-span-2"
+        >
+          <Input
+            value={formData.courseCode || ""}
+            readOnly
+            dir="ltr"
+            placeholder="پس از ساخت تخصیص می‌یابد"
+            className="cursor-default bg-stone-100/80 font-mono text-center tracking-widest"
           />
-          {currentSequence && (
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>الگوی فعلی: <b className="font-mono text-gray-700">{currentSequence.pattern}</b></span>
-              <span>شماره بعدی: <b className="text-gray-700">{(currentSequence.lastNumber + 1).toLocaleString("fa-IR")}</b></span>
-              {currentSequence.description && <span>{currentSequence.description}</span>}
-            </div>
-          )}
         </Field>
       </div>
     </FormSection>
@@ -206,7 +196,7 @@ function StepSummary({ formData, onEdit }) {
     { label: "مهلت ثبت‌نام", value: formData.enrollmentDeadline ? formatPersian(formData.enrollmentDeadline) : "خودکار (یک روز پس از برگزاری)" },
     { label: "مدت زمان", value: formData.duration ? `${formData.duration} ساعت` : "—" },
     { label: "واحد برگزارکننده", value: formData.organizingUnit },
-    { label: "الگوی گواهی", value: formData.certificateNumberPattern },
+    { label: "کد دوره", value: formData.courseCode },
   ];
   return (
     <motion.div variants={fadeUp} className="rounded-3xl border border-black/5 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
@@ -308,8 +298,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     organizingUnit: "",
     signatory: null,
     signatory2: null,
-    certificateNumberPattern: "",
-    courseCode: uuidv4(),
+    courseCode: "",
     enrollmentDeadline: null,
   };
 
@@ -329,11 +318,6 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
 
   const isEditing = !!courseData;
   const isSubmitting = courseMutation.isPending || uploadFileMutation.isPending;
-  const { data: sequences = [] } = useQuery({
-    queryKey: ["certificateSequences"],
-    queryFn: fetchCertificateSequences,
-    enabled: isOpen,
-  });
 
   const stamp1UrlQuery = useFileUrl(courseData?.unitStamp);
   const stamp2UrlQuery = useFileUrl(courseData?.unitStamp2);
@@ -342,7 +326,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     if (isOpen) {
       if (isEditing) {
         setFormData({
-          courseCode: courseData.courseCode || uuidv4(),
+          courseCode: courseData.courseCode || "",
           name: courseData.name || "",
           date: courseData.date ? new Date(courseData.date * 1000) : null,
           enrollmentDeadline: courseData.enrollmentDeadline
@@ -352,7 +336,6 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
           organizingUnit: courseData.organizingUnit || "",
           signatory: courseData.signatory?._id || null,
           signatory2: courseData.signatory2?._id || null,
-          certificateNumberPattern: courseData.certificateNumberPattern || "",
         });
         setSelectedManager1(courseData.signatory || null);
         setSelectedManager2(courseData.signatory2 || null);
@@ -445,11 +428,10 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             : null,
           duration: formData.duration,
           organizingUnit: formData.organizingUnit,
-          certificateNumberPattern: formData.certificateNumberPattern,
-          courseCode: formData.courseCode,
         };
         const createdCourse = await courseMutation.mutateAsync(step1Data);
         setCreatedCourseId(createdCourse._id);
+        setFormData((prev) => ({ ...prev, courseCode: createdCourse.courseCode || "" }));
         courseId = createdCourse._id;
         setCurrentStep(2);
         return;
@@ -575,7 +557,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1 pb-1" style={{ maxHeight: "60vh" }}>
               {isEditing ? (
                 <motion.div {...staggerProps} className="space-y-4">
-                  <CourseDetailsFields formData={formData} setFormData={setFormData} sequences={sequences} />
+                  <CourseDetailsFields formData={formData} setFormData={setFormData} />
                   {signatoryCards}
                 </motion.div>
               ) : (
@@ -589,7 +571,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
                   >
                     {currentStep === 1 ? (
                       <motion.div {...staggerProps} className="space-y-4">
-                        <CourseDetailsFields formData={formData} setFormData={setFormData} sequences={sequences} />
+                        <CourseDetailsFields formData={formData} setFormData={setFormData} />
                       </motion.div>
                     ) : (
                       <motion.div {...staggerProps} className="space-y-4">

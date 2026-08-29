@@ -52,6 +52,9 @@ export async function PUT(request, { params }) {
       enrollment.issuedAt = certificateData.issuedAt;
       enrollment.certificateUniqueId = certificateData.certificateUniqueId;
       enrollment.certificateUrl = certificateData.certificateUrl;
+      // Seed the lifecycle status; the worker's webhook (or the MongoDB
+      // job_statuses fallback) advances it to processing/completed/failed.
+      enrollment.certificateStatus = "pending";
     }
 
     enrollment.status = status;

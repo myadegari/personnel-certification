@@ -15,7 +15,7 @@ download certificates, and change their own password.
 - **MongoDB** (mongoose 9)
 - **Alarik** — S3-compatible object storage
 - **NextAuth v4** (credentials provider, JWT sessions)
-- **FastAPI microservice** for certificate/report generation (WebSocket job status)
+- **FastAPI microservice** for certificate generation (HMAC webhook + SSE job status)
 - Docker Compose orchestration from the parent `certificate-system` workspace
 
 ## Getting Started
@@ -41,6 +41,7 @@ See `.env.example`. Highlights:
 | `STORAGE_ACCESS_KEY` / `STORAGE_SECRET_KEY` | S3 credentials (Alarik's `DEFAULT_ACCESS_KEY`/`DEFAULT_SECRET_KEY`) |
 | `STORAGE_PUBLIC_URL` | Base URL used to rewrite presigned URLs for browsers |
 | `MICROSERVICE_URL` | FastAPI certificate service base URL |
+| `WEBHOOK_SECRET` | HMAC-SHA256 secret shared with the worker to sign certificate status callbacks |
 | `SUPERADMIN_*` | Optional seed values used by `bun run seed:superadmin` |
 
 ## Deployment
@@ -58,7 +59,7 @@ Services started by the root compose file include `nextjs` (:3000), `mongodb`
 (:27017), `alarik` (:8080), `fastapi` (:8000), `worker`, `rabbitmq`, and
 `redis`.
 
-Buckets `signature`, `stamp`, `certificate`, and `report` are auto-seeded by
+Buckets `signature`, `stamp`, `certificate`, and `media` are auto-seeded by
 Alarik (`DEFAULT_BUCKETS`) and are also created on demand by the upload routes.
 
 ## Superadmin bootstrap

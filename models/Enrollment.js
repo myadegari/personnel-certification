@@ -21,6 +21,18 @@ const EnrollmentSchema = new mongoose.Schema(
     certificateUrl: { type: String },
     issuedAt: { type: String },
     jobId: { type: String },
+    // Certificate generation lifecycle, mirrored from the worker's status
+    // webhook (with a MongoDB job_statuses fallback). Drives the SSE stream.
+    certificateStatus: {
+      type: String,
+      enum: ["pending", "processing", "completed", "failed"],
+      default: null,
+    },
+    certificateFileId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "File",
+      default: null,
+    },
     // Free-form metadata (e.g. courseStatus: "PERISH" when the parent
     // course is deleted) - written by admin course DELETE.
     metadata: {
@@ -33,6 +45,8 @@ const EnrollmentSchema = new mongoose.Schema(
 
 // جلوگیری از ثبت‌نام مجدد یک کاربر در یک دوره
 EnrollmentSchema.index({ user: 1, course: 1 }, { unique: true });
+// سریع‌ترین جست‌وجو برای وب‌هوک وضعیت (پیدا کردن ثبت‌نام بر اساس jobId)
+EnrollmentSchema.index({ jobId: 1 });
 
 export default mongoose.models.Enrollment ||
   mongoose.model("Enrollment", EnrollmentSchema);
