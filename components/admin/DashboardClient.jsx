@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { internalAxios } from "@/lib/axios";
 import { motion } from "motion/react";
-import { Users, Layers, GraduationCap, Clock, FileCheck2, ArrowLeft } from "lucide-react";
+import { Users, Layers, GraduationCap, Clock, FileCheck2, ArrowLeft, AlertTriangle } from "lucide-react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import PageHeader from "./ui/PageHeader";
 import StatCard from "./ui/StatCard";
 import SectionCard from "./ui/SectionCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { EnrollmentsAreaChart, StatusDonut, TopCoursesBar } from "./dashboard/Charts";
 import ActivityFeed from "./dashboard/ActivityFeed";
 
@@ -19,10 +20,22 @@ const getDashboard = async () => {
 };
 
 export default function DashboardClient() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["adminDashboard"],
     queryFn: getDashboard,
   });
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-black/5 bg-white/80 py-16 text-center shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+        <AlertTriangle className="size-8 text-rose-500" />
+        <p className="text-sm text-muted-foreground">خطا در بارگذاری اطلاعات داشبورد.</p>
+        <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => refetch()}>
+          تلاش مجدد
+        </Button>
+      </div>
+    );
+  }
 
   const stats = data?.stats;
 

@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment, { LIVE_ENROLLMENT_FILTER } from "@/models/Enrollment";
-import { internalAxios } from "@/lib/axios";
+import axios from "axios";
 import { headers } from "next/headers";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 
@@ -41,7 +41,10 @@ async function getDashboardStats(userId) {
 async function getInitialCourses() {
   const cookie = (await headers()).get("cookie");
   try {
-    const { data } = await internalAxios.get(`/my-courses?page=1&limit=5`, {
+    // Absolute URL: axios (and fetch) cannot resolve the relative "/api"
+    // baseURL from lib/axios inside the Node server runtime.
+    const base = process.env.INTERNAL_API_URL || "http://localhost:3000";
+    const { data } = await axios.get(`${base}/api/my-courses?page=1&limit=5`, {
       headers: { Cookie: cookie },
     });
     return data;

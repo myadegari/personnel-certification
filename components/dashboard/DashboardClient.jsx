@@ -60,7 +60,9 @@ export default function DashboardClient({ stats, initialCoursesData, user }) {
     <div className="relative space-y-6">
       {notVerified && <VerifyOverlay />}
 
-      <div className={notVerified ? "pointer-events-none select-none blur-sm" : ""} aria-hidden={notVerified}>
+      {/* `inert` (not just aria-hidden) keeps keyboard focus out of the
+          blurred content while the account is pending verification. */}
+      <div className={notVerified ? "pointer-events-none select-none blur-sm" : ""} inert={notVerified}>
         <PageHeader
           title={`سلام، ${user?.firstName || "کاربر"}`}
           description="خلاصه‌ای از دوره‌ها و گواهی‌های شما"

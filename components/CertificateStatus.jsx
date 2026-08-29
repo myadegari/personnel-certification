@@ -1,53 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { internalAxios } from '@/lib/axios';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
 export default function CertificateStatus({ enrollment }) {
-  // Status is driven by the server's SSE stream (webhook + MongoDB fallback).
-  const [status, setStatus] = useState(() =>
-    enrollment?.jobId ? 'loading' : 'not_started'
-  );
+  const hasJob = !!enrollment?.jobId;
 
-  useEffect(() => {
-    if (!enrollment?.jobId) {
-      setStatus('not_started');
-      return;
-    }
+  // Short-lived polling instead of one held-open SSE connection per row
+  // (browsers cap ~6 concurrent connections per origin, so a table of rows
+  // each holding an EventSource starves every other request). The server
+  // persists the resolved status, so terminal rows stop fetching entirely.
+  const { data } = useQuery({
+    queryKey: ['certificateStatus', enrollment?._id],
+    queryFn: async () => {
+      const res = await internalAxios.get(
+        `/enrollments/${enrollment._id}/certificate-status`
+      );
+      return res.data;
+    },
+    enabled: hasJob,
+    refetchInterval: (query) => {
+      const s = query.state.data?.status;
+      return s === 'completed' || s === 'failed' ? false : 2500;
+    },
+  });
 
-    let isMounted = true;
-    const source = new EventSource(
-      `/api/enrollments/${enrollment._id}/certificate-status/stream`
-    );
-
-    source.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (isMounted && data.status) {
-          setStatus(data.status);
-        }
-      } catch {
-        /* ignore malformed frames */
-      }
-    };
-
-    // The server emits `end` once the job reaches a terminal state, so we can
-    // stop the browser from auto-reconnecting.
-    source.addEventListener('end', () => {
-      source.close();
-    });
-
-    source.onerror = () => {
-      // Connection errors are surfaced through the status UI; EventSource
-      // retries automatically until the stream ends.
-    };
-
-    return () => {
-      isMounted = false;
-      source.close();
-    };
-  }, [enrollment?._id, enrollment?.jobId]);
+  const status = data?.status ?? (hasJob ? 'loading' : 'not_started');
 
   const viewCertificate = () => {
     if (enrollment.certificateUrl) {
@@ -79,25 +59,31 @@ export default function CertificateStatus({ enrollment }) {
     }
   };
 
-  switch (status) {
-    case 'loading':
-    case 'pending':
-    case 'queued':
-      return <Badge variant="secondary">در صف صدور</Badge>;
-    case 'processing':
-      return <Badge variant="outline" className="animate-pulse">در حال پردازش...</Badge>;
-    case 'completed':
-      return (
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" onClick={viewCertificate}>مشاهده گواهی</Button>
-          <Button size="sm" variant="outline" onClick={downloadCertificate}>دانلود گواهی</Button>
-        </div>
-      );
-    case 'failed':
-      return <Badge variant="destructive">خطا در صدور</Badge>;
-    case 'error':
-      return <Badge variant="destructive">خطای اتصال</Badge>;
-    default:
-      return <span className="text-xs text-muted-foreground">صادر نشده</span>;
+  return (
+    <span role="status" aria-live="polite">
+      {renderStatus(status)}
+    </span>
+  );
+
+  function renderStatus(current) {
+    switch (current) {
+      case 'loading':
+      case 'pending':
+      case 'queued':
+        return <Badge variant="secondary">در صف صدور</Badge>;
+      case 'processing':
+        return <Badge variant="outline" className="animate-pulse">در حال پردازش...</Badge>;
+      case 'completed':
+        return (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={viewCertificate}>مشاهده گواهی</Button>
+            <Button size="sm" variant="outline" onClick={downloadCertificate}>دانلود گواهی</Button>
+          </div>
+        );
+      case 'failed':
+        return <Badge variant="destructive">خطا در صدور</Badge>;
+      default:
+        return <span className="text-xs text-muted-foreground">صادر نشده</span>;
+    }
   }
 }

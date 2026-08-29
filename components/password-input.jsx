@@ -6,8 +6,10 @@ import { EyeIcon, EyeOffIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export default function Component({placeholder,value,onChange,required,name}) {
-  const id = useId()
+export default function Component({id: idProp,placeholder,value,onChange,required,name}) {
+  // Consumers pass their own id so their <Label htmlFor> actually associates.
+  const generatedId = useId()
+  const id = idProp ?? generatedId
   const [isVisible, setIsVisible] = useState(false)
 
   const toggleVisibility = () => setIsVisible((prevState) => !prevState)
@@ -31,7 +33,7 @@ export default function Component({placeholder,value,onChange,required,name}) {
             onClick={toggleVisibility}
             aria-label={isVisible ? "Hide password" : "Show password"}
             aria-pressed={isVisible}
-            aria-controls="password">
+            aria-controls={id}>
             {isVisible ? (
               <EyeOffIcon size={16} aria-hidden="true" />
             ) : (

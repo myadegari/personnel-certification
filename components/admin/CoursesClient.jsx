@@ -169,7 +169,7 @@ export default function CoursesClient({ initialCourses }) {
         emptyTitle="دوره‌ای یافت نشد"
         emptyDescription={search ? "با فیلتر دیگری جستجو کنید." : "اولین دوره را ایجاد کنید."}
       >
-        <div className="overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <Table>
             <TableHeader className="bg-stone-50">
               {table.getHeaderGroups().map((hg) => (
