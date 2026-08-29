@@ -8,13 +8,13 @@ import Course from "@/models/Course";
 export async function POST(request) {
   const session = await getServerSession(authOptions);
   if (!session) {
-    return new Response(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+    return new Response(JSON.stringify({ message: "ابتدا وارد شوید." }), { status: 401 });
   }
 
   try {
     const { courseId } = await request.json();
     if (!courseId) {
-      return new Response(JSON.stringify({ message: "Course ID is required" }), { status: 400 });
+      return new Response(JSON.stringify({ message: "شناسه دوره الزامی است." }), { status: 400 });
     }
 
     await dbConnect();
@@ -23,7 +23,7 @@ export async function POST(request) {
 
      const course = await Course.findById(courseId);
      if (!course) {
-         return new Response(JSON.stringify({ message: "Course not found" }), { status: 404 });
+         return new Response(JSON.stringify({ message: "دوره مورد نظر یافت نشد." }), { status: 404 });
      }
  
      // 1. Check registration deadline
@@ -33,7 +33,7 @@ export async function POST(request) {
      const now = Math.floor(Date.now() / 1000); // Current time in seconds
  
      if (now > deadline) {
-         return new Response(JSON.stringify({ message: "The registration period for this course has ended" }), { status: 403 });
+          return new Response(JSON.stringify({ message: "مهلت ثبت‌نام این دوره به پایان رسیده است." }), { status: 403 });
      }
  
      // 2. Check enrollment limit (if it exists)
@@ -44,7 +44,7 @@ export async function POST(request) {
        });
  
        if (approvedEnrollmentsCount >= course.enrollmentLimit) {
-         return new Response(JSON.stringify({ message: "This course has reached its enrollment limit" }), { status: 403 });
+          return new Response(JSON.stringify({ message: "ظرفیت این دوره تکمیل شده است." }), { status: 403 });
        }
      }
  
@@ -56,7 +56,7 @@ export async function POST(request) {
     });
 
     if (existingEnrollment) {
-      return new Response(JSON.stringify({ message: "You are already registered for this course" }), { status: 409 });
+      return new Response(JSON.stringify({ message: "شما قبلاً در این دوره ثبت‌نام کرده‌اید." }), { status: 409 });
     }
 
     // Create new enrollment request
@@ -69,10 +69,10 @@ export async function POST(request) {
       }
     });
 
-    return new Response(JSON.stringify({ message: "Enrollment request sent successfully" }), { status: 201 });
+    return new Response(JSON.stringify({ message: "درخواست ثبت‌نام شما با موفقیت ارسال شد." }), { status: 201 });
 
   } catch (error) {
     console.error("Enrollment Error:", error);
-    return new Response(JSON.stringify({ message: "Server error" }), { status: 500 });
+    return new Response(JSON.stringify({ message: "خطای سرور." }), { status: 500 });
   }
 }
