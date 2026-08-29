@@ -4,16 +4,18 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { getServerSession } from "next-auth";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-import ImpersonationLog from "@/models/ImpersonationLog";
 import bcrypt from "bcrypt";
 import { isStaffRole, canImpersonate } from "@/lib/roles";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 async function logImpersonation(entry) {
-  try {
-    await ImpersonationLog.create(entry);
-  } catch (err) {
-    console.error("Impersonation audit log failed:", err);
-  }
+  await recordAuditEvent({
+    actor: { id: entry.actorId, name: entry.actorName, role: entry.actorRole },
+    action: entry.action,
+    resourceType: AUDIT_RESOURCE_TYPES.USER,
+    resourceId: entry.targetId,
+    metadata: { targetName: entry.targetName, targetRole: entry.targetRole },
+  });
 }
 
 export const authOptions = {
@@ -96,7 +98,7 @@ export const authOptions = {
           targetId: target._id,
           targetName: `${target.firstName} ${target.lastName}`,
           targetRole: target.role,
-          action: "START",
+          action: AUDIT_ACTIONS.IMPERSONATE_START,
         });
 
         return {
@@ -136,7 +138,7 @@ export const authOptions = {
           targetId: current.user.id,
           targetName: current.user.name,
           targetRole: current.user.role,
-          action: "END",
+          action: AUDIT_ACTIONS.IMPERSONATE_END,
         });
 
         return {
@@ -176,6 +178,40 @@ export const authOptions = {
         session.user.impersonatedBy = token.impersonatedBy;
       }
       return session;
+    },
+  },
+  events: {
+    // NextAuth events have no access to the Request, so LOGIN/LOGOUT entries
+    // carry no ip/userAgent (route-instrumented events do).
+    async signIn({ user }) {
+      // Impersonation sign-ins are logged explicitly as IMPERSONATE_*.
+      if (user?.impersonatedBy) return;
+      await recordAuditEvent({
+        actor: { id: user?.id, name: user?.name, role: user?.role },
+        action: AUDIT_ACTIONS.LOGIN,
+      });
+    },
+    async signOut({ token }) {
+      if (token?.impersonatedBy) {
+        // Direct logout from an impersonated session (the admin never used
+        // the exit provider): close the impersonation trail here.
+        await recordAuditEvent({
+          actor: {
+            id: token.impersonatedBy.id,
+            name: token.impersonatedBy.name,
+            role: token.impersonatedBy.role,
+          },
+          action: AUDIT_ACTIONS.IMPERSONATE_END,
+          resourceType: AUDIT_RESOURCE_TYPES.USER,
+          resourceId: token.id,
+          metadata: { targetName: token.name, targetRole: token.role },
+        });
+        return;
+      }
+      await recordAuditEvent({
+        actor: { id: token?.id, name: token?.name, role: token?.role },
+        action: AUDIT_ACTIONS.LOGOUT,
+      });
     },
   },
   pages: {

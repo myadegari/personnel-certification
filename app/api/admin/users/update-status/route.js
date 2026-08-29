@@ -4,6 +4,7 @@ import User from "@/models/User";
 import { sendAdminNotificationEmail } from "@/lib/mailer";
 import { requireAdmin } from "@/lib/authGuard";
 import { canManageUser } from "@/lib/roles";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 export async function POST(request) {
   const { session, error } = await requireAdmin();
@@ -65,6 +66,15 @@ export async function POST(request) {
     } catch (emailError) {
       console.error("Notification email failed:", emailError);
     }
+
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.USER_STATUS_UPDATE,
+      resourceType: AUDIT_RESOURCE_TYPES.USER,
+      resourceId: userId,
+      metadata: { status, name: `${user.firstName} ${user.lastName}`.trim() },
+    });
 
     return NextResponse.json({
       message:

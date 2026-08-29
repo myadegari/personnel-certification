@@ -3,6 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import bcrypt from "bcrypt";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 export async function POST(request) {
   const session = await getServerSession(authOptions);
@@ -36,6 +37,14 @@ export async function POST(request) {
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
+
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.PASSWORD_CHANGE,
+      resourceType: AUDIT_RESOURCE_TYPES.USER,
+      resourceId: user._id,
+    });
 
     return new Response(JSON.stringify({ message: "رمز عبور با موفقیت تغییر کرد." }), { status: 200 });
   } catch (error) {

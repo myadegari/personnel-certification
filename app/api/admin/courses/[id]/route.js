@@ -4,6 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Course from '@/models/Course';
 import Enrollment from '@/models/Enrollment';
 import { requireAdmin } from '@/lib/authGuard';
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
 
 const ALLOWED_FIELDS = [
   "name",
@@ -41,7 +42,7 @@ export async function GET(request, { params }) {
 
 // PUT: Update a course
 export async function PUT(request, { params }) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   try {
@@ -68,6 +69,14 @@ export async function PUT(request, { params }) {
     if (!updatedCourse) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.COURSE_UPDATE,
+      resourceType: AUDIT_RESOURCE_TYPES.COURSE,
+      resourceId: updatedCourse._id,
+      metadata: { fields: Object.keys(update), courseName: updatedCourse.name },
+    });
     return NextResponse.json(updatedCourse);
   } catch (err) {
     console.error('Course Update Error:', err);
@@ -77,7 +86,7 @@ export async function PUT(request, { params }) {
 
 // DELETE: Delete a course
 export async function DELETE(request, { params }) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   try {
@@ -99,6 +108,15 @@ export async function DELETE(request, { params }) {
       { course: id },
       { $set: { "metadata.courseStatus": "PERISH" } }
     );
+
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.COURSE_DELETE,
+      resourceType: AUDIT_RESOURCE_TYPES.COURSE,
+      resourceId: deletedCourse._id,
+      metadata: { courseName: deletedCourse.name },
+    });
 
     return NextResponse.json({ message: 'Course deleted and enrollments updated successfully.' });
   } catch (err) {

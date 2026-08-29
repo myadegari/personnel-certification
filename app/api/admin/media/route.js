@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/authGuard";
 import { readValidatedImage } from "@/lib/uploadValidation";
 import { ensureBucket, putBuffer, getPresignedUrl } from "@/lib/storage";
 import { classifyKind, referencedFileIds, PROTECTED_BUCKETS } from "@/lib/media";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 const VALID_BUCKETS = ["media", "stamp", "signature", "certificate"];
 
@@ -135,6 +136,15 @@ export async function POST(request) {
       size: buffer.length,
       presignedUrl,
       expiresAt,
+    });
+
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.MEDIA_UPLOAD,
+      resourceType: AUDIT_RESOURCE_TYPES.MEDIA,
+      resourceId: created._id,
+      metadata: { title: created.title, mimeType, size: buffer.length },
     });
 
     return NextResponse.json({ file: created, url: created._id }, { status: 201 });

@@ -5,13 +5,14 @@ import User from "@/models/User";
 import Course from "@/models/Course";
 import { processCertificateGeneration } from "@/lib/certificateService";
 import { requireAdmin } from "@/lib/authGuard";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 // POST /api/admin/enrollments/bulk
 // Bulk-approve or bulk-reject enrollments. Terminal enrollments (already
 // APPROVED/REJECTED) are skipped to preserve immutability, and the summary
 // reports how many were updated vs. skipped.
 export async function POST(request) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   let body;
@@ -114,6 +115,20 @@ export async function POST(request) {
     skipped,
     errors,
   };
+
+  await recordAuditEvent({
+    request,
+    session,
+    action: AUDIT_ACTIONS.ENROLLMENT_BULK,
+    resourceType: AUDIT_RESOURCE_TYPES.ENROLLMENT,
+    metadata: {
+      status,
+      updated,
+      skippedCount: skipped.length,
+      errorCount: errors.length,
+      ids: ids.slice(0, 100),
+    },
+  });
 
   if (updated > 0 && skipped.length === 0 && errors.length === 0) {
     return NextResponse.json(summary, { status: 200 });

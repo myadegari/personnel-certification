@@ -8,7 +8,7 @@ const LABELS = {
   enrollments: "ثبت‌نام‌ها",
   users: "کاربران",
   media: "کتابخانه رسانه",
-  "impersonation-logs": "گزارش ورود به حساب‌ها",
+  "audit-logs": "گزارش فعالیت‌ها",
 };
 
 export default function AdminTopbar() {

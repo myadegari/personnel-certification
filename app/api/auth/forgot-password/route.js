@@ -2,6 +2,7 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import crypto from "crypto";
 import { sendForgotPasswordEmail } from "@/lib/mailer";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 // Human-friendly but cryptographically random reset code.
 // Avoids lookalike characters; ~47 bits of entropy.
@@ -58,6 +59,14 @@ export async function POST(request) {
 
     // Send the raw code to the user - never the stored hash
     await sendForgotPasswordEmail(user.email, resetToken);
+
+    await recordAuditEvent({
+      request,
+      actor: { id: user._id, name: `${user.firstName} ${user.lastName}`, role: user.role },
+      action: AUDIT_ACTIONS.PASSWORD_RESET_REQUEST,
+      resourceType: AUDIT_RESOURCE_TYPES.USER,
+      resourceId: user._id,
+    });
 
     return new Response(
       JSON.stringify({

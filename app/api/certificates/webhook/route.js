@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,6 +98,17 @@ export async function POST(request) {
       return NextResponse.json({ ok: true, ignored: true });
     }
     return NextResponse.json({ error: "Enrollment not found" }, { status: 404 });
+  }
+
+  // System-originated event: the actor is the certificate owner, no session.
+  if (status === "completed") {
+    await recordAuditEvent({
+      actor: { id: result.user },
+      action: AUDIT_ACTIONS.CERTIFICATE_ISSUED,
+      resourceType: AUDIT_RESOURCE_TYPES.CERTIFICATE,
+      resourceId: result._id,
+      metadata: { fileId: fileId || null, jobId },
+    });
   }
 
   return NextResponse.json({ ok: true });

@@ -3,10 +3,11 @@ import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
 import Course from "@/models/Course";
 import { requireVerified } from "@/lib/authGuard";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 
 export async function POST(request) {
-  const { error } = await requireVerified();
+  const { session, error } = await requireVerified();
   if (error) {
     // Keep the {message} shape the client reads while surfacing the real
     // reason (unauthenticated vs account-not-yet-verified).
@@ -73,6 +74,15 @@ export async function POST(request) {
       metadata:{
         courseStatus:"EXIST"
       }
+    });
+
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.ENROLL,
+      resourceType: AUDIT_RESOURCE_TYPES.COURSE,
+      resourceId: courseId,
+      metadata: { courseName: course.name },
     });
 
     return new Response(JSON.stringify({ message: "درخواست ثبت‌نام شما با موفقیت ارسال شد." }), { status: 201 });

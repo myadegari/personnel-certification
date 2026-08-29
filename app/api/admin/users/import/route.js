@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import { requireAdmin } from "@/lib/authGuard";
 import { canManageUser } from "@/lib/roles";
 import { parseCsv, validateUserRow, generateTempPassword } from "@/lib/csv";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 const MAX_ROWS = 2000;
 
@@ -139,6 +140,17 @@ export async function POST(request) {
           });
         }
       }
+    }
+
+    // Only real imports are audited; dry-runs are trial parses.
+    if (mode === "commit") {
+      await recordAuditEvent({
+        request,
+        session,
+        action: AUDIT_ACTIONS.USER_IMPORT,
+        resourceType: AUDIT_RESOURCE_TYPES.USER,
+        metadata: { mode, summary },
+      });
     }
 
     return NextResponse.json({ mode, summary, results });

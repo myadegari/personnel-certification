@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Course from "@/models/Course";
 import { requireAdmin } from "@/lib/authGuard";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 // GET: Fetch all courses
 export async function GET() {
@@ -44,7 +45,7 @@ async function generateUniqueCourseCode() {
 
 // POST: Create a new course
 export async function POST(request) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   try {
@@ -64,6 +65,14 @@ export async function POST(request) {
       data.courseCode = await generateUniqueCourseCode();
       try {
         const newCourse = await Course.create(data);
+        await recordAuditEvent({
+          request,
+          session,
+          action: AUDIT_ACTIONS.COURSE_CREATE,
+          resourceType: AUDIT_RESOURCE_TYPES.COURSE,
+          resourceId: newCourse._id,
+          metadata: { courseName: newCourse.name, courseCode: newCourse.courseCode },
+        });
         return NextResponse.json(newCourse, { status: 201 });
       } catch (err) {
         if (err?.code === 11000 && String(err.keyValue?.courseCode || "") === data.courseCode) {

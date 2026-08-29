@@ -5,9 +5,10 @@ import User from "@/models/User";
 import Course from "@/models/Course";
 import { processCertificateGeneration } from "@/lib/certificateService";
 import { requireAdmin } from "@/lib/authGuard";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 export async function PUT(request, { params }) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   try {
@@ -90,6 +91,18 @@ export async function PUT(request, { params }) {
       await enrollment.save().catch(() => {});
       throw saveError;
     }
+
+    await recordAuditEvent({
+      request,
+      session,
+      action:
+        status === "APPROVED"
+          ? AUDIT_ACTIONS.ENROLLMENT_APPROVE
+          : AUDIT_ACTIONS.ENROLLMENT_REJECT,
+      resourceType: AUDIT_RESOURCE_TYPES.ENROLLMENT,
+      resourceId: enrollment._id,
+      metadata: { status },
+    });
 
     return NextResponse.json(enrollment);
   } catch (error) {

@@ -5,6 +5,7 @@ import File from '@/models/File';
 import { requireAdmin } from '@/lib/authGuard';
 import { uploadUserSignature } from '@/lib/signatureUpload';
 import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
 
 const ALLOWED_FIELDS = ['firstName', 'lastName', 'email', 'role', 'personnelNumber', 'nationalId', 'gender', 'position', 'isProfessor'];
 
@@ -109,6 +110,17 @@ export async function PUT(request, { params }) {
 
     const safeUser = user.toObject();
     delete safeUser.password;
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.USER_UPDATE,
+      resourceType: AUDIT_RESOURCE_TYPES.USER,
+      resourceId: user._id,
+      metadata: {
+        fields: hasFieldUpdate ? ALLOWED_FIELDS.filter((f) => f in fields) : [],
+        signatureUpdated: Boolean(signatureFile || signatureFileId),
+      },
+    });
     return NextResponse.json(safeUser);
   } catch (err) {
     if (err?.code === 11000) {

@@ -8,7 +8,7 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { LogOut, Users, LayoutDashboard, Layers, ShieldCheck, GraduationCap, ImagePlus } from "lucide-react";
+import { LogOut, Users, LayoutDashboard, Layers, GraduationCap, ImagePlus, ScrollText } from "lucide-react";
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -37,7 +37,7 @@ export function AdminSidebar() {
     { href: "/admin/media", label: "کتابخانه رسانه", icon: ImagePlus },
   ];
   if (isSuperAdmin(session?.user?.role)) {
-    items.push({ href: "/admin/impersonation-logs", label: "گزارش ورود به حساب‌ها", icon: ShieldCheck });
+    items.push({ href: "/admin/audit-logs", label: "گزارش فعالیت‌ها", icon: ScrollText });
   }
 
   return (

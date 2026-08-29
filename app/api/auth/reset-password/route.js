@@ -3,6 +3,7 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 function hashCode(code) {
   return crypto.createHash("sha256").update(code).digest("hex");
@@ -44,6 +45,14 @@ export async function POST(request) {
     user.resetPasswordExpires = undefined;
 
     await user.save();
+
+    await recordAuditEvent({
+      request,
+      actor: { id: user._id, name: `${user.firstName} ${user.lastName}`, role: user.role },
+      action: AUDIT_ACTIONS.PASSWORD_RESET,
+      resourceType: AUDIT_RESOURCE_TYPES.USER,
+      resourceId: user._id,
+    });
 
     return new Response(JSON.stringify({ message: "رمز عبور شما با موفقیت تغییر کرد. اکنون می‌توانید وارد شوید." }), { status: 200 });
   } catch (error) {

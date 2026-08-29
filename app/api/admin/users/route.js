@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt';
 import { requireAdmin } from '@/lib/authGuard';
 import { uploadUserSignature } from '@/lib/signatureUpload';
 import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
 
 async function parseUserPayload(request) {
   const contentType = request.headers.get('content-type') || '';
@@ -194,6 +195,18 @@ export async function POST(request) {
 
     const safeUser = newUser.toObject();
     delete safeUser.password;
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.USER_CREATE,
+      resourceType: AUDIT_RESOURCE_TYPES.USER,
+      resourceId: newUser._id,
+      metadata: {
+        name: `${newUser.firstName} ${newUser.lastName}`.trim(),
+        role: newUser.role,
+        personnelNumber: newUser.personnelNumber,
+      },
+    });
     return NextResponse.json(safeUser, { status: 201 });
   } catch (error) {
     if (error?.code === 11000) {
@@ -239,6 +252,14 @@ export async function DELETE(request) {
     }
 
     await User.deleteMany({ _id: { $in: userIds } });
+
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.USER_DELETE,
+      resourceType: AUDIT_RESOURCE_TYPES.USER,
+      metadata: { count: userIds.length, ids: userIds.slice(0, 100) },
+    });
 
     return NextResponse.json({ message: 'Users deleted successfully' });
   } catch (error) {

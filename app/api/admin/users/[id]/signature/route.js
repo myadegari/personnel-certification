@@ -5,6 +5,7 @@ import File from "@/models/File";
 import { requireAdmin } from "@/lib/authGuard";
 import { uploadUserSignature } from "@/lib/signatureUpload";
 import { canManageUser } from "@/lib/roles";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 export async function POST(request, { params }) {
   const { session, error } = await requireAdmin();
@@ -39,10 +40,27 @@ export async function POST(request, { params }) {
       }
       targetUser.signatureImage = fileRecord._id;
       await targetUser.save();
+      await recordAuditEvent({
+        request,
+        session,
+        action: AUDIT_ACTIONS.SIGNATURE_UPDATE,
+        resourceType: AUDIT_RESOURCE_TYPES.USER,
+        resourceId: targetUser._id,
+        metadata: { source: "library", personnelNumber: targetUser.personnelNumber },
+      });
       return NextResponse.json({ file: fileRecord, url: fileRecord._id });
     }
 
     const fileRecord = await uploadUserSignature(targetUser, file);
+
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.SIGNATURE_UPDATE,
+      resourceType: AUDIT_RESOURCE_TYPES.USER,
+      resourceId: targetUser._id,
+      metadata: { source: "upload", personnelNumber: targetUser.personnelNumber },
+    });
 
     return NextResponse.json({ file: fileRecord, url: fileRecord._id });
   } catch (err) {

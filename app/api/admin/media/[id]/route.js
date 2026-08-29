@@ -3,10 +3,11 @@ import dbConnect from "@/lib/dbConnect";
 import File from "@/models/File";
 import { requireAdmin } from "@/lib/authGuard";
 import { findUsage, deleteMediaRecord, PROTECTED_BUCKETS } from "@/lib/media";
+import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 // PATCH: edit media metadata (title / alt)
 export async function PATCH(request, { params }) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   try {
@@ -23,6 +24,15 @@ export async function PATCH(request, { params }) {
     if (typeof body.alt === "string") fileDoc.alt = body.alt.trim();
     await fileDoc.save();
 
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.MEDIA_UPDATE,
+      resourceType: AUDIT_RESOURCE_TYPES.MEDIA,
+      resourceId: fileDoc._id,
+      metadata: { fields: Object.keys(body) },
+    });
+
     return NextResponse.json({ file: fileDoc });
   } catch (err) {
     console.error("Media update error:", err);
@@ -32,7 +42,7 @@ export async function PATCH(request, { params }) {
 
 // DELETE: guarded removal of a media asset
 export async function DELETE(request, { params }) {
-  const { error } = await requireAdmin();
+  const { session, error } = await requireAdmin();
   if (error) return error;
 
   try {
@@ -60,6 +70,16 @@ export async function DELETE(request, { params }) {
     }
 
     await deleteMediaRecord(fileDoc);
+
+    await recordAuditEvent({
+      request,
+      session,
+      action: AUDIT_ACTIONS.MEDIA_DELETE,
+      resourceType: AUDIT_RESOURCE_TYPES.MEDIA,
+      resourceId: fileDoc._id,
+      metadata: { title: fileDoc.title, bucket: fileDoc.bucket },
+    });
+
     return NextResponse.json({ message: "Media deleted successfully" });
   } catch (err) {
     console.error("Media delete error:", err);
