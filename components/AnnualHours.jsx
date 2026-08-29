@@ -1,31 +1,25 @@
 "use client";
 import React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { useSession } from "next-auth/react";
+import { motion } from "motion/react";
+import { Clock3 } from "lucide-react";
+import { fadeUp, spring } from "@/lib/motion";
+import AnimatedCounter from "@/components/admin/ui/AnimatedCounter";
 import { PersianYearPicker } from "@/components/admin/PersianDatePicker";
 import { toShamsi, fromShamsi } from "@/lib/persian-date";
 
 const getBaseUrl = () => {
-  // If we are on the server, use the internal Docker URL
-  if (typeof window === 'undefined') {
-    return process.env.INTERNAL_API_URL || 'http://localhost:3000';
+  if (typeof window === "undefined") {
+    return process.env.INTERNAL_API_URL || "http://localhost:3000";
   }
-  // If on client, use relative path or public URL
-  return ''; 
+  return "";
 };
 
-// Update the API call to accept date parameters
 async function getAnnualHours(startTimestamp, endTimestamp) {
   try {
-    const response = await fetch(`${getBaseUrl()}/api/dashboard/stats?startTimestamp=${startTimestamp}&endTimestamp=${endTimestamp}`);
-    const data = await response.json();
-    return data;
+    const response = await fetch(
+      `${getBaseUrl()}/api/dashboard/stats?startTimestamp=${startTimestamp}&endTimestamp=${endTimestamp}`
+    );
+    return await response.json();
   } catch (error) {
     console.error("Failed to fetch annual hours:", error);
     return null;
@@ -33,7 +27,6 @@ async function getAnnualHours(startTimestamp, endTimestamp) {
 }
 
 function AnnualHours() {
-  const { data: session, status } = useSession();
   const [loading, setLoading] = React.useState(true);
   const [annualHours, setAnnualHours] = React.useState(0);
   const [selectedYear, setSelectedYear] = React.useState(
@@ -50,31 +43,47 @@ function AnnualHours() {
   };
 
   React.useEffect(() => {
+    let active = true;
     async function fetchData() {
       const { startTimestamp, endTimestamp } = getJalaliYearTimestamps(selectedYear);
       const data = await getAnnualHours(startTimestamp, endTimestamp);
-      if (data) {
-        setAnnualHours(data.annualHours);
-      }
-      setLoading(false);
+      if (active && data) setAnnualHours(data.annualHours);
+      if (active) setLoading(false);
     }
     fetchData();
-  }, [selectedYear]); // The effect now depends only on the selected year
+    return () => {
+      active = false;
+    };
+  }, [selectedYear]);
 
   return (
-    <Card className="rounded-2xl cursor-default hover:z-10 bg-white dark:bg-gray-800 shadow-md">
-      <CardHeader className="text-center flex-col space-y-2">
-        <CardTitle>مجموع ساعات آموزشی سالانه</CardTitle>
-        <div className="flex justify-center items-center">
-          <PersianYearPicker year={selectedYear} onYearChange={setSelectedYear} />
+    <motion.div
+      variants={fadeUp}
+      whileHover={{ y: -6 }}
+      transition={spring}
+      className="group relative overflow-hidden rounded-3xl border border-black/5 bg-white/80 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm"
+    >
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-sky-500/15 to-sky-500/0 opacity-70 transition-opacity group-hover:opacity-100" />
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-muted-foreground">ساعات آموزشی سالانه</p>
+          <p className="text-3xl font-bold tracking-tight text-sky-700">
+            {loading ? (
+              <span className="inline-block h-8 w-16 animate-pulse rounded-md bg-sky-100" />
+            ) : (
+              <AnimatedCounter value={annualHours} />
+            )}
+            <span className="ms-1 text-base font-semibold text-sky-600/80">ساعت</span>
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="text-center">
-        <p className="text-4xl font-bold text-emerald-600 dark:text-emerald-400">
-          {annualHours} ساعت
-        </p>
-      </CardContent>
-    </Card>
+        <div className="flex size-11 items-center justify-center rounded-2xl bg-white/70 text-sky-600 ring-1 ring-sky-500/20">
+          <Clock3 className="size-5" />
+        </div>
+      </div>
+      <div className="relative mt-4 flex justify-start">
+        <PersianYearPicker year={selectedYear} onYearChange={setSelectedYear} />
+      </div>
+    </motion.div>
   );
 }
 

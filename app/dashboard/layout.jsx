@@ -1,21 +1,6 @@
-// File: app/admin/layout.jsx
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import { UserSidebar } from '@/components/UserSidebar';
-import ImpersonationBanner from "@/components/ImpersonationBanner";
+// File: app/dashboard/layout.jsx
+import UserShell from "@/components/UserShell";
 
-// This is a server component
-export default function AdminLayout({ children }) {
-  return (
-    <SidebarProvider>
-
-      <UserSidebar />
-      <main className="flex flex-col p-4 lg:p-6 w-full bg-stone-300/20">
-      {/* <SidebarTrigger /> */}
-        <ImpersonationBanner />
-        {children}
-      </main>
-    </SidebarProvider>
-  );
+export default function DashboardLayout({ children }) {
+  return <UserShell>{children}</UserShell>;
 }
