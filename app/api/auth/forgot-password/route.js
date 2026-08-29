@@ -26,6 +26,19 @@ export async function POST(request) {
 
   try {
     const { email } = await request.json();
+
+    // Type-check before the Mongo query: a JSON body like
+    // {"email":{"$ne":null}} must never reach findOne as an operator object.
+    if (
+      typeof email !== "string" ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
+      return new Response(
+        JSON.stringify({ message: "ایمیل نامعتبر است." }),
+        { status: 400 }
+      );
+    }
+
     const user = await User.findOne({ email });
 
     if (!user) {

@@ -11,7 +11,11 @@ export async function POST(request) {
   try {
     const { currentPassword, newPassword } = await request.json();
 
-    if (!currentPassword || !newPassword) {
+    if (
+      typeof currentPassword !== "string" ||
+      !currentPassword ||
+      !newPassword
+    ) {
       return new Response(JSON.stringify({ message: "اطلاعات ناقص است." }), { status: 400 });
     }
     if (typeof newPassword !== "string" || newPassword.length < 8) {

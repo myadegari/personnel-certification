@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import dbConnect from "@/lib/dbConnect";
 import File from "@/models/File";
 import { getObjectBuffer } from '@/lib/storage';
+import { rateLimit } from '@/lib/rateLimit';
 
 export async function GET(request, { params }) {
+  // Public endpoint: throttle per-IP to blunt enumeration/DoS.
+  if (!rateLimit(request, { key: "verify", limit: 30, windowMs: 60 * 1000 })) {
+    return new NextResponse("Too many requests", { status: 429 });
+  }
+
   try {
     await dbConnect();
     const { id: certificationId } = await params;

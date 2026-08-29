@@ -1,19 +1,25 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
 import Course from "@/models/Course";
+import { requireVerified } from "@/lib/authGuard";
 
 
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return new Response(JSON.stringify({ message: "ابتدا وارد شوید." }), { status: 401 });
+  const { error } = await requireVerified();
+  if (error) {
+    // Keep the {message} shape the client reads while surfacing the real
+    // reason (unauthenticated vs account-not-yet-verified).
+    const message =
+      error.status === 403
+        ? "حساب کاربری شما هنوز تایید نشده است."
+        : "ابتدا وارد شوید.";
+    return new Response(JSON.stringify({ message }), { status: error.status });
   }
 
   try {
     const { courseId } = await request.json();
-    if (!courseId) {
+    if (!courseId || !mongoose.Types.ObjectId.isValid(String(courseId))) {
       return new Response(JSON.stringify({ message: "شناسه دوره الزامی است." }), { status: 400 });
     }
 

@@ -14,7 +14,7 @@ export async function POST(request) {
   try {
     const { token, password } = await request.json();
 
-    if (!token || !password) {
+    if (typeof token !== "string" || !token || !password) {
       return new Response(JSON.stringify({ message: "اطلاعات ناقص است." }), { status: 400 });
     }
 
