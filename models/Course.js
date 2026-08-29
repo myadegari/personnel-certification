@@ -46,4 +46,8 @@ const CourseSchema = new mongoose.Schema({
     ref: 'File' }, // مهر دوم
 }, { timestamps: true });
 
+// The course catalog and admin list sort by date/creation recency.
+CourseSchema.index({ date: -1 });
+CourseSchema.index({ createdAt: -1 });
+
 export default mongoose.models.Course || mongoose.model('Course', CourseSchema);

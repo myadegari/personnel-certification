@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
-import Enrollment from "@/models/Enrollment";
+import Enrollment, { LIVE_ENROLLMENT_FILTER } from "@/models/Enrollment";
 import Course from "@/models/Course";
 import mongoose from "mongoose";
 import User from "@/models/User";
@@ -35,6 +35,7 @@ export async function GET(request) {
     const matchFilter = {
       user: dbUser._id,
       status: "APPROVED",
+      ...LIVE_ENROLLMENT_FILTER,
     };
 
     const pipeline = [

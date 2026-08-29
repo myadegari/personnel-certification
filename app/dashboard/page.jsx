@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../api/auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
-import Enrollment from "@/models/Enrollment";
+import Enrollment, { LIVE_ENROLLMENT_FILTER } from "@/models/Enrollment";
 import { internalAxios } from "@/lib/axios";
 import { headers } from "next/headers";
 import DashboardClient from "@/components/dashboard/DashboardClient";
@@ -9,7 +9,11 @@ import DashboardClient from "@/components/dashboard/DashboardClient";
 // Totals for the dashboard stat cards.
 async function getDashboardStats(userId) {
   await dbConnect();
-  const enrollments = await Enrollment.find({ user: userId, status: "APPROVED" })
+  const enrollments = await Enrollment.find({
+    user: userId,
+    status: "APPROVED",
+    ...LIVE_ENROLLMENT_FILTER,
+  })
     .populate("course", "duration")
     .lean();
   const totalCourses = enrollments.length;
@@ -18,8 +22,17 @@ async function getDashboardStats(userId) {
     0
   );
   const [pendingCount, certificatesIssued] = await Promise.all([
-    Enrollment.countDocuments({ user: userId, status: "PENDING" }),
-    Enrollment.countDocuments({ user: userId, status: "APPROVED", certificateStatus: "completed" }),
+    Enrollment.countDocuments({
+      user: userId,
+      status: "PENDING",
+      ...LIVE_ENROLLMENT_FILTER,
+    }),
+    Enrollment.countDocuments({
+      user: userId,
+      status: "APPROVED",
+      certificateStatus: "completed",
+      ...LIVE_ENROLLMENT_FILTER,
+    }),
   ]);
   return { totalCourses, totalHours, pendingCount, certificatesIssued };
 }

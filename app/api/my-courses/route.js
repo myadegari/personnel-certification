@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
-import Enrollment from "@/models/Enrollment";
+import Enrollment, { LIVE_ENROLLMENT_FILTER } from "@/models/Enrollment";
 
 export async function GET(request) {
   const session = await getServerSession(authOptions);
@@ -18,14 +18,22 @@ export async function GET(request) {
 
     await dbConnect();
 
-    const enrollments = await Enrollment.find({ user: session.user.id, status: 'APPROVED' })
+    const enrollments = await Enrollment.find({
+      user: session.user.id,
+      status: 'APPROVED',
+      ...LIVE_ENROLLMENT_FILTER,
+    })
       .populate('course')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 })
       .lean();
       
-    const totalEnrollments = await Enrollment.countDocuments({ user: session.user.id, status: 'APPROVED' });
+    const totalEnrollments = await Enrollment.countDocuments({
+      user: session.user.id,
+      status: 'APPROVED',
+      ...LIVE_ENROLLMENT_FILTER,
+    });
     const pageCount = Math.ceil(totalEnrollments / limit);
 
     return NextResponse.json({

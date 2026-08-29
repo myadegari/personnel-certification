@@ -47,6 +47,17 @@ const EnrollmentSchema = new mongoose.Schema(
 EnrollmentSchema.index({ user: 1, course: 1 }, { unique: true });
 // سریع‌ترین جست‌وجو برای وب‌هوک وضعیت (پیدا کردن ثبت‌نام بر اساس jobId)
 EnrollmentSchema.index({ jobId: 1 });
+// Course-scoped listings + capacity checks and per-user course lists.
+EnrollmentSchema.index({ course: 1, status: 1 });
+EnrollmentSchema.index({ user: 1, status: 1 });
+// Dashboard "certificates issued" count.
+EnrollmentSchema.index({ certificateStatus: 1 });
+
+// Soft-delete marker written when the parent course is deleted. Reads MUST
+// include this filter so enrollments of deleted courses never surface.
+export const LIVE_ENROLLMENT_FILTER = {
+  "metadata.courseStatus": { $ne: "PERISH" },
+};
 
 export default mongoose.models.Enrollment ||
   mongoose.model("Enrollment", EnrollmentSchema);

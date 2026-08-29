@@ -69,6 +69,8 @@ UserSchema.index(
     partialFilterExpression: { status: "PENDING" },
   }
 );
+// Password-reset lookups happen on a public endpoint; keep them indexed.
+UserSchema.index({ resetPasswordToken: 1 }, { sparse: true });
 // UserSchema.index(
 //   { createdAt: 1 },
 //   {

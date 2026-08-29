@@ -25,6 +25,15 @@ export async function PUT(request, { params }) {
     }
 
     const previousStatus = enrollment.status;
+    // Snapshot for rollback if the final save fails (see below).
+    const previousState = {
+      status: enrollment.status,
+      jobId: enrollment.jobId,
+      issuedAt: enrollment.issuedAt,
+      certificateUniqueId: enrollment.certificateUniqueId,
+      certificateUrl: enrollment.certificateUrl,
+      certificateStatus: enrollment.certificateStatus,
+    };
 
     // Enforce immutability: once an enrollment is APPROVED or REJECTED its
     // status is final and can never be changed again (no reopening/rejecting).
@@ -70,9 +79,19 @@ export async function PUT(request, { params }) {
     }
 
     enrollment.status = status;
-    const updatedEnrollment = await enrollment.save();
+    try {
+      await enrollment.save();
+    } catch (saveError) {
+      // A failed save must not leave the certificate number / queued worker
+      // job orphaned: restore the exact pre-request state. The consumed
+      // number is intentionally NOT released (IndicatorUsage already
+      // recorded it), so it becomes a permanent gap instead of a reuse hazard.
+      Object.assign(enrollment, previousState);
+      await enrollment.save().catch(() => {});
+      throw saveError;
+    }
 
-    return NextResponse.json(updatedEnrollment);
+    return NextResponse.json(enrollment);
   } catch (error) {
     console.error("Enrollment update error:", error.message);
 

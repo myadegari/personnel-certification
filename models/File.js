@@ -64,6 +64,15 @@ const fileSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Hot lookups: the public verify endpoint and the SSE status poll resolve
+// certificates by the worker-written job id; the admin media list pages by
+// bucket/date; upload dedupe checks objectName.
+// NOTE: the unique job_id index requires certificate File records to be
+// deduped first (scripts/dedupe-certificate-files.js).
+fileSchema.index({ "metadata.job_id": 1, bucket: 1 }, { unique: true });
+fileSchema.index({ bucket: 1, createdAt: -1 });
+fileSchema.index({ objectName: 1 });
+
 // ✅ Rename variable to avoid conflict with global File
 const File = mongoose.models.File || mongoose.model('File', fileSchema);
 export default File; // 👈 Export as File

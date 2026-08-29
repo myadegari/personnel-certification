@@ -13,6 +13,9 @@ const ImpersonationLogSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Audit list is always sorted by recency with pagination.
+ImpersonationLogSchema.index({ createdAt: -1 });
+
 const ImpersonationLog =
   mongoose.models.ImpersonationLog ||
   mongoose.model("ImpersonationLog", ImpersonationLogSchema);

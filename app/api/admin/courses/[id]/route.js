@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import Course from '@/models/Course';
 import Enrollment from '@/models/Enrollment';
@@ -81,18 +82,23 @@ export async function DELETE(request, { params }) {
 
   try {
     const { id } = await params;
-    await dbConnect();
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    }
 
-    // Mark related enrollments so their history reflects the course deletion
-    await Enrollment.updateMany(
-      { course: id },
-      { $set: { metadata: { courseStatus: 'PERISH' } } }
-    );
+    await dbConnect();
 
     const deletedCourse = await Course.findByIdAndDelete(id);
     if (!deletedCourse) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
+
+    // Mark related enrollments so their history reflects the course deletion.
+    // Uses the dotted path so other metadata keys survive.
+    await Enrollment.updateMany(
+      { course: id },
+      { $set: { "metadata.courseStatus": "PERISH" } }
+    );
 
     return NextResponse.json({ message: 'Course deleted and enrollments updated successfully.' });
   } catch (err) {

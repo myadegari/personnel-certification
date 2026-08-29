@@ -58,6 +58,15 @@ export async function POST(request) {
         continue;
       }
 
+      const previousState = {
+        status: enrollment.status,
+        jobId: enrollment.jobId,
+        issuedAt: enrollment.issuedAt,
+        certificateUniqueId: enrollment.certificateUniqueId,
+        certificateUrl: enrollment.certificateUrl,
+        certificateStatus: enrollment.certificateStatus,
+      };
+
       if (status === "APPROVED") {
         const user = await User.findById(enrollment.user).lean();
         const course = await Course.findById(enrollment.course)
@@ -83,7 +92,15 @@ export async function POST(request) {
       }
 
       enrollment.status = status;
-      await enrollment.save();
+      try {
+        await enrollment.save();
+      } catch (saveError) {
+        // Restore the pre-request state so no certificate number / queued
+        // worker job is orphaned by a failed persist.
+        Object.assign(enrollment, previousState);
+        await enrollment.save().catch(() => {});
+        throw saveError;
+      }
       updated += 1;
     } catch (err) {
       errors.push({ id, reason: err.message || "unknown" });
