@@ -2,13 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { ROLE_LABELS_FA } from "@/lib/roles";
-
-const statusLabels = {
-  PENDING: "در انتظار تکمیل",
-  NEED_TO_VERIFY: "در انتظار تایید",
-  VERIFIED: "تایید شده",
-  REJECTED: "رد شده",
-};
+import { USER_STATUS_LABELS } from "@/lib/statusLabels";
 
 function InfoRow({ label, value }) {
   return (
@@ -30,13 +24,13 @@ export default function ProfileSummary({ user }) {
       <CardContent className="pt-6">
         <div>
           <InfoRow label="نام" value={`${user.firstName || ""} ${user.lastName || ""}`.trim()} />
-          <InfoRow label="شماره پرسنلی" value={user.personnelNumber} />
-          <InfoRow label="کد ملی" value={user.nationalId} />
-          <InfoRow label="ایمیل" value={user.email} />
+          <InfoRow label="شماره پرسنلی" value={<span dir="ltr">{user.personnelNumber}</span>} />
+          <InfoRow label="کد ملی" value={<span dir="ltr">{user.nationalId}</span>} />
+          <InfoRow label="ایمیل" value={<span dir="ltr">{user.email}</span>} />
           <InfoRow label="سمت" value={user.position} />
           <InfoRow label="عضو هیات علمی" value={user.isProfessor ? "بله" : "خیر"} />
-          <InfoRow label="نقش" value={ROLE_LABELS_FA[user.role] || user.role} />
-          <InfoRow label="وضعیت" value={statusLabels[user.status] || user.status} />
+          <InfoRow label="نقش" value={ROLE_LABELS_FA[user.role] || "نامشخص"} />
+          <InfoRow label="وضعیت" value={USER_STATUS_LABELS[user.status] || "نامشخص"} />
         </div>
 
         {(signatureFileQuery.isLoading || signatureFileQuery.data) && (
@@ -47,7 +41,7 @@ export default function ProfileSummary({ user }) {
             ) : (
               <img
                 src={signatureFileQuery.data}
-                alt="Signature"
+                alt="امضای کاربر"
                 width={160}
                 height={80}
                 className="mt-2 h-20 w-40 rounded-lg border border-gray-200 bg-gray-50 object-contain p-2"

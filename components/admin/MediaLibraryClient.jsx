@@ -9,7 +9,8 @@ import { fadeUp, staggerContainer } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@radix-ui/themes";
+import { Badge } from "@/components/ui/badge";
+import { BADGE_TONES } from "@/lib/statusLabels";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
@@ -31,6 +32,7 @@ import PageHeader from "./ui/PageHeader";
 import MediaUploadDialog from "./MediaUploadDialog";
 import MediaDetailSheet from "./MediaDetailSheet";
 import ConfirmDialog from "./ConfirmDialog";
+import TablePager from "@/components/shared/TablePager";
 import { BUCKET_LABELS_FA } from "@/lib/mediaConstants";
 
 const PAGE_SIZE = 24;
@@ -146,6 +148,7 @@ export default function MediaLibraryClient() {
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             placeholder="جستجوی نام، عنوان یا متن جایگزین..."
+            aria-label="جستجوی رسانه"
             className="pr-9"
           />
         </div>
@@ -246,28 +249,15 @@ export default function MediaLibraryClient() {
 
       {/* Pagination */}
       {pagination.pageCount > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="cursor-pointer"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            قبلی
-          </Button>
-          <span className="px-3 text-sm text-muted-foreground">
-            صفحه {pagination.currentPage.toLocaleString("fa-IR")} از {pagination.pageCount.toLocaleString("fa-IR")}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            className="cursor-pointer"
-            disabled={page >= pagination.pageCount}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            بعدی
-          </Button>
+        <div className="pt-2">
+          <TablePager
+            page={pagination.currentPage}
+            pageCount={pagination.pageCount}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => p + 1)}
+            canPrev={page > 1}
+            canNext={page < pagination.pageCount}
+          />
         </div>
       )}
 
@@ -332,7 +322,7 @@ function MediaTile({ item, selected, onToggle, onOpen }) {
 
         {item.inUse && (
           <div className="absolute left-2 top-2">
-            <Badge color="amber">در حال استفاده</Badge>
+            <Badge className={BADGE_TONES.amber}>در حال استفاده</Badge>
           </div>
         )}
 

@@ -3,9 +3,8 @@ import localFont from 'next/font/local';
 import "./globals.css";
 import AuthProvider from "./context/AuthProvider";
 import Providers from "@/components/Providers";
-import { Theme } from "@radix-ui/themes";
 import AppToaster from "@/components/AppToaster";
-// const vazirmatn = Vazirmatn({ subsets: ["arabic"] });
+
 const sahel = localFont({
   src: [
     {
@@ -18,11 +17,6 @@ const sahel = localFont({
       weight: '700', // Bold
       style: 'normal',
     },
-    // {
-    //   path: './fonts/Sahel-Black-FD-WOL.woff2',
-    //   weight: '900', // Black
-    //   style: 'normal',
-    // },
   ],
   display: 'swap', // Improves font loading performance
   variable: '--font-sahel', // This creates a CSS variable
@@ -36,16 +30,14 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="fa" dir="rtl" suppressHydrationWarning="true" data-lt-installed="true">
+    <html lang="fa" dir="rtl" suppressHydrationWarning>
       <body className={sahel.variable}>
         <AuthProvider>
           <Providers>
-            <Theme>
             <div className="min-h-screen bg-gray-50">
-                {children}
+              {children}
             </div>
             <AppToaster />
-            </Theme>
           </Providers>
         </AuthProvider>
       </body>

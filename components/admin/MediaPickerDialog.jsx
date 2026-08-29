@@ -88,6 +88,7 @@ export default function MediaPickerDialog({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="جستجو در رسانه‌ها..."
+                aria-label="جستجو در رسانه‌ها"
                 className="pr-9"
               />
             </div>

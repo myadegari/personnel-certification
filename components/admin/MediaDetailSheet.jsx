@@ -14,7 +14,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@radix-ui/themes";
+import { Badge } from "@/components/ui/badge";
+import { BADGE_TONES } from "@/lib/statusLabels";
 import { Copy, Download, Trash2, Save } from "lucide-react";
 import { BUCKET_LABELS_FA } from "@/lib/mediaConstants";
 
@@ -69,10 +70,10 @@ function MediaDetailBody({ item, onRequestDelete }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Badge color="green">{BUCKET_LABELS_FA[item.bucket] || item.bucket}</Badge>
-        <Badge color="gray">{item.mimeType}</Badge>
-        <Badge color="gray">{formatBytes(item.size)}</Badge>
-        {item.inUse && <Badge color="amber">در حال استفاده</Badge>}
+        <Badge className={BADGE_TONES.green}>{BUCKET_LABELS_FA[item.bucket] || item.bucket}</Badge>
+        <Badge className={BADGE_TONES.gray}>{item.mimeType}</Badge>
+        <Badge className={BADGE_TONES.gray}>{formatBytes(item.size)}</Badge>
+        {item.inUse && <Badge className={BADGE_TONES.amber}>در حال استفاده</Badge>}
       </div>
 
       <div className="space-y-1.5">

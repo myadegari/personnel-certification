@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-// import { Button } from "@/components/ui/stateful-button";
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -77,23 +76,15 @@ export default function LoginPage() {
               <Label className="mb-2" htmlFor="personnelNumber">شماره پرسنلی</Label>
               <Input
               dir="ltr"
-                // placeholder="شماره پرسنلی"
                 value={personnelNumber}
                 onChange={(e) => setPersonnelNumber(e.target.value)}
                 required
               />
             </div>
             <div>
-              {/* <Input
-                type="password"
-                placeholder="رمز عبور"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              /> */}
               <Label className="mb-2" htmlFor="password">رمز عبور</Label>
               <PasswordInput
-              
+                id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required={true}

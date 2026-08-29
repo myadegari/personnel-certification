@@ -16,7 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@radix-ui/themes";
+import { Badge } from "@/components/ui/badge";
+import { BADGE_TONES } from "@/lib/statusLabels";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Search, Plus, Pencil, Trash2, ArrowLeft, CalendarDays } from "lucide-react";
@@ -104,7 +105,7 @@ export default function CoursesClient({ initialCourses }) {
           return (
             <div className="flex items-center gap-1">
               <Button asChild variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
-                <Link href={`/admin/courses/${course._id}/enrollments`} title="مدیریت ثبت‌نام‌ها">
+                <Link href={`/admin/courses/${course._id}/enrollments`} aria-label={`مدیریت ثبت‌نام‌های دوره ${course.name}`} title="مدیریت ثبت‌نام‌ها">
                   <Users2 />
                 </Link>
               </Button>
@@ -112,6 +113,7 @@ export default function CoursesClient({ initialCourses }) {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 cursor-pointer"
+                aria-label={`ویرایش دوره ${course.name}`}
                 onClick={() => { setEditingCourse(course); setIsModalOpen(true); }}
               >
                 <Pencil className="h-4 w-4" />
@@ -120,6 +122,7 @@ export default function CoursesClient({ initialCourses }) {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 cursor-pointer text-red-600 hover:text-red-700"
+                aria-label={`حذف دوره ${course.name}`}
                 onClick={() => setConfirm({ type: "delete", course })}
               >
                 <Trash2 className="h-4 w-4" />
@@ -147,6 +150,7 @@ export default function CoursesClient({ initialCourses }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="جستجوی دوره..."
+            aria-label="جستجوی دوره"
             className="pr-9"
           />
         </div>
@@ -217,7 +221,7 @@ export default function CoursesClient({ initialCourses }) {
                     <p className="font-semibold">{course.name}</p>
                     <p className="text-xs text-muted-foreground">{course.organizingUnit}</p>
                   </div>
-                  <Badge color="green" radius="full">{course.duration} ساعت</Badge>
+                  <Badge className={BADGE_TONES.green}>{course.duration} ساعت</Badge>
                 </div>
                 <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
                   <CalendarDays className="size-3.5" /> {fmtDate(course.date)}
@@ -228,10 +232,10 @@ export default function CoursesClient({ initialCourses }) {
                       ثبت‌نام‌ها <ArrowLeft className="h-4 w-4" />
                     </Link>
                   </Button>
-                  <Button variant="outline" size="icon" className="cursor-pointer" onClick={() => { setEditingCourse(course); setIsModalOpen(true); }}>
+                  <Button variant="outline" size="icon" className="cursor-pointer" aria-label={`ویرایش دوره ${course.name}`} onClick={() => { setEditingCourse(course); setIsModalOpen(true); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" className="cursor-pointer text-red-600" onClick={() => setConfirm({ type: "delete", course })}>
+                  <Button variant="outline" size="icon" className="cursor-pointer text-red-600" aria-label={`حذف دوره ${course.name}`} onClick={() => setConfirm({ type: "delete", course })}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

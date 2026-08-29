@@ -53,7 +53,7 @@ export default function EnrollButton({ courseId, status, deadlinePassed, capacit
 
   if (deadlinePassed) {
     return (
-      <Button disabled className="w-full gap-2 rounded-xl border border-black/5 bg-stone-100 text-stone-500 disabled:opacity-100">
+      <Button disabled className="w-full gap-2 rounded-xl border border-black/5 bg-stone-100 text-stone-600 disabled:opacity-100">
         <CalendarX2 className="h-4 w-4" /> اتمام مهلت ثبت‌نام
       </Button>
     );
@@ -61,7 +61,7 @@ export default function EnrollButton({ courseId, status, deadlinePassed, capacit
 
   if (capacityFull) {
     return (
-      <Button disabled className="w-full gap-2 rounded-xl border border-black/5 bg-stone-100 text-stone-500 disabled:opacity-100">
+      <Button disabled className="w-full gap-2 rounded-xl border border-black/5 bg-stone-100 text-stone-600 disabled:opacity-100">
         <Users className="h-4 w-4" /> ظرفیت تکمیل شد
       </Button>
     );

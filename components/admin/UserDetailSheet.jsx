@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@radix-ui/themes";
+import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
@@ -11,13 +11,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { ROLE_LABELS_FA } from "@/lib/roles";
-
-const STATUS_LABELS = {
-  PENDING: { label: "در انتظار تکمیل", color: "orange" },
-  NEED_TO_VERIFY: { label: "در انتظار تایید", color: "yellow" },
-  VERIFIED: { label: "تایید شده", color: "green" },
-  REJECTED: { label: "رد شده", color: "ruby" },
-};
+import { USER_STATUS_META, FALLBACK_STATUS_META } from "@/lib/statusLabels";
 
 function Field({ label, value }) {
   return (
@@ -30,7 +24,7 @@ function Field({ label, value }) {
 
 export default function UserDetailSheet({ user, open, onOpenChange }) {
   const signatureQuery = useFileUrl(user?.signatureImage);
-  const status = STATUS_LABELS[user?.status] || { label: "نامشخص", color: "gray" };
+  const status = USER_STATUS_META[user?.status] || FALLBACK_STATUS_META;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -45,7 +39,7 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
             </Avatar>
             <div className="flex flex-col">
               <SheetTitle>
-                {user ? `${user.firstName} ${user.lastName}` : ""}
+                {user ? `${user.firstName} ${user.lastName}` : "جزئیات کاربر"}
               </SheetTitle>
               <SheetDescription>جزئیات کاربر</SheetDescription>
             </div>
@@ -55,16 +49,14 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
         {user && (
           <div className="flex flex-col gap-1 px-4 pb-6">
             <div className="mb-2 flex items-center gap-2">
-              <Badge color={status.color} radius="full">
-                {status.label}
-              </Badge>
-              <Badge color="blue" variant="outline" radius="full">
+              <Badge className={status.tone}>{status.label}</Badge>
+              <Badge variant="outline" className="border-sky-600/20 text-sky-700">
                 {ROLE_LABELS_FA[user.role] || user.role}
               </Badge>
             </div>
-            <Field label="شماره پرسنلی" value={user.personnelNumber} />
-            <Field label="کد ملی" value={user.nationalId} />
-            <Field label="ایمیل" value={user.email} />
+            <Field label="شماره پرسنلی" value={<span dir="ltr">{user.personnelNumber}</span>} />
+            <Field label="کد ملی" value={<span dir="ltr">{user.nationalId}</span>} />
+            <Field label="ایمیل" value={<span dir="ltr">{user.email}</span>} />
             <Field label="جنسیت" value={user.gender === "Male" ? "آقا" : user.gender === "Female" ? "خانم" : ""} />
             <Field label="سمت" value={user.position} />
             <Field label="عضو هیات علمی" value={user.isProfessor ? "بله" : "خیر"} />
@@ -76,7 +68,7 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
               <span className="text-xs text-muted-foreground">امضای کاربر</span>
               <div className="mt-1 flex h-24 items-center justify-center rounded-md border bg-gray-50 p-2">
                 {signatureQuery.data ? (
-                  <img src={signatureQuery.data} alt="signature" className="max-h-full object-contain" />
+                  <img src={signatureQuery.data} alt="امضای کاربر" className="max-h-full object-contain" />
                 ) : (
                   <span className="text-sm text-gray-400">امضایی ثبت نشده است</span>
                 )}

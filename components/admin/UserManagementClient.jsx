@@ -38,7 +38,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@radix-ui/themes";
+import { Badge } from "@/components/ui/badge";
+import { USER_STATUS_META, FALLBACK_STATUS_META } from "@/lib/statusLabels";
 import { clsx } from "clsx";
 import {
   Search,
@@ -52,8 +53,6 @@ import {
   X,
   Trash2,
   LogIn,
-  ChevronLeft,
-  ChevronRight,
   ArrowUpDown,
   UserPlus,
   AlertTriangle,
@@ -66,18 +65,12 @@ import UserDetailSheet from "./UserDetailSheet";
 import UserImportDialog from "./UserImportDialog";
 import ConfirmDialog from "./ConfirmDialog";
 import PageHeader from "./ui/PageHeader";
-
-const STATUS_META = {
-  PENDING: { label: "در انتظار تکمیل", color: "orange" },
-  NEED_TO_VERIFY: { label: "در انتظار تایید", color: "yellow" },
-  VERIFIED: { label: "تایید شده", color: "green" },
-  REJECTED: { label: "رد شده", color: "ruby" },
-};
+import TablePager from "@/components/shared/TablePager";
 
 const StatusBadge = ({ status }) => {
-  const meta = STATUS_META[status] || { label: "نامشخص", color: "gray" };
+  const meta = USER_STATUS_META[status] || FALLBACK_STATUS_META;
   return (
-    <Badge color={meta.color} radius="full">
+    <Badge className={meta.tone} aria-label={meta.label}>
       {meta.label}
     </Badge>
   );
@@ -252,7 +245,7 @@ export default function UserManagementClient({ initialData }) {
           <Checkbox
             checked={table.getIsAllPageRowsSelected()}
             onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-            aria-label="Select all"
+            aria-label="انتخاب همه"
           />
         ),
         cell: ({ row }) => (
@@ -260,7 +253,7 @@ export default function UserManagementClient({ initialData }) {
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
             disabled={!row.getCanSelect()}
-            aria-label="Select row"
+            aria-label="انتخاب ردیف"
           />
         ),
       },
@@ -295,7 +288,7 @@ export default function UserManagementClient({ initialData }) {
         accessorKey: "role",
         header: "نقش",
         cell: ({ row }) => (
-          <Badge color="blue" variant="outline" radius="full">
+          <Badge variant="outline" className="border-sky-600/20 text-sky-700">
             {ROLE_LABELS_FA[row.original.role] || row.original.role}
           </Badge>
         ),
@@ -326,7 +319,7 @@ export default function UserManagementClient({ initialData }) {
             <div className="flex items-center justify-start">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" aria-label={`عملیات برای ${u.firstName} ${u.lastName}`}>
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -472,6 +465,7 @@ export default function UserManagementClient({ initialData }) {
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             placeholder="جستجوی نام، شماره پرسنلی، ایمیل یا کد ملی..."
+            aria-label="جستجوی کاربران"
             className="pr-9"
           />
         </div>
@@ -494,10 +488,10 @@ export default function UserManagementClient({ initialData }) {
           <SelectTrigger className="w-40"><SelectValue placeholder="وضعیت" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">همه وضعیت‌ها</SelectItem>
-            {Object.entries(STATUS_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+            {Object.entries(USER_STATUS_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button variant="ghost" size="icon" className="cursor-pointer" onClick={() => refetch()} disabled={isFetching}>
+        <Button variant="ghost" size="icon" className="cursor-pointer" aria-label="نوسازی فهرست" onClick={() => refetch()} disabled={isFetching}>
           <RefreshCw className={clsx("h-4 w-4", isFetching && "animate-spin")} />
         </Button>
       </div>
@@ -620,29 +614,14 @@ export default function UserManagementClient({ initialData }) {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="cursor-pointer"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <ChevronRight className="h-4 w-4" /> قبلی
-          </Button>
-          <span className="text-sm">
-            صفحه <strong>{pagination.pageIndex + 1}</strong> از <strong>{table.getPageCount() || 1}</strong>
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            className="cursor-pointer"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            بعدی <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </div>
+        <TablePager
+          page={pagination.pageIndex + 1}
+          pageCount={table.getPageCount()}
+          onPrev={() => table.previousPage()}
+          onNext={() => table.nextPage()}
+          canPrev={table.getCanPreviousPage()}
+          canNext={table.getCanNextPage()}
+        />
       </div>
 
       {/* Modals / dialogs */}

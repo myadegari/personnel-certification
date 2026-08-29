@@ -45,7 +45,7 @@ const TONES = {
     accent: 'from-sky-500/10 to-sky-500/0',
   },
   stone: {
-    pill: 'bg-stone-100 text-stone-500 ring-stone-500/20',
+    pill: 'bg-stone-100 text-stone-600 ring-stone-500/20',
     accent: 'from-stone-500/5 to-stone-500/0',
   },
 };
@@ -115,10 +115,10 @@ function MetaRow({ icon: Icon, label, value }) {
 
 function Countdown({ d }) {
   if (!d.registrationOpen) {
-    return <span className="text-stone-500">مهلت ثبت‌نام به پایان رسیده است</span>;
+    return <span className="text-stone-600">مهلت ثبت‌نام به پایان رسیده است</span>;
   }
   if (d.capacityFull) {
-    return <span className="text-stone-500">ظرفیت این دوره تکمیل شده است</span>;
+    return <span className="text-stone-600">ظرفیت این دوره تکمیل شده است</span>;
   }
   if (d.daysLeft <= 0) {
     return <span className="font-medium text-rose-600">امروز آخرین مهلت ثبت‌نام است</span>;
@@ -256,6 +256,7 @@ export default function CourseList({ initialCourses, enrollmentMap, approvedCoun
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="جست‌وجوی دوره، واحد یا کد..."
+            aria-label="جست‌وجوی دوره"
             className="rounded-xl border-black/5 bg-white/70 pr-9 backdrop-blur-sm"
           />
         </div>
@@ -279,6 +280,7 @@ export default function CourseList({ initialCourses, enrollmentMap, approvedCoun
               key={f.value}
               type="button"
               onClick={() => setFilter(f.value)}
+              aria-pressed={active}
               className={cn(
                 'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors',
                 active

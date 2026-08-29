@@ -8,64 +8,14 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { LogOut, Users, LayoutDashboard, Layers, ShieldCheck, GraduationCap, ImagePlus } from "lucide-react";
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from "motion/react";
 import { ROLE_LABELS_FA, isSuperAdmin } from "@/lib/roles";
-import { fadeUp, staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
-
-function isActivePath(pathname, path) {
-  if (path === '/admin') return pathname === '/admin';
-  return pathname === path || pathname.startsWith(path + '/');
-}
-
-function NavLink({ href, icon: Icon, children, active, collapsed }) {
-  return (
-    <motion.div variants={fadeUp} className="relative">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link
-            href={href}
-            className="group/nav relative flex items-center gap-3 rounded-xl px-3 py-2.5 font-bold transition-colors duration-300 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-          >
-            {active && (
-              <motion.span
-                layoutId="activeNavPill"
-                className="absolute inset-0 rounded-xl bg-gradient-to-l from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/30"
-                transition={{ type: "spring", stiffness: 380, damping: 30 }}
-              />
-            )}
-            <span
-              className={`relative z-10 flex items-center gap-3 transition-transform duration-300 group-hover/nav:translate-x-[-2px] ${
-                active ? "text-white" : "text-gray-600 group-hover/nav:text-gray-900"
-              }`}
-            >
-              <Icon size={20} className="shrink-0" />
-              <span className="truncate group-data-[collapsible=icon]:hidden">{children}</span>
-            </span>
-          </Link>
-        </TooltipTrigger>
-        <TooltipContent side="left" hidden={!collapsed}>
-          {children}
-        </TooltipContent>
-      </Tooltip>
-    </motion.div>
-  );
-}
-
-function initialsOf(name) {
-  if (!name) return "؟";
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return "؟";
-  return parts.slice(0, 2).map((p) => p[0]).join("");
-}
+import { staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
+import SidebarNavLink, { isActivePath, initialsOf } from "@/components/shared/SidebarNavLink";
 
 export function AdminSidebar() {
   const { data: session, status } = useSession();
@@ -119,15 +69,15 @@ export function AdminSidebar() {
             className="flex flex-col gap-1"
           >
             {items.map((item) => (
-              <NavLink
+              <SidebarNavLink
                 key={item.href}
                 href={item.href}
                 icon={item.icon}
-                active={isActivePath(pathname, item.href)}
+                active={isActivePath(pathname, item.href, "/admin")}
                 collapsed={collapsed}
               >
                 {item.label}
-              </NavLink>
+              </SidebarNavLink>
             ))}
           </motion.div>
         </SidebarGroup>
@@ -152,6 +102,7 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => signOut()}
+              aria-label="خروج از سامانه"
               title="خروج از سامانه"
               className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:hidden"
             >
@@ -160,6 +111,7 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => signOut()}
+              aria-label="خروج از سامانه"
               title="خروج از سامانه"
               className="hidden size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:flex"
             >

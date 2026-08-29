@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { internalAxios } from "@/lib/axios";
-import { Badge } from "@radix-ui/themes";
+import { Badge } from "@/components/ui/badge";
+import { BADGE_TONES } from "@/lib/statusLabels";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "motion/react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
-import { LogIn, LogOut, ChevronRight, ChevronLeft } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
+import TablePager from "@/components/shared/TablePager";
 import { ROLE_LABELS_FA } from "@/lib/roles";
 
 function formatDateTime(value) {
@@ -31,6 +33,7 @@ export default function ImpersonationLogsPage() {
       const { data } = await internalAxios.get(`/admin/impersonation-logs?page=${page}&limit=${limit}`);
       return data;
     },
+    placeholderData: keepPreviousData,
   });
 
   const logs = data?.logs ?? [];
@@ -70,13 +73,13 @@ export default function ImpersonationLogsPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 transition-colors hover:bg-black/[0.03]">
                   <div className="text-sm">
                     <span className="font-medium">{log.actorName}</span>
-                    <span className="text-muted-foreground"> ({ROLE_LABELS_FA[log.actorRole] || log.actorRole}) </span>
+                    <span className="text-muted-foreground"> ({ROLE_LABELS_FA[log.actorRole] || "نامشخص"}) </span>
                     {log.action === "START" ? "وارد حساب" : "خروج از حساب"}{" "}
                     <span className="font-medium">{log.targetName}</span>
-                    <span className="text-muted-foreground"> ({ROLE_LABELS_FA[log.targetRole] || log.targetRole})</span> شد
+                    <span className="text-muted-foreground"> ({ROLE_LABELS_FA[log.targetRole] || "نامشخص"})</span> شد
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge color={log.action === "START" ? "amber" : "gray"} radius="full">
+                    <Badge className={log.action === "START" ? BADGE_TONES.amber : BADGE_TONES.gray}>
                       {log.action === "START" ? "ورود" : "خروج"}
                     </Badge>
                     <span className="text-xs text-muted-foreground">{formatDateTime(log.createdAt)}</span>
@@ -90,15 +93,14 @@ export default function ImpersonationLogsPage() {
         )}
       </div>
 
-      <div className="flex items-center justify-center gap-2">
-        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
-          <ChevronRight className="h-4 w-4" /> قبلی
-        </Button>
-        <span className="text-sm">صفحه <strong>{page}</strong> از <strong>{pageCount}</strong></span>
-        <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setPage((p) => Math.min(pageCount, p + 1))} disabled={page >= pageCount}>
-          بعدی <ChevronLeft className="h-4 w-4" />
-        </Button>
-      </div>
+      <TablePager
+        page={page}
+        pageCount={pageCount}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(pageCount, p + 1))}
+        canPrev={page > 1}
+        canNext={page < pageCount}
+      />
     </div>
   );
 }

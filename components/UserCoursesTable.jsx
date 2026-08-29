@@ -14,7 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CertificateStatus from '@/components/CertificateStatus';
 import { motion, AnimatePresence } from 'motion/react';
 import { fadeUp } from '@/lib/motion';
-import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { Inbox } from 'lucide-react';
+import TablePager from '@/components/shared/TablePager';
 
 const fetchUserCourses = async ({ queryKey }) => {
   const [_key, { page, limit }] = queryKey;
@@ -143,29 +144,14 @@ export default function UserCoursesTable({ initialData }) {
         </Table>
       </div>
 
-      <div className="flex items-center justify-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="cursor-pointer"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          <ChevronRight className="h-4 w-4" /> قبلی
-        </Button>
-        <span className="text-sm">
-          صفحه <strong>{pagination.pageIndex + 1}</strong> از <strong>{pageCount || 1}</strong>
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          className="cursor-pointer"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          بعدی <ChevronLeft className="h-4 w-4" />
-        </Button>
-      </div>
+      <TablePager
+        page={pagination.pageIndex + 1}
+        pageCount={pageCount}
+        onPrev={() => table.previousPage()}
+        onNext={() => table.nextPage()}
+        canPrev={table.getCanPreviousPage()}
+        canNext={table.getCanNextPage()}
+      />
     </div>
   );
 }

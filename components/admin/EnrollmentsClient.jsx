@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -24,8 +24,6 @@ import { gooeyToast } from "goey-toast";
 import { motion, AnimatePresence } from "motion/react";
 import { fadeUp } from "@/lib/motion";
 import {
-  ChevronLeft,
-  ChevronRight,
   Check,
   X,
   Lock,
@@ -35,6 +33,7 @@ import {
   Ban,
 } from "lucide-react";
 import DataTableShell from "./ui/DataTableShell";
+import TablePager from "@/components/shared/TablePager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -138,6 +137,7 @@ function FilterChips({ value, onChange }) {
             key={f.value}
             type="button"
             onClick={() => onChange(f.value)}
+            aria-pressed={active}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
               active
                 ? "bg-emerald-600 text-white shadow-sm"
@@ -230,7 +230,6 @@ export default function EnrollmentsClient({ initialData, courseId }) {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selected, setSelected] = useState(() => new Set());
   const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
-  const lastBulkStatus = useRef(null);
 
   const queryClient = useQueryClient();
 
@@ -303,17 +302,15 @@ export default function EnrollmentsClient({ initialData, courseId }) {
   });
 
   const bulkMutation = useMutation({
-    mutationFn: ({ ids, status }) => {
-      lastBulkStatus.current = status;
-      return internalAxios.post(`/admin/enrollments/bulk`, { ids, status });
-    },
+    mutationFn: ({ ids, status }) =>
+      internalAxios.post(`/admin/enrollments/bulk`, { ids, status }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["enrollments", courseId] });
       clearSelection();
       const updated = res?.updated ?? 0;
       const skipped = res?.skippedCount ?? 0;
       const errs = res?.errorCount ?? 0;
-      const verb = lastBulkStatus.current === "APPROVED" ? "تایید" : "رد";
+      const verb = bulkMutation.variables?.status === "APPROVED" ? "تایید" : "رد";
       let msg = `تعداد ${updated} ثبت‌نام ${verb} شد`;
       if (skipped) msg += `، ${skipped} مورد نهایی شده نادیده گرفته شد`;
       if (errs) msg += `، ${errs} خطا`;
@@ -432,8 +429,8 @@ export default function EnrollmentsClient({ initialData, courseId }) {
             onApprove={handleBulkApprove}
             onReject={() => setBulkRejectOpen(true)}
             onClear={clearSelection}
-            approving={bulkMutation.isPending && lastBulkStatus.current === "APPROVED"}
-            rejecting={bulkMutation.isPending && lastBulkStatus.current === "REJECTED"}
+            approving={bulkMutation.isPending && bulkMutation.variables?.status === "APPROVED"}
+            rejecting={bulkMutation.isPending && bulkMutation.variables?.status === "REJECTED"}
           />
         )}
       </AnimatePresence>
@@ -502,29 +499,14 @@ export default function EnrollmentsClient({ initialData, courseId }) {
         </div>
       </DataTableShell>
 
-      <div className="flex items-center justify-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="cursor-pointer"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          <ChevronRight className="h-4 w-4" /> قبلی
-        </Button>
-        <span className="text-sm">
-          صفحه <strong>{pagination.pageIndex + 1}</strong> از <strong>{pageCount || 1}</strong>
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          className="cursor-pointer"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          بعدی <ChevronLeft className="h-4 w-4" />
-        </Button>
-      </div>
+      <TablePager
+        page={pagination.pageIndex + 1}
+        pageCount={pageCount}
+        onPrev={() => table.previousPage()}
+        onNext={() => table.nextPage()}
+        canPrev={table.getCanPreviousPage()}
+        canNext={table.getCanNextPage()}
+      />
 
       <AlertDialog open={bulkRejectOpen} onOpenChange={setBulkRejectOpen}>
         <AlertDialogContent>

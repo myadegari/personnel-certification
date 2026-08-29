@@ -23,7 +23,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@radix-ui/themes";
+import { Badge } from "@/components/ui/badge";
+import { BADGE_TONES } from "@/lib/statusLabels";
 import { Download, UploadCloud, FileSpreadsheet, Loader2 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -258,10 +259,10 @@ export default function UserImportDialog({ open, onOpenChange }) {
 function SummaryBar({ summary = {} }) {
   return (
     <div className="flex flex-wrap gap-2 text-sm">
-      <Badge color="gray" radius="full">مجموع: {summary.total ?? 0}</Badge>
-      <Badge color="green" radius="full">ایجاد: {summary.created ?? 0}</Badge>
-      <Badge color="blue" radius="full">بروزرسانی: {summary.updated ?? 0}</Badge>
-      <Badge color="ruby" radius="full">خطا: {summary.errors ?? 0}</Badge>
+      <Badge className={BADGE_TONES.gray}>مجموع: {summary.total ?? 0}</Badge>
+      <Badge className={BADGE_TONES.green}>ایجاد: {summary.created ?? 0}</Badge>
+      <Badge className={BADGE_TONES.blue}>بروزرسانی: {summary.updated ?? 0}</Badge>
+      <Badge className={BADGE_TONES.ruby}>خطا: {summary.errors ?? 0}</Badge>
     </div>
   );
 }
@@ -276,5 +277,5 @@ function RowStatusBadge({ status }) {
     error: { color: "ruby", label: "خطا" },
   };
   const cfg = map[status] || { color: "gray", label: status };
-  return <Badge color={cfg.color} radius="full">{cfg.label}</Badge>;
+  return <Badge className={BADGE_TONES[cfg.color] || BADGE_TONES.gray}>{cfg.label}</Badge>;
 }

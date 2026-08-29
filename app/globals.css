@@ -1,9 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@radix-ui/themes/styles.css";
 
-* {
-  font-family: var(--font-sahel) !important;
+/* Scope the app font to the body instead of a global override so utility
+   fonts (e.g. font-mono) keep working. */
+body {
+  font-family: var(--font-sahel);
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -30,6 +31,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-info: var(--info);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -50,6 +52,7 @@
 
 :root {
   --radius: 0.625rem;
+  --info: oklch(0.62 0.13 232);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
