@@ -101,11 +101,14 @@ bun run cleanup:profile-images
 ## FastAPI microservice checklist
 
 The certificate generator microservice also writes objects to storage and creates
-`File` records with `{ metadata: { job_id, type: "certificate" } }` — the public
-verification endpoint `/api/verify/[id]` depends on those records. Keep these
-contracts when changing storage or certificate generation:
+`File` records with `{ bucket: "certificate", metadata: { job_id, type } }` — the
+public verification endpoint `/api/verify/[id]` resolves a certificate by
+`metadata.job_id` + `bucket: "certificate"` (the `type` field is informational, so
+legacy records without it still resolve). Keep these contracts when changing
+storage or certificate generation:
 
 1. Point both services at the same Alarik endpoint.
 2. Match `ALARIK_REGION` exactly and use **path-style** addressing.
 3. Keep bucket/object naming identical so existing `File` records remain valid.
-4. Confirm new certificates still persist `metadata.job_id` + `metadata.type`.
+4. Confirm new certificates still persist `metadata.job_id` and use the
+   `certificate` bucket.

@@ -14,7 +14,7 @@ export async function GET(request, { params }) {
 
     const fileRecord = await File.findOne({
       "metadata.job_id": certificationId,
-      "metadata.type": "certificate"
+      bucket: "certificate",
     });
 
     if (!fileRecord) {
