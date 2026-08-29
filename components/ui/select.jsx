@@ -15,17 +15,59 @@ import { cn } from "@/lib/utils"
  */
 const SelectDirContext = React.createContext({ dir: "ltr", setDir: () => {} })
 
+// Base UI renders the selected item's LABEL from the `items` map passed to
+// Select.Root — without it, Select.Value falls back to the raw value (e.g.
+// "ADMIN" instead of "مدیر"). Callers may pass their own `items`; otherwise
+// we derive them from the rendered SelectItem children below.
+
+function extractLabel(node) {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractLabel).join("");
+  if (React.isValidElement(node)) return extractLabel(node.props?.children);
+  return "";
+}
+
+// Walk the React element tree (not the mounted DOM) so the mapping is
+// available even while the popup is closed — which is exactly when the
+// trigger's SelectValue needs it.
+function collectItems(children, acc) {
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return;
+    if (child.type === SelectItem) {
+      const { value, children: itemChildren } = child.props;
+      if (value !== undefined) {
+        acc.push({ value, label: extractLabel(itemChildren) });
+      }
+    }
+    if (child.props?.children != null) {
+      collectItems(child.props.children, acc);
+    }
+  });
+}
+
 function Select(
   {
+    items,
+    children,
     ...props
   }
 ) {
   const [dir, setDir] = React.useState("ltr")
   const contextValue = React.useMemo(() => ({ dir, setDir }), [dir])
 
+  const resolvedItems = React.useMemo(() => {
+    if (items) return items;
+    const collected = [];
+    collectItems(children, collected);
+    return collected.length ? collected : undefined;
+  }, [items, children]);
+
   return (
     <SelectDirContext.Provider value={contextValue}>
-      <SelectPrimitive.Root data-slot="select" {...props} />
+      <SelectPrimitive.Root data-slot="select" items={resolvedItems} {...props}>
+        {children}
+      </SelectPrimitive.Root>
     </SelectDirContext.Provider>
   );
 }
