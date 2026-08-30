@@ -26,12 +26,13 @@ async function getAnnualHours(startTimestamp, endTimestamp) {
   }
 }
 
-function AnnualHours() {
+function AnnualHours({ year, onYearChange }) {
   const [loading, setLoading] = React.useState(true);
   const [annualHours, setAnnualHours] = React.useState(0);
-  const [selectedYear, setSelectedYear] = React.useState(
-    () => toShamsi(new Date()).year
-  );
+  // The dashboard owns the selected year (it also filters the certificates
+  // table). When cleared (null = "همه"), this card still shows the
+  // current-year hours.
+  const displayYear = year ?? toShamsi(new Date()).year;
 
   const getJalaliYearTimestamps = (jalaliYear) => {
     const start = fromShamsi({ year: jalaliYear, month: 1, day: 1 });
@@ -45,7 +46,7 @@ function AnnualHours() {
   React.useEffect(() => {
     let active = true;
     async function fetchData() {
-      const { startTimestamp, endTimestamp } = getJalaliYearTimestamps(selectedYear);
+      const { startTimestamp, endTimestamp } = getJalaliYearTimestamps(displayYear);
       const data = await getAnnualHours(startTimestamp, endTimestamp);
       if (active && data) setAnnualHours(data.annualHours);
       if (active) setLoading(false);
@@ -54,7 +55,7 @@ function AnnualHours() {
     return () => {
       active = false;
     };
-  }, [selectedYear]);
+  }, [displayYear]);
 
   return (
     <motion.div
@@ -81,7 +82,7 @@ function AnnualHours() {
         </div>
       </div>
       <div className="relative mt-4 flex justify-start">
-        <PersianYearPicker year={selectedYear} onYearChange={setSelectedYear} />
+        <PersianYearPicker year={displayYear} onYearChange={(y) => onYearChange?.(y)} />
       </div>
     </motion.div>
   );

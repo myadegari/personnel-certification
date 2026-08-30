@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
-import { GraduationCap, Clock, FileCheck2, BookOpenCheck } from "lucide-react";
+import { GraduationCap, Clock, FileCheck2, BookOpenCheck, X } from "lucide-react";
 import { staggerContainer } from "@/lib/motion";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatCard from "@/components/admin/ui/StatCard";
 import SectionCard from "@/components/admin/ui/SectionCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import AnnualHours from "@/components/AnnualHours";
 import UserCoursesTable from "@/components/UserCoursesTable";
+import { toPersianDigits } from "@/lib/persian-date";
 
 function VerifyOverlay() {
   return (
@@ -33,6 +37,9 @@ function VerifyOverlay() {
 
 export default function DashboardClient({ stats, initialCoursesData, user }) {
   const notVerified = user?.status !== "VERIFIED";
+  // Shared Jalali year: null = "همه سال‌ها" (table unfiltered; the hours card
+  // falls back to the current year for its own stat).
+  const [selectedYear, setSelectedYear] = useState(null);
 
   return (
     <div className="relative space-y-6">
@@ -70,7 +77,7 @@ export default function DashboardClient({ stats, initialCoursesData, user }) {
             accent="violet"
             hint="ساعت"
           />
-          <AnnualHours />
+          <AnnualHours year={selectedYear} onYearChange={setSelectedYear} />
           <StatCard
             title="در انتظار بررسی"
             value={stats.pendingCount}
@@ -85,8 +92,28 @@ export default function DashboardClient({ stats, initialCoursesData, user }) {
           />
         </motion.div>
 
-        <SectionCard title="دوره‌های من (تایید شده)" description="فهرست دوره‌هایی که با موفقیت گذرانده‌اید">
-          <UserCoursesTable initialData={initialCoursesData} />
+        <SectionCard
+          title="دوره‌های من (تایید شده)"
+          description="فهرست دوره‌هایی که با موفقیت گذرانده‌اید"
+          action={
+            selectedYear ? (
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="border-sky-600/20 text-sky-700">
+                  سال {toPersianDigits(String(selectedYear))}
+                </Badge>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 cursor-pointer gap-1 text-muted-foreground"
+                  onClick={() => setSelectedYear(null)}
+                >
+                  <X className="size-3.5" /> همه سال‌ها
+                </Button>
+              </div>
+            ) : undefined
+          }
+        >
+          <UserCoursesTable initialData={initialCoursesData} year={selectedYear} />
         </SectionCard>
       </div>
     </div>

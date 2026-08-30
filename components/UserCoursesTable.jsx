@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -16,10 +16,13 @@ import { motion, AnimatePresence } from 'motion/react';
 import { fadeUp } from '@/lib/motion';
 import { Inbox } from 'lucide-react';
 import TablePager from '@/components/shared/TablePager';
+import { toPersianDigits } from '@/lib/persian-date';
 
 const fetchUserCourses = async ({ queryKey }) => {
-  const [_key, { page, limit }] = queryKey;
-  const { data } = await internalAxios.get(`/my-courses?page=${page}&limit=${limit}`);
+  const [_key, { page, limit, year }] = queryKey;
+  let url = `/my-courses?page=${page}&limit=${limit}`;
+  if (year != null) url += `&year=${year}`;
+  const { data } = await internalAxios.get(url);
   return data;
 };
 
@@ -28,16 +31,22 @@ const ClientSideDate = ({ timestamp }) => {
   return <>{new Date(timestamp * 1000).toLocaleDateString('fa-IR')}</>;
 };
 
-export default function UserCoursesTable({ initialData }) {
+export default function UserCoursesTable({ initialData, year = null }) {
   const [pagination, setPagination] = useState({
     pageIndex: initialData.pagination.currentPage - 1,
     pageSize: 5,
   });
 
+  // Jump back to page 1 whenever the year filter changes.
+  useEffect(() => {
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
+  }, [year]);
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['myCourses', { page: pagination.pageIndex + 1, limit: pagination.pageSize }],
+    queryKey: ['myCourses', { page: pagination.pageIndex + 1, limit: pagination.pageSize, year }],
     queryFn: fetchUserCourses,
-    initialData: pagination.pageIndex === 0 ? initialData : undefined,
+    initialData:
+      pagination.pageIndex === 0 && year == null ? initialData : undefined,
     placeholderData: keepPreviousData,
   });
 
@@ -135,7 +144,11 @@ export default function UserCoursesTable({ initialData }) {
                     <div className="flex size-12 items-center justify-center rounded-2xl bg-muted">
                       <Inbox className="size-6" />
                     </div>
-                    <p className="text-sm">هنوز دوره‌ای را با موفقیت نگذرانده‌اید.</p>
+                    <p className="text-sm">
+                      {year != null
+                        ? `دوره‌ای برای سال ${toPersianDigits(String(year))} یافت نشد.`
+                        : 'هنوز دوره‌ای را با موفقیت نگذرانده‌اید.'}
+                    </p>
                   </div>
                 </TableCell>
               </TableRow>
