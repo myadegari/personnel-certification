@@ -7,7 +7,6 @@ import User from "@/models/User";
 import ProfileSummary from "@/components/ProfileSummary";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
 import PageHeader from "@/components/admin/ui/PageHeader";
-import ProfileQuickLinks from "@/components/dashboard/ProfileQuickLinks";
 
 async function getUserData(userId) {
   await dbConnect();
@@ -39,8 +38,6 @@ export default async function ProfilePage() {
           <ChangePasswordForm />
         </div>
       </div>
-
-      <ProfileQuickLinks />
     </div>
   );
 }

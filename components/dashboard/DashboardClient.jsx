@@ -2,11 +2,10 @@
 
 import { motion } from "motion/react";
 import { GraduationCap, Clock, FileCheck2, BookOpenCheck } from "lucide-react";
-import { fadeUp, staggerContainer } from "@/lib/motion";
+import { staggerContainer } from "@/lib/motion";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatCard from "@/components/admin/ui/StatCard";
 import SectionCard from "@/components/admin/ui/SectionCard";
-import QuickLink from "@/components/shared/QuickLink";
 import AnnualHours from "@/components/AnnualHours";
 import UserCoursesTable from "@/components/UserCoursesTable";
 
@@ -40,8 +39,13 @@ export default function DashboardClient({ stats, initialCoursesData, user }) {
       {notVerified && <VerifyOverlay />}
 
       {/* `inert` (not just aria-hidden) keeps keyboard focus out of the
-          blurred content while the account is pending verification. */}
-      <div className={notVerified ? "pointer-events-none select-none blur-sm" : ""} inert={notVerified}>
+          blurred content while the account is pending verification.
+          space-y-6 lives on this wrapper because it is the direct parent of
+          the sections (the outer root's space-y can't reach them). */}
+      <div
+        className={`space-y-6 ${notVerified ? "pointer-events-none select-none blur-sm" : ""}`}
+        inert={notVerified}
+      >
         <PageHeader
           title={`سلام، ${user?.firstName || "کاربر"}`}
           description="خلاصه‌ای از دوره‌ها و گواهی‌های شما"
@@ -84,21 +88,6 @@ export default function DashboardClient({ stats, initialCoursesData, user }) {
         <SectionCard title="دوره‌های من (تایید شده)" description="فهرست دوره‌هایی که با موفقیت گذرانده‌اید">
           <UserCoursesTable initialData={initialCoursesData} />
         </SectionCard>
-
-        <motion.div variants={fadeUp} initial="hidden" animate="show" className="grid gap-4 sm:grid-cols-2">
-          <QuickLink
-            href="/dashboard/courses"
-            title="دوره‌های مرکز"
-            desc="مشاهده و ثبت‌نام در دوره‌های آموزشی"
-            icon={GraduationCap}
-          />
-          <QuickLink
-            href="/dashboard/profile"
-            title="پروفایل کاربری"
-            desc="مشاهده اطلاعات و تغییر رمز عبور"
-            icon={FileCheck2}
-          />
-        </motion.div>
       </div>
     </div>
   );
