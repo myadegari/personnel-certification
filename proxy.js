@@ -56,8 +56,9 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - pdf.worker.min.mjs (pdf.js worker, fetched without auth context)
      * - login, forgot-password (public auth pages)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|authentication/login|authentication/forgot-password|verify).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|pdf.worker.min.mjs|authentication/login|authentication/forgot-password|verify).*)",
   ],
 };

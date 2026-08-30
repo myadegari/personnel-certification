@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import dbConnect from "@/lib/dbConnect";
 import File from "@/models/File";
-import { getPresignedUrl } from '@/lib/storage';
+import { getPresignedUrl, getObjectBuffer } from '@/lib/storage';
 import { isStaffRole } from '@/lib/roles';
 
 export async function GET(request, { params }) {
@@ -32,6 +32,30 @@ export async function GET(request, { params }) {
     fileRecord.userId?.toString() !== session.user.id
   ) {
     return NextResponse.json({ error: "File not found or access denied." }, { status: 403 });
+  }
+
+  // ?raw=1 streams the bytes same-origin (used by the pdf.js thumbnails —
+  // fetching the cross-origin presigned URL would need storage CORS and
+  // would taint the canvas).
+  const wantsRaw = new URL(request.url).searchParams.get("raw");
+  if (wantsRaw) {
+    try {
+      const buffer = await getObjectBuffer({
+        bucket: fileRecord.bucket,
+        objectName: fileRecord.objectName,
+      });
+      return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+          "Content-Type": fileRecord.mimeType || "application/octet-stream",
+          "Content-Disposition": `inline; filename="${(fileRecord.originalName || "file").replace(/["\r\n]/g, "")}"`,
+          "Cache-Control": "private, max-age=300",
+        },
+      });
+    } catch (error) {
+      console.error("Failed to stream file:", error);
+      return NextResponse.json({ error: "Could not retrieve file." }, { status: 500 });
+    }
   }
 
   // Always regenerate a fresh, browser-facing (public-signed) presigned URL.

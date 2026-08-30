@@ -46,3 +46,6 @@ next-env.d.ts
 
 # local AI tool config (never commit)
 opencode.json
+
+# pdf.js worker (copied from pdfjs-dist by scripts/copy-pdf-worker.mjs)
+public/pdf.worker.min.mjs

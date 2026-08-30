@@ -19,11 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatBytes } from "@/lib/utils";
+import PdfThumbnail from "@/components/admin/PdfThumbnail";
 import {
   Search,
   Upload,
   Trash2,
   ImageOff,
+  FileText,
   AlertTriangle,
   Check,
   X,
@@ -36,18 +39,7 @@ import TablePager from "@/components/shared/TablePager";
 import { BUCKET_LABELS_FA } from "@/lib/mediaConstants";
 
 const PAGE_SIZE = 24;
-
-function formatBytes(n) {
-  if (!n) return "";
-  const units = ["B", "KB", "MB"];
-  let i = 0;
-  let v = n;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i += 1;
-  }
-  return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-}
+const isPdf = (item) => item.mimeType === "application/pdf";
 
 export default function MediaLibraryClient() {
   const queryClient = useQueryClient();
@@ -299,10 +291,16 @@ function MediaTile({ item, selected, onToggle, onOpen }) {
         <button type="button" onClick={onOpen} className="flex h-full w-full cursor-pointer items-center justify-center">
           {item.kind === "image" && item.url ? (
             <img src={item.url} alt={item.alt || item.title} className="size-full object-cover" loading="lazy" />
+          ) : isPdf(item) && item.url ? (
+            <PdfThumbnail fileId={item.id} name={item.title || item.originalName} />
           ) : (
-            <div className="flex flex-col items-center gap-1 text-muted-foreground">
-              <ImageOff className="size-6" />
-              <span className="text-[10px]">{item.mimeType?.split("/")[1]?.toUpperCase()}</span>
+            <div className="flex flex-col items-center gap-2 bg-gradient-to-br from-stone-50 to-stone-100 text-stone-400">
+              <span className="flex size-12 items-center justify-center rounded-2xl bg-white shadow-sm">
+                <FileText className="size-6" />
+              </span>
+              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-bold text-stone-500">
+                {item.mimeType?.split("/")[1]?.toUpperCase() || "FILE"}
+              </span>
             </div>
           )}
         </button>

@@ -20,20 +20,7 @@ import { USER_STATUS_META, FALLBACK_STATUS_META } from "@/lib/statusLabels";
 import { formatDate } from "@/lib/persian-date";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { initialsOf } from "@/components/shared/SidebarNavLink";
-
-function InfoRow({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-black/5 bg-white/60 p-3 transition-colors hover:bg-white">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
-        <Icon className="size-4" />
-      </span>
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="truncate text-sm font-medium text-gray-800">{value || "—"}</p>
-      </div>
-    </div>
-  );
-}
+import InfoField from "@/components/shared/InfoField";
 
 export default function ProfileSummary({ user }) {
   const signatureFileQuery = useFileUrl(user?.signatureImage);
@@ -103,28 +90,28 @@ export default function ProfileSummary({ user }) {
         description="این اطلاعات توسط مدیر سیستم نگهداری می‌شود"
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <InfoRow
+          <InfoField
             icon={User}
             label="نام و نام خانوادگی"
             value={fullName}
           />
-          <InfoRow
+          <InfoField
             icon={Hash}
             label="شماره پرسنلی"
             value={user?.personnelNumber ? <span dir="ltr">{user.personnelNumber}</span> : null}
           />
-          <InfoRow
+          <InfoField
             icon={Hash}
             label="کد ملی"
             value={user?.nationalId ? <span dir="ltr">{user.nationalId}</span> : null}
           />
-          <InfoRow
+          <InfoField
             icon={Mail}
             label="ایمیل"
             value={user?.email ? <span dir="ltr">{user.email}</span> : null}
           />
-          <InfoRow icon={Briefcase} label="سمت" value={user?.position} />
-          <InfoRow
+          <InfoField icon={Briefcase} label="سمت" value={user?.position} />
+          <InfoField
             icon={GraduationCap}
             label="عضو هیات علمی"
             value={user?.isProfessor ? "بله" : "خیر"}

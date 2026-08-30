@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "bun scripts/copy-pdf-worker.mjs && next dev",
+    "build": "bun scripts/copy-pdf-worker.mjs && next build",
     "start": "bun run seed:superadmin; next start",
     "lint": "eslint",
     "seed:superadmin": "bun scripts/seed-superadmin.js",
@@ -46,6 +46,7 @@
     "nodemailer": "^7.0.10",
     "otp-generator": "^4.0.1",
     "papaparse": "^5.7.0",
+    "pdfjs-dist": "^6.3.289",
     "radix-ui": "^1.4.3",
     "react": "19.2.0",
     "react-date-object": "^2.1.9",
