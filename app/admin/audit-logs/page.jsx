@@ -144,9 +144,11 @@ export default function AuditLogsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 transition-colors hover:bg-black/[0.03]">
                     <div className="text-sm">
                       <span className="font-medium">{log.actorName || "سیستم"}</span>
+                      {" "}
                       {log.actorRole && (
-                        <span className="text-muted-foreground"> ({log.actorRole}) </span>
+                        <span className="text-muted-foreground">({log.actorRole})</span>
                       )}
+                      {" "}
                       <span className="font-semibold text-emerald-800">
                         {AUDIT_ACTION_LABELS_FA[log.action] || log.action}
                       </span>
