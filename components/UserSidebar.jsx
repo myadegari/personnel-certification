@@ -8,13 +8,13 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { LogOut, LayoutDashboard, GraduationCap, Settings } from "lucide-react";
+import { LogOut, LayoutDashboard, GraduationCap, Settings, Building2 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { clsx } from "clsx";
-import { ROLE_LABELS_FA } from "@/lib/roles";
+import { ROLES, ROLE_LABELS_FA } from "@/lib/roles";
 import { staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
 import { useUser } from "@/hooks/useUser";
 import SidebarNavLink, { isActivePath, initialsOf } from "@/components/shared/SidebarNavLink";
@@ -40,6 +40,10 @@ export function UserSidebar() {
     { href: "/dashboard/courses", label: "دوره‌های مرکز", icon: GraduationCap },
     { href: "/dashboard/profile", label: "پروفایل کاربری", icon: Settings },
   ];
+  // DEPUTY_HEAD gets a dedicated tracking page for their deputy's courses.
+  if (userData?.role === ROLES.DEPUTY_HEAD) {
+    items.push({ href: "/dashboard/deputy", label: "معاونت من", icon: Building2 });
+  }
 
   return (
     <Sidebar

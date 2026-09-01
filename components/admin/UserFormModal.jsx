@@ -49,6 +49,7 @@ const emptyForm = {
   position: "",
   isProfessor: false,
   deputy: '',
+  headedDeputy: '',
 };
 
 export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
@@ -87,6 +88,7 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
         position: userData.position || "",
         isProfessor: userData.isProfessor || false,
         deputy: userData.deputy?._id || userData.deputy || '',
+        headedDeputy: userData.headedDeputy?._id || userData.headedDeputy || '',
         password: '',
       });
     } else {
@@ -150,6 +152,7 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
       payload.append('position', formData.position || '');
       payload.append('isProfessor', String(Boolean(formData.isProfessor)));
       payload.append('deputy', formData.deputy || '');
+      payload.append('headedDeputy', formData.headedDeputy || '');
 
       if (!isEditing) {
         payload.append('password', formData.password);
@@ -306,6 +309,27 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                   <Label htmlFor="password">رمز عبور</Label>
                   <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required minLength={8} />
                   <p className="text-xs text-muted-foreground">حداقل ۸ کاراکتر.</p>
+                </div>
+              )}
+              {formData.role === "DEPUTY_HEAD" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="headedDeputy">معاونت تحت سرپرستی</Label>
+                  <Select
+                    value={formData.headedDeputy || "none"}
+                    onValueChange={(v) => setFormData((prev) => ({ ...prev, headedDeputy: v === "none" ? "" : v }))}
+                  >
+                    <SelectTrigger id="headedDeputy">
+                      <SelectValue placeholder="انتخاب معاونت" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">بدون معاونت</SelectItem>
+                      {deputies.map((d) => (
+                        <SelectItem key={d._id} value={d._id}>
+                          {d.number} — {d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </fieldset>

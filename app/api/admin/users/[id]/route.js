@@ -7,7 +7,7 @@ import { uploadUserSignature } from '@/lib/signatureUpload';
 import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
 
-const ALLOWED_FIELDS = ['firstName', 'lastName', 'email', 'role', 'personnelNumber', 'nationalId', 'gender', 'position', 'isProfessor', 'deputy'];
+const ALLOWED_FIELDS = ['firstName', 'lastName', 'email', 'role', 'personnelNumber', 'nationalId', 'gender', 'position', 'isProfessor', 'deputy', 'headedDeputy'];
 
 async function parseUserPayload(request) {
   const contentType = request.headers.get('content-type') || '';
@@ -31,6 +31,7 @@ async function parseUserPayload(request) {
         position: value('position'),
         isProfessor: value('isProfessor') === 'true',
         deputy: value('deputy'),
+        headedDeputy: value('headedDeputy'),
       },
       signatureFile: data.get('signatureFile') || undefined,
       signatureFileId: data.get('signatureFileId') || undefined,
@@ -87,6 +88,9 @@ export async function PUT(request, { params }) {
     // whitelist loop so Mongo stores null instead of an empty string.
     if ("deputy" in fields && fields.deputy === "") {
       fields.deputy = null;
+    }
+    if ("headedDeputy" in fields && fields.headedDeputy === "") {
+      fields.headedDeputy = null;
     }
     for (const field of ALLOWED_FIELDS) {
       if (field in fields) {
