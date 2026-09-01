@@ -13,10 +13,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatCard from "@/components/admin/ui/StatCard";
 import SectionCard from "@/components/admin/ui/SectionCard";
-import { AlertTriangle, Users, FileCheck2, Clock, ExternalLink, Building2, Layers } from "lucide-react";
+import { AlertTriangle, Users, FileCheck2, Clock, ExternalLink, Building2, Layers, FileUp } from "lucide-react";
 import { DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
+import BulkIssueDialog from "@/components/BulkIssueDialog";
 
 const fmtDate = (ts) =>
   ts
@@ -65,6 +66,7 @@ function DeputyCourseCard({ course }) {
 }
 
 export default function DeputyDashboardPage() {
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["deputyDashboard"],
     queryFn: async () => (await internalAxios.get("/dashboard/deputy")).data,
@@ -102,10 +104,16 @@ export default function DeputyDashboardPage() {
   const totalApproved = courses.reduce((s, c) => s + c.stats.approved, 0);
 
   return (
+    <>
     <div className="space-y-6">
       <PageHeader
         title={deputy?.name || "معاونت"}
         description={`شماره معاونت: ${String(deputy?.number || "").padStart(2, "0")} — ${totalCourses} دوره`}
+        actions={
+          <Button className="cursor-pointer" onClick={() => setBulkDialogOpen(true)}>
+            <FileUp className="h-4 w-4" /> صدور دسته‌جمعی
+          </Button>
+        }
       />
 
       <motion.div
@@ -179,5 +187,8 @@ export default function DeputyDashboardPage() {
         </div>
       )}
     </div>
+
+      <BulkIssueDialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen} />
+    </>
   );
 }

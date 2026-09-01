@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import mongoose from "mongoose";
 import dbConnect from "@/lib/dbConnect";
 import Enrollment from "@/models/Enrollment";
+import GuestCertificate from "@/models/GuestCertificate";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -14,14 +16,11 @@ const MAX_CLOCK_SKEW_SECONDS = 5 * 60;
 function verifySignature(rawBody, signatureHeader, timestampHeader) {
   const secret = process.env.WEBHOOK_SECRET;
   if (!secret) {
-    // Misconfiguration: refuse rather than accept unsigned callbacks.
     return false;
   }
   if (!signatureHeader || !signatureHeader.startsWith("sha256=")) {
     return false;
   }
-  // Replay protection: the worker signs "{timestamp}.{raw_body}" and sends the
-  // timestamp in a header; reject anything outside the skew window.
   const timestamp = Number(timestampHeader);
   if (!Number.isFinite(timestamp)) {
     return false;
@@ -44,9 +43,10 @@ function verifySignature(rawBody, signatureHeader, timestampHeader) {
 
 // POST /api/certificates/webhook
 // Receives HMAC-SHA256-signed certificate status updates from the worker and
-// mirrors them onto the matching Enrollment (looked up by jobId). The update
-// is atomic and refuses to touch enrollments that already reached a terminal
-// state, so out-of-order retries can never downgrade a finished certificate.
+// mirrors them onto the matching Enrollment or GuestCertificate (looked up by
+// jobId). The update is atomic and refuses to touch records that already
+// reached a terminal state, so out-of-order retries can never downgrade a
+// finished certificate.
 export async function POST(request) {
   const rawBody = await request.text();
 
@@ -68,13 +68,13 @@ export async function POST(request) {
     return NextResponse.json({ error: "Missing job_id or status" }, { status: 400 });
   }
   if (!VALID_STATUSES.has(status)) {
-    // 400 (non-retryable) so the worker does not hammer us with garbage.
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
   await dbConnect();
 
-  const result = await Enrollment.findOneAndUpdate(
+  // Try Enrollment first (normal user certificates).
+  const enrollmentResult = await Enrollment.findOneAndUpdate(
     { jobId, certificateStatus: { $nin: [...TERMINAL] } },
     {
       $set: {
@@ -87,29 +87,51 @@ export async function POST(request) {
     { new: true }
   );
 
-  if (!result) {
-    // Either no enrollment has this jobId (the approval may not have finished
-    // persisting yet — the worker retries), or the status is already terminal
-    // and the update was intentionally ignored.
-    const existing = await Enrollment.findOne({ jobId })
-      .select("_id")
-      .lean();
-    if (existing) {
-      return NextResponse.json({ ok: true, ignored: true });
+  if (enrollmentResult) {
+    if (status === "completed") {
+      await recordAuditEvent({
+        actor: { id: enrollmentResult.user },
+        action: AUDIT_ACTIONS.CERTIFICATE_ISSUED,
+        resourceType: AUDIT_RESOURCE_TYPES.CERTIFICATE,
+        resourceId: enrollmentResult._id,
+        metadata: { fileId: fileId || null, jobId },
+      });
     }
-    return NextResponse.json({ error: "Enrollment not found" }, { status: 404 });
+    return NextResponse.json({ ok: true });
   }
 
-  // System-originated event: the actor is the certificate owner, no session.
-  if (status === "completed") {
-    await recordAuditEvent({
-      actor: { id: result.user },
-      action: AUDIT_ACTIONS.CERTIFICATE_ISSUED,
-      resourceType: AUDIT_RESOURCE_TYPES.CERTIFICATE,
-      resourceId: result._id,
-      metadata: { fileId: fileId || null, jobId },
-    });
+  // Guest certificate (bulk-issued to persons without an account).
+  if (mongoose.Types.ObjectId.isValid(jobId)) {
+    const guestResult = await GuestCertificate.findOneAndUpdate(
+      { _id: jobId, certificateStatus: { $nin: [...TERMINAL] } },
+      {
+        $set: {
+          certificateStatus: status,
+          ...(status === "completed" && fileId ? { fileId } : {}),
+        },
+      },
+      { new: true }
+    );
+
+    if (guestResult) {
+      if (status === "completed") {
+        await recordAuditEvent({
+          actor: { id: guestResult.issuedBy },
+          action: AUDIT_ACTIONS.CERTIFICATE_ISSUED,
+          resourceType: AUDIT_RESOURCE_TYPES.CERTIFICATE,
+          resourceId: guestResult._id,
+          metadata: { fileId: fileId || null, jobId },
+        });
+      }
+      return NextResponse.json({ ok: true });
+    }
   }
 
-  return NextResponse.json({ ok: true });
+  // Nothing found — either the jobId is unknown (worker retries) or the
+  // record is already terminal.
+  const existing = await Enrollment.findOne({ jobId }).select("_id").lean();
+  if (existing) {
+    return NextResponse.json({ ok: true, ignored: true });
+  }
+  return NextResponse.json({ error: "Record not found" }, { status: 404 });
 }

@@ -13,11 +13,17 @@ const IndicatorUsageSchema = new mongoose.Schema({
     required: true,
   },
   // A reference to the enrollment this number was assigned to.
-  // Optional: bulk-issued guest certificates have no enrollment.
+  // Absent for bulk-issued guest certificates (sparse unique index on this
+  // field must not see null values — only present values are indexed).
   enrollment: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Enrollment',
-    default: null,
+  },
+  // A reference to the guest certificate (for bulk-issued certificates
+  // issued to persons without an account in the system).
+  guestCertificate: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'GuestCertificate',
   },
   // The full, human-readable certificate ID (e.g., '4050102003')
   fullCertificateId: {
