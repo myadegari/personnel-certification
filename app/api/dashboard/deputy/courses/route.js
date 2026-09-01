@@ -65,13 +65,9 @@ export async function POST(request) {
       );
     }
 
-    const signatory = toObjectIdOrNull(body?.signatory);
-    if (!signatory) {
-      return NextResponse.json(
-        { error: "انتخاب امضاکننده الزامی است." },
-        { status: 400 }
-      );
-    }
+    // Signatory defaults to the deputy head themself (mirrors the form's
+    // default); still validated below against a real user.
+    const signatory = toObjectIdOrNull(body?.signatory) || String(session.user.id);
     const signatoryUser = await User.findById(signatory).select("_id").lean();
     if (!signatoryUser) {
       return NextResponse.json({ error: "امضاکننده یافت نشد." }, { status: 400 });

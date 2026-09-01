@@ -6,6 +6,7 @@ import { gooeyToast } from "goey-toast";
 import { internalAxios } from "@/lib/axios";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useFileUrl } from "@/hooks/useFileUrl";
+import { useUser } from "@/hooks/useUser";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -90,6 +91,7 @@ const emptyForm = {
 export default function DeputyCourseFormDialog({ open, onOpenChange, courseData }) {
   const queryClient = useQueryClient();
   const uploadFileMutation = useUploadFile();
+  const { data: currentUser } = useUser();
 
   const isEditing = !!courseData;
   const [formData, setFormData] = useState(emptyForm);
@@ -131,7 +133,6 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
         setStampPreview2(stamp2UrlQuery.data || "");
       } else {
         setFormData(emptyForm);
-        setSelectedSignatory1(null);
         setSelectedSignatory2(null);
         setStampId1(null);
         setStampId2(null);
@@ -145,6 +146,16 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseData, open, stamp1UrlQuery.data, stamp2UrlQuery.data]);
+
+  // Default signatory 1 to the deputy head themself in create mode (still
+  // changeable via the combobox). Applied once the profile is available.
+  useEffect(() => {
+    if (open && !isEditing && currentUser?._id && !formData.signatory) {
+      setSelectedSignatory1(currentUser);
+      setFormData((prev) => ({ ...prev, signatory: currentUser._id }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isEditing, currentUser?._id, formData.signatory]);
 
   const handleFile1Change = (e) => {
     if (e.target.files?.[0]) {
