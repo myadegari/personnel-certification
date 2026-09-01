@@ -55,7 +55,7 @@ export function UserSidebar() {
       className="border-l border-black/5 bg-white/70 backdrop-blur-xl"
       style={{ "--sidebar": "transparent" }}
     >
-      <SidebarHeader className="p-4">
+      <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-2">
         <Link href="/dashboard" className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
           {/* Expanded: logo wordmark + panel subtitle. Collapsed: square icon. */}
           <Image
@@ -67,9 +67,9 @@ export function UserSidebar() {
           <Image
             src={favIcon}
             alt="گواهیار"
-            width={36}
-            height={36}
-            className="hidden size-9 shrink-0 object-contain group-data-[collapsible=icon]:block"
+            width={32}
+            height={32}
+            className="hidden size-8 shrink-0 object-contain group-data-[collapsible=icon]:block"
             priority
           />
           <span className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
@@ -103,16 +103,16 @@ export function UserSidebar() {
         <SidebarGroup />
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="p-3 group-data-[collapsible=icon]:p-2">
         {status === "loading" ? (
           <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-            <div className="size-10 shrink-0 animate-pulse rounded-xl bg-gray-200" />
+            <div className="size-10 shrink-0 animate-pulse rounded-xl bg-gray-200 group-data-[collapsible=icon]:size-8" />
             <div className="h-8 flex-1 animate-pulse rounded-md bg-gray-200 group-data-[collapsible=icon]:hidden" />
           </div>
         ) : status === "authenticated" ? (
           <div className="flex items-center gap-3 rounded-2xl border border-black/5 bg-white/60 p-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
             <div className="relative shrink-0">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-sm">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-sm group-data-[collapsible=icon]:size-8">
                 {initialsOf(`${userData?.firstName || ""} ${userData?.lastName || ""}`.trim() || session.user.name)}
               </span>
               <span
@@ -145,7 +145,7 @@ export function UserSidebar() {
               onClick={() => signOut()}
               aria-label="خروج از سامانه"
               title="خروج از سامانه"
-              className="hidden size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:flex"
+              className="hidden size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:flex"
             >
               <LogOut className="h-4 w-4" />
             </button>

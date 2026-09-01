@@ -40,7 +40,7 @@ export default function SidebarNavLink({
           <Link
             href={href}
             aria-current={active ? "page" : undefined}
-            className="group/nav relative flex items-center gap-3 rounded-xl px-3 py-2.5 font-bold transition-colors duration-300 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+            className="group/nav relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 font-bold transition-colors duration-300 hover:bg-black/[0.04] group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hover:bg-transparent"
           >
             {active && (
               <motion.span
