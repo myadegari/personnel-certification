@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { LogOut, LayoutDashboard, GraduationCap, Settings, Building2 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
@@ -18,6 +19,8 @@ import { ROLES, ROLE_LABELS_FA } from "@/lib/roles";
 import { staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
 import { useUser } from "@/hooks/useUser";
 import SidebarNavLink, { isActivePath, initialsOf } from "@/components/shared/SidebarNavLink";
+import logo from "@/public/logo.png";
+import favIcon from "@/public/fav-icon.png";
 
 export function UserSidebar() {
   const { data: session, status } = useSession();
@@ -54,11 +57,22 @@ export function UserSidebar() {
     >
       <SidebarHeader className="p-4">
         <Link href="/dashboard" className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/30">
-            <GraduationCap size={22} />
-          </span>
+          {/* Expanded: logo wordmark + panel subtitle. Collapsed: square icon. */}
+          <Image
+            src={logo}
+            alt="گواهیار"
+            className="h-9 w-auto object-contain group-data-[collapsible=icon]:hidden"
+            priority
+          />
+          <Image
+            src={favIcon}
+            alt="گواهیار"
+            width={36}
+            height={36}
+            className="hidden size-9 shrink-0 object-contain group-data-[collapsible=icon]:block"
+            priority
+          />
           <span className="flex flex-col leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="text-base font-extrabold text-emerald-800">سامانه کارمندان</span>
             <span className="text-[11px] font-medium text-muted-foreground">پنل کاربری</span>
           </span>
         </Link>

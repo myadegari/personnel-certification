@@ -56,9 +56,11 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - fav-icon.png, logo.png (brand assets — favicon and email logos are
+     *   fetched without a session, e.g. from mail clients)
      * - pdf.worker.min.mjs (pdf.js worker, fetched without auth context)
      * - login, forgot-password (public auth pages)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|pdf.worker.min.mjs|authentication/login|authentication/forgot-password|verify).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|fav-icon.png|logo.png|pdf.worker.min.mjs|authentication/login|authentication/forgot-password|verify).*)",
   ],
 };

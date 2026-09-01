@@ -23,8 +23,11 @@ const sahel = localFont({
 });
 
 export const metadata = {
-  title: "سامانه کارمندان دانشگاه",
-  description: "پورتال جامع خدمات کارمندان",
+  title: "گواهیار",
+  description: "سامانه جامع مدیریت دوره‌ها و گواهینامه‌های کارکنان",
+  icons: {
+    icon: "/fav-icon.png",
+  },
 };
 
 

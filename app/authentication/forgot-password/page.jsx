@@ -1,6 +1,6 @@
 'use client';
 // File: app/forgot-password/page.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,16 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  // The reset email links here with ?token=… so the CTA button drops the
+  // user straight into step 2 with the token prefilled.
+  useEffect(() => {
+    const urlToken = new URLSearchParams(window.location.search).get('token');
+    if (urlToken) {
+      setToken(urlToken);
+      setStep(2);
+    }
+  }, []);
 
   const handleEmailSubmit = async (e) => {
     e.preventDefault();

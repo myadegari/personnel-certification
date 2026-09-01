@@ -43,7 +43,7 @@ export default function DashboardClient() {
     <div className="space-y-6">
       <PageHeader
         title="داشبورد مدیریت"
-        description="نمای کلی سامانه گواهی کارمندان"
+        description="نمای کلی گواهیار"
       />
 
       {isLoading || !stats ? (
