@@ -32,7 +32,13 @@ export async function POST(request) {
      if (!course) {
          return new Response(JSON.stringify({ message: "دوره مورد نظر یافت نشد." }), { status: 404 });
      }
- 
+
+     // Deputy-owned courses are private: certificates are issued directly by
+     // the deputy head, users can never enroll.
+     if (course.visibility === "DEPUTY") {
+         return new Response(JSON.stringify({ message: "این دوره قابل ثبت‌نام نیست." }), { status: 403 });
+     }
+
      // 1. Check registration deadline
      // The deadline is either a custom deadline set by an admin, or the end of the day after the course start date.
      // The extra 86399 seconds make the deadline 23:59:59 on the day after the course date.

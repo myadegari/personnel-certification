@@ -1,114 +1,16 @@
 import { NextResponse } from "next/server";
-import mongoose from "mongoose";
 import dbConnect from "@/lib/dbConnect";
-import Course from "@/models/Course";
-import User from "@/models/User";
-import Enrollment from "@/models/Enrollment";
-import GuestCertificate from "@/models/GuestCertificate";
-import { processCertificateGeneration } from "@/lib/certificateService";
 import { requireVerified } from "@/lib/authGuard";
-import { isStaffRole, ROLES } from "@/lib/roles";
 import { parseCsv, validateCertificateRow } from "@/lib/csv";
+import {
+  authorizeIssue,
+  findUserByNationalId,
+  issueForExistingUser,
+  issueForGuest,
+} from "@/lib/certificateIssuance";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 const MAX_ROWS = 500;
-
-function deputyIdOf(course) {
-  if (!course?.deputy) return null;
-  if (typeof course.deputy === "object" && course.deputy?._id) return String(course.deputy._id);
-  return String(course.deputy);
-}
-
-// Only staff, or a DEPUTY_HEAD whose headed deputy owns the course, may bulk-issue.
-async function assertBulkIssueAccess(session, course) {
-  if (isStaffRole(session.user.role)) return { ok: true };
-  if (session.user.role !== ROLES.DEPUTY_HEAD) {
-    return { ok: false, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-  }
-  const user = await User.findById(session.user.id).select("headedDeputy").lean();
-  const headed = user?.headedDeputy ? String(user.headedDeputy) : null;
-  if (headed && headed === deputyIdOf(course)) return { ok: true };
-  return { ok: false, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
-}
-
-// Ensure an APPROVED enrollment for (user, course) and issue its certificate.
-// Returns { skipped, reason?, certificateUniqueId? }.
-async function issueForExistingUser(user, course) {
-  let enrollment = await Enrollment.findOne({ user: user._id, course: course._id });
-
-  if (enrollment?.status === "APPROVED") {
-    if (enrollment.certificateStatus === "completed") {
-      return { skipped: true, reason: "گواهی قبلاً صادر شده است." };
-    }
-    return { skipped: true, reason: "ثبت‌نام قبلاً تایید شده و در حال پردازش است." };
-  }
-  if (enrollment?.status === "REJECTED") {
-    return { skipped: true, reason: "ثبت‌نام این کاربر قبلاً رد شده است." };
-  }
-
-  const target = enrollment || new Enrollment({
-    user: user._id,
-    course: course._id,
-    status: "PENDING",
-    metadata: { courseStatus: "EXIST" },
-  });
-
-  const certificateData = await processCertificateGeneration({ enrollment: target, user, course });
-
-  target.jobId = certificateData.jobId;
-  target.issuedAt = certificateData.issuedAt;
-  target.certificateUniqueId = certificateData.certificateUniqueId;
-  target.certificateUrl = certificateData.certificateUrl;
-  target.certificateStatus = "pending";
-  target.status = "APPROVED";
-  await target.save();
-
-  return { skipped: false, certificateUniqueId: certificateData.certificateUniqueId };
-}
-
-// Issue a guest certificate (person without an account). The guest's own _id
-// becomes the certificate's certificationId/jobId, so /verify/<id> works.
-async function issueForGuest(data, course, actor) {
-  const alreadyIssued = await GuestCertificate.findOne({
-    nationalId: data.nationalId,
-    course: course._id,
-    certificateStatus: "completed",
-  });
-  if (alreadyIssued) {
-    return { skipped: true, reason: "گواهی مهمان قبلاً صادر شده است." };
-  }
-
-  const guest = await GuestCertificate.create({
-    fullName: `${data.firstName} ${data.lastName}`,
-    nationalId: data.nationalId,
-    gender: data.gender,
-    course: course._id,
-    issuedBy: actor.id,
-    certificateStatus: "pending",
-  });
-
-  const user = {
-    gender: data.gender,
-    firstName: data.firstName,
-    lastName: data.lastName,
-    nationalId: data.nationalId,
-  };
-
-  const certificateData = await processCertificateGeneration({
-    enrollment: null,
-    user,
-    course,
-    guestCertificate: guest,
-  });
-
-  guest.jobId = certificateData.jobId;
-  guest.issuedAt = certificateData.issuedAt;
-  guest.certificateNumber = certificateData.certificateUniqueId;
-  guest.certificateUrl = certificateData.certificateUrl;
-  await guest.save();
-
-  return { skipped: false, certificateUniqueId: certificateData.certificateUniqueId, guestId: guest._id };
-}
 
 // POST /api/dashboard/deputy/bulk-issue
 // Bulk-issue certificates for a course from a CSV (firstName,lastName,
@@ -133,8 +35,8 @@ export async function POST(request) {
   if (!file || typeof file === "string") {
     return NextResponse.json({ error: "فایل CSV ارسال نشده است." }, { status: 400 });
   }
-  if (!mongoose.Types.ObjectId.isValid(courseId)) {
-    return NextResponse.json({ error: "دوره نامعتبر است." }, { status: 400 });
+  if (!courseId) {
+    return NextResponse.json({ error: "انتخاب دوره الزامی است." }, { status: 400 });
   }
 
   const text = await file.text();
@@ -159,15 +61,11 @@ export async function POST(request) {
 
   await dbConnect();
 
-  const course = await Course.findById(courseId)
-    .populate("deputy signatory signatory2")
-    .lean();
-  if (!course) {
-    return NextResponse.json({ error: "دوره یافت نشد." }, { status: 404 });
+  const access = await authorizeIssue(session, courseId);
+  if (access.error) {
+    return NextResponse.json({ error: access.error }, { status: access.status });
   }
-
-  const access = await assertBulkIssueAccess(session, course);
-  if (!access.ok) return access.error;
+  const course = access.course;
 
   const results = [];
   const summary = {
@@ -198,7 +96,7 @@ export async function POST(request) {
     }
     seenNationalIds.add(data.nationalId);
 
-    const existingUser = await User.findOne({ nationalId: data.nationalId });
+    const existingUser = await findUserByNationalId(data.nationalId);
 
     if (mode === "dry-run") {
       if (existingUser) {

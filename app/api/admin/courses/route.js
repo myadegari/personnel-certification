@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Course from "@/models/Course";
+import { generateUniqueCourseCode } from "@/lib/courseCode";
 import { requireAdmin } from "@/lib/authGuard";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
@@ -34,16 +35,6 @@ const ALLOWED_FIELDS = [
   "signatory2",
   "unitStamp2",
 ];
-
-/** Find an unused 5-digit numeric course code. */
-async function generateUniqueCourseCode() {
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    const code = String(Math.floor(10000 + Math.random() * 90000));
-    const exists = await Course.exists({ courseCode: code });
-    if (!exists) return code;
-  }
-  throw new Error("Could not allocate a unique course code");
-}
 
 // POST: Create a new course
 export async function POST(request) {

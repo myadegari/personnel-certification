@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import File from "@/models/File";
 import Course from "@/models/Course";
-import { requireAdmin } from "@/lib/authGuard";
+import { requireStaffOrDeputyHead } from "@/lib/authGuard";
 import { readValidatedImage } from "@/lib/uploadValidation";
 import {
   ensureBucket,
@@ -11,7 +11,7 @@ import {
 } from "@/lib/storage";
 
 export async function POST(request) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireStaffOrDeputyHead();
   if (error) return error;
 
   const data = await request.formData();

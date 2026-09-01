@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
-import { requireAdmin } from '@/lib/authGuard';
+import { requireStaffOrDeputyHead } from '@/lib/authGuard';
 
 // Escape user input so it is treated literally inside $regex
 function escapeRegex(str) {
   return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// GET: Search users by name
+// GET: Search users by name (staff + deputy heads, for signatory pickers)
 export async function GET(request) {
-  const { error } = await requireAdmin();
+  const { error } = await requireStaffOrDeputyHead();
   if (error) return error;
 
   try {

@@ -14,8 +14,10 @@ export default async function CoursesPage() {
   await dbConnect();
 
   const [courseDocs, userEnrollments, approvedAgg] = await Promise.all([
+    // Deputy-owned courses (visibility: "DEPUTY") are private to the deputy
+    // head: they never surface in the public catalog.
     Course.find(
-      {},
+      { visibility: { $ne: "DEPUTY" } },
       {
         name: 1,
         date: 1,

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { gooeyToast } from "goey-toast";
 import { motion } from "motion/react";
 import { internalAxios } from "@/lib/axios";
 import { fadeUp, staggerContainer } from "@/lib/motion";
@@ -13,18 +14,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatCard from "@/components/admin/ui/StatCard";
 import SectionCard from "@/components/admin/ui/SectionCard";
-import { AlertTriangle, Users, FileCheck2, Clock, ExternalLink, Building2, Layers, FileUp } from "lucide-react";
+import ConfirmDialog from "@/components/admin/ConfirmDialog";
+import { AlertTriangle, Users, FileCheck2, Clock, ExternalLink, Building2, Layers, FileUp, Plus, Pencil, Trash2, UserPlus } from "lucide-react";
 import { DateObject } from "react-multi-date-picker";
 import persian from "react-date-object/calendars/persian";
 import persian_fa from "react-date-object/locales/persian_fa";
 import BulkIssueDialog from "@/components/BulkIssueDialog";
+import SingleIssueDialog from "@/components/SingleIssueDialog";
+import DeputyCourseFormDialog from "@/components/DeputyCourseFormDialog";
 
 const fmtDate = (ts) =>
   ts
     ? new DateObject({ date: new Date(ts * 1000), calendar: persian, locale: persian_fa }).format()
     : "—";
 
-function DeputyCourseCard({ course }) {
+function DeputyCourseCard({ course, onEdit, onDelete, onIssue, canManage }) {
   const { stats, issueProgress } = course;
   const progressPct = issueProgress.max > 0 ? Math.round((issueProgress.issued / issueProgress.max) * 100) : 0;
 
@@ -58,18 +62,47 @@ function DeputyCourseCard({ course }) {
         </div>
         <Progress value={progressPct} className="h-1.5" />
       </div>
-      <div className="mt-2 text-xs text-muted-foreground">
-        مهلت ثبت‌نام: {fmtDate(course.enrollmentDeadline)}
+      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+        <span>مهلت ثبت‌نام: {fmtDate(course.enrollmentDeadline)}</span>
+        {canManage && (
+          <span className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer text-emerald-700" aria-label={`صدور گواهی برای ${course.name}`} title="صدور گواهی" onClick={() => onIssue?.(course)}>
+              <UserPlus className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" aria-label={`ویرایش ${course.name}`} title="ویرایش دوره" onClick={() => onEdit?.(course)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer text-red-600" aria-label={`حذف ${course.name}`} title="حذف دوره" onClick={() => onDelete?.(course)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </span>
+        )}
       </div>
     </motion.div>
   );
 }
 
 export default function DeputyDashboardPage() {
+  const queryClient = useQueryClient();
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [singleDialogOpen, setSingleDialogOpen] = useState(false);
+  const [singleIssueCourse, setSingleIssueCourse] = useState(null);
+  const [courseDialogOpen, setCourseDialogOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["deputyDashboard"],
     queryFn: async () => (await internalAxios.get("/dashboard/deputy")).data,
+  });
+
+  const deleteCourseMutation = useMutation({
+    mutationFn: (courseId) => internalAxios.delete(`/dashboard/deputy/courses/${courseId}`),
+    onSuccess: () => {
+      gooeyToast.success("دوره حذف شد.");
+      queryClient.invalidateQueries({ queryKey: ["deputyDashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["deputyCourses"] });
+    },
+    onError: (err) => gooeyToast.error(err.response?.data?.error || "خطا در حذف دوره"),
   });
 
   if (isLoading) {
@@ -110,9 +143,17 @@ export default function DeputyDashboardPage() {
         title={deputy?.name || "معاونت"}
         description={`شماره معاونت: ${String(deputy?.number || "").padStart(2, "0")} — ${totalCourses} دوره`}
         actions={
-          <Button className="cursor-pointer" onClick={() => setBulkDialogOpen(true)}>
-            <FileUp className="h-4 w-4" /> صدور دسته‌جمعی
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" className="cursor-pointer" onClick={() => { setEditingCourse(null); setCourseDialogOpen(true); }}>
+              <Plus className="h-4 w-4" /> ایجاد دوره
+            </Button>
+            <Button variant="outline" className="cursor-pointer" onClick={() => { setSingleIssueCourse(null); setSingleDialogOpen(true); }}>
+              <UserPlus className="h-4 w-4" /> صدور تکی
+            </Button>
+            <Button className="cursor-pointer" onClick={() => setBulkDialogOpen(true)}>
+              <FileUp className="h-4 w-4" /> صدور دسته‌جمعی
+            </Button>
+          </div>
         }
       />
 
@@ -137,7 +178,14 @@ export default function DeputyDashboardPage() {
             className="grid gap-4 md:grid-cols-2"
           >
             {courses.map((course) => (
-              <DeputyCourseCard key={course._id} course={course} />
+              <DeputyCourseCard
+                key={course._id}
+                course={course}
+                canManage={course.visibility === "DEPUTY"}
+                onEdit={(c) => { setEditingCourse(c); setCourseDialogOpen(true); }}
+                onDelete={(c) => setDeleteConfirm(c)}
+                onIssue={(c) => { setSingleIssueCourse(c); setSingleDialogOpen(true); }}
+              />
             ))}
           </motion.div>
         </SectionCard>
@@ -158,9 +206,12 @@ export default function DeputyDashboardPage() {
               </thead>
               <tbody>
                 {certificates.map((cert) => (
-                  <tr key={cert.enrollmentId} className="border-b transition-colors hover:bg-emerald-50/40">
+                  <tr key={cert.enrollmentId || cert.guestId} className="border-b transition-colors hover:bg-emerald-50/40">
                     <td className="px-3 py-2 text-sm">
-                      {cert.user?.firstName} {cert.user?.lastName}
+                      {cert.fullName || "—"}
+                      {cert.isGuest && (
+                        <Badge className={`${BADGE_TONES.blue} ms-2`} aria-label="گواهی مهمان">مهمان</Badge>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-sm font-mono" dir="ltr">{cert.user?.nationalId || "—"}</td>
                     <td className="px-3 py-2 text-sm font-mono" dir="ltr">{cert.certificateUniqueId || "—"}</td>
@@ -189,6 +240,37 @@ export default function DeputyDashboardPage() {
     </div>
 
       <BulkIssueDialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen} />
+      <SingleIssueDialog
+        open={singleDialogOpen}
+        onOpenChange={(v) => {
+          setSingleDialogOpen(v);
+          if (!v) setSingleIssueCourse(null);
+        }}
+        initialCourseId={singleIssueCourse?._id}
+      />
+      <DeputyCourseFormDialog
+        open={courseDialogOpen}
+        onOpenChange={(v) => {
+          setCourseDialogOpen(v);
+          if (!v) setEditingCourse(null);
+        }}
+        courseData={editingCourse}
+      />
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        onOpenChange={(o) => !o && setDeleteConfirm(null)}
+        title="حذف دوره"
+        description={deleteConfirm ? `آیا از حذف «${deleteConfirm.name}» اطمینان دارید؟ این عمل قابل بازگشت نیست.` : ""}
+        confirmText="حذف"
+        destructive
+        loading={deleteCourseMutation.isPending}
+        onConfirm={() => {
+          if (deleteConfirm) {
+            deleteCourseMutation.mutate(deleteConfirm._id);
+            setDeleteConfirm(null);
+          }
+        }}
+      />
     </>
   );
 }

@@ -40,6 +40,14 @@ const CourseSchema = new mongoose.Schema({
   // sequence belongs to (re-allocated only if the course's deputy changes).
   courseSeq: { type: Number, min: 1, max: 99 },
   courseSeqDeputy: { type: mongoose.Schema.Types.ObjectId, ref: 'Deputy' },
+  // PUBLIC courses appear in the /dashboard/courses catalog and accept
+  // enrollments. DEPUTY courses are created/managed by a deputy head: hidden
+  // from the catalog, not enrollable, certificates issued directly.
+  visibility: {
+    type: String,
+    enum: ['PUBLIC', 'DEPUTY'],
+    default: 'PUBLIC',
+  },
    // --- امضاکننده اول ---
   signatory: { 
     type: mongoose.Schema.Types.ObjectId,

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import dbConnect from "@/lib/dbConnect";
 import File from "@/models/File";
-import { requireAdmin } from "@/lib/authGuard";
+import { requireStaffOrDeputyHead } from "@/lib/authGuard";
 import { readValidatedImage } from "@/lib/uploadValidation";
 import { ensureBucket, putBuffer, getPresignedUrl } from "@/lib/storage";
 import { classifyKind, referencedFileIds, PROTECTED_BUCKETS } from "@/lib/media";
@@ -15,8 +15,9 @@ function escapeRegex(str) {
 }
 
 // GET: list media across buckets with filtering + pagination
+// (staff + deputy heads — deputies need the library for stamp picking)
 export async function GET(request) {
-  const { error } = await requireAdmin();
+  const { error } = await requireStaffOrDeputyHead();
   if (error) return error;
 
   try {
@@ -94,7 +95,7 @@ export async function GET(request) {
 
 // POST: upload a new media asset into the library
 export async function POST(request) {
-  const { session, error } = await requireAdmin();
+  const { session, error } = await requireStaffOrDeputyHead();
   if (error) return error;
 
   try {
