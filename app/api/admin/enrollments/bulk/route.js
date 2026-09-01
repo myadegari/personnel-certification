@@ -71,7 +71,7 @@ export async function POST(request) {
       if (status === "APPROVED") {
         const user = await User.findById(enrollment.user).lean();
         const course = await Course.findById(enrollment.course)
-          .populate("signatory signatory2")
+          .populate("signatory signatory2 deputy")
           .lean();
 
         if (!course || !user) {

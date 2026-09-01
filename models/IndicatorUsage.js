@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const IndicatorUsageSchema = new mongoose.Schema({
-  // A reference to the main indicator pattern (e.g., '404/الف')
+  // A reference to the main indicator pattern (e.g., 'CERT-C<courseId>')
   indicator: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Indicator',
@@ -12,14 +12,14 @@ const IndicatorUsageSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  // A reference to the enrollment this number was assigned to
+  // A reference to the enrollment this number was assigned to.
+  // Optional: bulk-issued guest certificates have no enrollment.
   enrollment: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Enrollment',
-    required: true,
-    unique: true, // An enrollment can only have one certificate number
+    default: null,
   },
-  // The full, human-readable certificate ID (e.g., '404/الف/101')
+  // The full, human-readable certificate ID (e.g., '4050102003')
   fullCertificateId: {
     type: String,
     required: true,
@@ -28,5 +28,8 @@ const IndicatorUsageSchema = new mongoose.Schema({
 
 // Ensures that a number is never used more than once for the same indicator pattern
 IndicatorUsageSchema.index({ indicator: 1, number: 1 }, { unique: true });
+// An enrollment can have at most one certificate; sparse so guest certs
+// (which have no enrollment) don't collide on null.
+IndicatorUsageSchema.index({ enrollment: 1 }, { unique: true, sparse: true });
 
 export default mongoose.models.IndicatorUsage || mongoose.model('IndicatorUsage', IndicatorUsageSchema);

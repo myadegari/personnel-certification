@@ -13,6 +13,7 @@ const ALLOWED_FIELDS = [
   "enrollmentDeadline",
   "enrollmentLimit",
   "organizingUnit",
+  "deputy",
   "signatory",
   "unitStamp",
   "signatory2",
@@ -29,7 +30,8 @@ export async function GET(request, { params }) {
     await dbConnect();
     const course = await Course.findById(id)
       .populate('signatory', 'firstName lastName')
-      .populate('signatory2', 'firstName lastName');
+      .populate('signatory2', 'firstName lastName')
+      .populate('deputy', 'name number');
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
@@ -58,6 +60,7 @@ export async function PUT(request, { params }) {
     // Ensure empty strings for optional ObjectId references are converted to null
     if (update.signatory === '') update.signatory = null;
     if (update.signatory2 === '') update.signatory2 = null;
+    if (update.deputy === '') update.deputy = null;
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

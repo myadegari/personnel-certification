@@ -8,7 +8,7 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { LogOut, Users, LayoutDashboard, Layers, GraduationCap, ImagePlus, ScrollText } from "lucide-react";
+import { LogOut, Users, LayoutDashboard, Layers, GraduationCap, ImagePlus, ScrollText, Building2 } from "lucide-react";
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,6 +33,7 @@ export function AdminSidebar() {
   const items = [
     { href: "/admin", label: "داشبورد", icon: LayoutDashboard },
     { href: "/admin/courses", label: "مدیریت دوره‌ها", icon: Layers },
+    { href: "/admin/deputies", label: "معاونت‌ها", icon: Building2 },
     { href: "/admin/users", label: "مدیریت کاربران", icon: Users },
     { href: "/admin/media", label: "کتابخانه رسانه", icon: ImagePlus },
   ];

@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/select";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { useSession } from "next-auth/react";
+import { useQuery } from "@tanstack/react-query";
+import { internalAxios } from "@/lib/axios";
 import { ASSIGNABLE_ROLES, ROLES, ROLE_LABELS_FA, canAssignRole, isSuperAdmin } from "@/lib/roles";
 import MediaPickerDialog from "./MediaPickerDialog";
 
@@ -45,11 +47,17 @@ const emptyForm = {
   email: "",
   gender: "",
   position: "",
-  isProfessor: false
+  isProfessor: false,
+  deputy: '',
 };
 
 export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
   const { data: session } = useSession();
+  const { data: deputies = [] } = useQuery({
+    queryKey: ["adminDeputies"],
+    queryFn: async () => (await internalAxios.get("/admin/deputies")).data,
+    enabled: isOpen,
+  });
   const [formData, setFormData] = useState(emptyForm);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -78,6 +86,7 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
         gender: userData.gender || "",
         position: userData.position || "",
         isProfessor: userData.isProfessor || false,
+        deputy: userData.deputy?._id || userData.deputy || '',
         password: '',
       });
     } else {
@@ -140,6 +149,7 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
       payload.append('gender', formData.gender);
       payload.append('position', formData.position || '');
       payload.append('isProfessor', String(Boolean(formData.isProfessor)));
+      payload.append('deputy', formData.deputy || '');
 
       if (!isEditing) {
         payload.append('password', formData.password);
@@ -249,6 +259,25 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                   />
                   <Label htmlFor="isProfessor" className="font-normal">عضو هیات علمی</Label>
                 </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="deputy">معاونت</Label>
+                <Select
+                  value={formData.deputy || "none"}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, deputy: v === "none" ? "" : v }))}
+                >
+                  <SelectTrigger id="deputy">
+                    <SelectValue placeholder="انتخاب معاونت" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون معاونت</SelectItem>
+                    {deputies.map((d) => (
+                      <SelectItem key={d._id} value={d._id}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </fieldset>
 

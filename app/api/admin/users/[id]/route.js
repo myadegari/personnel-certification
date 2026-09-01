@@ -7,7 +7,7 @@ import { uploadUserSignature } from '@/lib/signatureUpload';
 import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
 
-const ALLOWED_FIELDS = ['firstName', 'lastName', 'email', 'role', 'personnelNumber', 'nationalId', 'gender', 'position', 'isProfessor'];
+const ALLOWED_FIELDS = ['firstName', 'lastName', 'email', 'role', 'personnelNumber', 'nationalId', 'gender', 'position', 'isProfessor', 'deputy'];
 
 async function parseUserPayload(request) {
   const contentType = request.headers.get('content-type') || '';
@@ -30,6 +30,7 @@ async function parseUserPayload(request) {
         gender: value('gender'),
         position: value('position'),
         isProfessor: value('isProfessor') === 'true',
+        deputy: value('deputy'),
       },
       signatureFile: data.get('signatureFile') || undefined,
       signatureFileId: data.get('signatureFileId') || undefined,
@@ -82,6 +83,11 @@ export async function PUT(request, { params }) {
     }
 
     let hasFieldUpdate = false;
+    // Empty deputy means "remove the assignment"; convert to null before the
+    // whitelist loop so Mongo stores null instead of an empty string.
+    if ("deputy" in fields && fields.deputy === "") {
+      fields.deputy = null;
+    }
     for (const field of ALLOWED_FIELDS) {
       if (field in fields) {
         user[field] = fields[field];

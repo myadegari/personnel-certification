@@ -37,6 +37,8 @@ const UserSchema = new mongoose.Schema(
     },
     position: { type: String },
     signatureImage: { type: mongoose.Schema.Types.ObjectId, ref: "File" },
+    // Organizational deputy (معاونت) this user belongs to.
+    deputy: { type: mongoose.Schema.Types.ObjectId, ref: "Deputy" },
     role: {
       type: String,
       enum: ["USER", "ADMIN", "SUPERADMIN"],

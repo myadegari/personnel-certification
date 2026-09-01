@@ -16,6 +16,8 @@ import { Progress } from "@/components/ui/progress";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { useCourseMutation } from "@/hooks/useCourseMutation";
 import { useUploadFile } from "@/hooks/useUploadFile";
+import { useQuery } from "@tanstack/react-query";
+import { internalAxios } from "@/lib/axios";
 import UserSearchCombobox from "./UserSearchCombobox";
 import MediaPickerDialog from "./MediaPickerDialog";
 import { PersianDatePicker } from "./PersianDatePicker";
@@ -122,7 +124,20 @@ function Stepper({ currentStep }) {
   );
 }
 
-function CourseDetailsFields({ formData, setFormData }) {
+function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
+  const handleDeputyChange = (value) => {
+    setFormData((prev) => {
+      const next = { ...prev, deputy: value === "none" ? "" : value };
+      // Auto-fill the organizing unit with the deputy's name when one is
+      // chosen; the value stays editable afterwards.
+      if (value !== "none") {
+        const deputy = deputies.find((d) => d._id === value);
+        if (deputy?.name) next.organizingUnit = deputy.name;
+      }
+      return next;
+    });
+  };
+
   return (
     <FormSection icon={Info} title="اطلاعات دوره">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -162,6 +177,24 @@ function CourseDetailsFields({ formData, setFormData }) {
             required
           />
         </Field>
+        <Field
+          label="معاونت"
+          hint="انتخاب معاونت، واحد برگزارکننده را با نام معاونت تکمیل می‌کند."
+        >
+          <Select value={formData.deputy || "none"} onValueChange={handleDeputyChange}>
+            <SelectTrigger>
+              <SelectValue placeholder="انتخاب معاونت" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">بدون معاونت</SelectItem>
+              {deputies.map((d) => (
+                <SelectItem key={d._id} value={d._id}>
+                  {d.number} — {d.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
         <Field label="واحد برگزارکننده">
           <Input
             name="organizingUnit"
@@ -189,12 +222,15 @@ function CourseDetailsFields({ formData, setFormData }) {
   );
 }
 
-function StepSummary({ formData, onEdit }) {
+function StepSummary({ formData, onEdit, deputies = [] }) {
+  const deputyName =
+    (deputies.find((d) => d._id === formData.deputy)?.name) || "";
   const rows = [
     { label: "نام دوره", value: formData.name },
     { label: "تاریخ برگزاری", value: formatPersian(formData.date) },
     { label: "مهلت ثبت‌نام", value: formData.enrollmentDeadline ? formatPersian(formData.enrollmentDeadline) : "خودکار (یک روز پس از برگزاری)" },
     { label: "مدت زمان", value: formData.duration ? `${formData.duration} ساعت` : "—" },
+    { label: "معاونت", value: deputyName },
     { label: "واحد برگزارکننده", value: formData.organizingUnit },
     { label: "کد دوره", value: formData.courseCode },
   ];
@@ -296,6 +332,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     date: null,
     duration: "",
     organizingUnit: "",
+    deputy: "",
     signatory: null,
     signatory2: null,
     courseCode: "",
@@ -318,6 +355,11 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
 
   const isEditing = !!courseData;
   const isSubmitting = courseMutation.isPending || uploadFileMutation.isPending;
+  const { data: deputies = [] } = useQuery({
+    queryKey: ["adminDeputies"],
+    queryFn: async () => (await internalAxios.get("/admin/deputies")).data,
+    enabled: isOpen,
+  });
 
   const stamp1UrlQuery = useFileUrl(courseData?.unitStamp);
   const stamp2UrlQuery = useFileUrl(courseData?.unitStamp2);
@@ -334,6 +376,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             : null,
           duration: courseData.duration || "",
           organizingUnit: courseData.organizingUnit || "",
+          deputy: courseData.deputy?._id || courseData.deputy || "",
           signatory: courseData.signatory?._id || null,
           signatory2: courseData.signatory2?._id || null,
         });
@@ -428,6 +471,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             : null,
           duration: formData.duration,
           organizingUnit: formData.organizingUnit,
+          deputy: formData.deputy || null,
         };
         const createdCourse = await courseMutation.mutateAsync(step1Data);
         setCreatedCourseId(createdCourse._id);
@@ -557,7 +601,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1 pb-1" style={{ maxHeight: "60vh" }}>
               {isEditing ? (
                 <motion.div {...staggerProps} className="space-y-4">
-                  <CourseDetailsFields formData={formData} setFormData={setFormData} />
+                  <CourseDetailsFields formData={formData} setFormData={setFormData} deputies={deputies} />
                   {signatoryCards}
                 </motion.div>
               ) : (
@@ -571,11 +615,11 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
                   >
                     {currentStep === 1 ? (
                       <motion.div {...staggerProps} className="space-y-4">
-                        <CourseDetailsFields formData={formData} setFormData={setFormData} />
+                        <CourseDetailsFields formData={formData} setFormData={setFormData} deputies={deputies} />
                       </motion.div>
                     ) : (
                       <motion.div {...staggerProps} className="space-y-4">
-                        <StepSummary formData={formData} onEdit={() => setCurrentStep(1)} />
+                        <StepSummary formData={formData} onEdit={() => setCurrentStep(1)} deputies={deputies} />
                         {signatoryCards}
                       </motion.div>
                     )}

@@ -77,6 +77,11 @@ export default function CoursesClient({ initialCourses }) {
       },
       { accessorKey: "organizingUnit", header: "واحد برگزار کننده" },
       {
+        accessorKey: "deputy",
+        header: "معاونت",
+        cell: ({ row }) => row.original.deputy?.name || "—",
+      },
+      {
         accessorKey: "date",
         header: "تاریخ برگزاری",
         cell: ({ row }) => <span dir="ltr">{fmtDate(row.original.date)}</span>,

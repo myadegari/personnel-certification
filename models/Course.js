@@ -28,6 +28,18 @@ const CourseSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  // Owning deputy (معاونت); its 2-digit number is embedded in certificate
+  // numbers and its name can pre-fill organizingUnit on the form.
+  deputy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Deputy',
+  },
+  // Per-deputy course sequence (2-digit) embedded in certificate numbers as
+  // [year3][deputy2][course2][issue3]. Assigned once on first certificate
+  // issue and stable afterwards; courseSeqDeputy records which deputy the
+  // sequence belongs to (re-allocated only if the course's deputy changes).
+  courseSeq: { type: Number, min: 1, max: 99 },
+  courseSeqDeputy: { type: mongoose.Schema.Types.ObjectId, ref: 'Deputy' },
    // --- امضاکننده اول ---
   signatory: { 
     type: mongoose.Schema.Types.ObjectId,

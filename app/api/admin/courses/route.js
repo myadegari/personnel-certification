@@ -13,6 +13,7 @@ export async function GET() {
     await dbConnect();
     const courses = await Course.find({})
       .populate("signatory", "firstName lastName")
+      .populate("deputy", "name number")
       .sort({ createdAt: -1 });
     return NextResponse.json(courses);
   } catch (err) {
@@ -27,6 +28,7 @@ const ALLOWED_FIELDS = [
   "enrollmentDeadline",
   "enrollmentLimit",
   "organizingUnit",
+  "deputy",
   "signatory",
   "unitStamp",
   "signatory2",
@@ -56,6 +58,7 @@ export async function POST(request) {
     for (const field of ALLOWED_FIELDS) {
       if (field in body) data[field] = body[field];
     }
+    if (data.deputy === '') data.deputy = null;
 
     await dbConnect();
 

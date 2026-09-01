@@ -52,7 +52,7 @@ export async function PUT(request, { params }) {
     if (status === "APPROVED" && previousStatus !== "APPROVED") {
       const user = await User.findById(enrollment.user).lean();
       const course = await Course.findById(enrollment.course)
-        .populate("signatory signatory2")
+        .populate("signatory signatory2 deputy")
         .lean();
 
       if (!course || !user) {
@@ -109,7 +109,7 @@ export async function PUT(request, { params }) {
     console.error("Enrollment update error:", error.message);
 
     // Check for our specific capacity error to return a better status code
-    if (error.message.includes("capacity for pattern")) {
+    if (error.message.includes("capacity") || error.message.includes("معاونت")) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
