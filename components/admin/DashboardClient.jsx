@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { internalAxios } from "@/lib/axios";
 import { motion } from "motion/react";
-import { Users, Layers, GraduationCap, Clock, FileCheck2, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Users, Layers, GraduationCap, Clock, FileCheck as FileCheck2, ArrowLeft, AlertTriangle } from "reicon-react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import PageHeader from "./ui/PageHeader";
 import StatCard from "./ui/StatCard";

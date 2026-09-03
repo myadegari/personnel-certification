@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CertificateStatus from '@/components/CertificateStatus';
 import { motion, AnimatePresence } from 'motion/react';
 import { fadeUp } from '@/lib/motion';
-import { Inbox } from 'lucide-react';
+import { Inbox } from "reicon-react";
 import TablePager from '@/components/shared/TablePager';
 import { toPersianDigits } from '@/lib/persian-date';
 

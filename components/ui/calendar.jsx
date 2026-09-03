@@ -1,10 +1,6 @@
 "use client";
 import { DayPicker as PersianDayPicker, faIR } from "@daypicker/persian"
-import {
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-} from "lucide-react"
+import { ChevronDown as ChevronDownIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from "reicon-react"
 import * as React from "react"
 import {
   DayPicker as GregorianDayPicker,

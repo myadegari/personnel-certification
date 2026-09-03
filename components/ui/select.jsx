@@ -1,7 +1,7 @@
 "use client"
 
 import { Select as SelectPrimitive } from "@base-ui/react/select"
-import { CheckIcon, ChevronDownIcon } from "lucide-react"
+import { Check as CheckIcon, ChevronDown as ChevronDownIcon } from "reicon-react"
 import * as React from "react"
 
 import { ScrollArea } from "@/components/ui/scroll-area"

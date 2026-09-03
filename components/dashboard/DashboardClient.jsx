@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { GraduationCap, Clock, FileCheck2, BookOpenCheck, X } from "lucide-react";
+import { GraduationCap, Clock, FileCheck as FileCheck2, BookOpen as BookOpenCheck, X } from "reicon-react";
 import { staggerContainer } from "@/lib/motion";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatCard from "@/components/admin/ui/StatCard";

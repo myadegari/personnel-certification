@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { motion } from "motion/react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
-import { ScrollText, UserCheck, ShieldCheck, FileText } from "lucide-react";
+import { Scroll as ScrollText, UserCheck, ShieldCheck, FileText } from "reicon-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import TablePager from "@/components/shared/TablePager";
 import {

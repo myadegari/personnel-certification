@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarDays, ChevronDown } from "lucide-react";
+import { CalendarDays, ChevronDown } from "reicon-react";
 import { cn } from "@/lib/utils";
 import { formatDate, toPersianDigits, toShamsi, today } from "@/lib/persian-date";
 

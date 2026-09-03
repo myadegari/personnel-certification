@@ -44,20 +44,7 @@ import OrganizingUnitsPicker from "@/components/OrganizingUnitsPicker";
 import { motion, AnimatePresence } from "motion/react";
 import { spring, fadeUp, staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
 import { clsx } from "clsx";
-import {
-  GraduationCap,
-  Info,
-  Users,
-  ImagePlus,
-  Upload,
-  X,
-  Check,
-  ArrowLeft,
-  ArrowRight,
-  Save,
-  Loader2,
-  AlertTriangle,
-} from "lucide-react";
+import { GraduationCap, Information as Info, Users, ImagePlus, Upload, X, Check, ArrowLeft, ArrowRight, Save, Loader as Loader2, AlertTriangle } from "reicon-react";
 
 function formatPersian(dateLike) {
   if (!dateLike) return "—";

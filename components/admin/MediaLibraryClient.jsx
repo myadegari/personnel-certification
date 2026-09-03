@@ -21,16 +21,7 @@ import {
 } from "@/components/ui/select";
 import { formatBytes } from "@/lib/utils";
 import PdfThumbnail from "@/components/admin/PdfThumbnail";
-import {
-  Search,
-  Upload,
-  Trash2,
-  ImageOff,
-  FileText,
-  AlertTriangle,
-  Check,
-  X,
-} from "lucide-react";
+import { Search, Upload, Trash as Trash2, ImageMinus as ImageOff, FileText, AlertTriangle, Check, X } from "reicon-react";
 import PageHeader from "./ui/PageHeader";
 import MediaUploadDialog from "./MediaUploadDialog";
 import MediaDetailSheet from "./MediaDetailSheet";

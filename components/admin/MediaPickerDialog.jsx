@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Search, Upload, Check, ImageOff, Loader2 } from "lucide-react";
+import { Search, Upload, Check, ImageMinus as ImageOff, Loader as Loader2 } from "reicon-react";
 import MediaUploadDialog from "./MediaUploadDialog";
 
 export default function MediaPickerDialog({

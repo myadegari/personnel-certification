@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { PersianDatePicker } from "@/components/admin/PersianDatePicker";
 import UserSearchCombobox from "@/components/admin/UserSearchCombobox";
 import MediaPickerDialog from "@/components/admin/MediaPickerDialog";
-import { ImagePlus, Loader2, Save, X } from "lucide-react";
+import { ImagePlus, Loader as Loader2, Save, X } from "reicon-react";
 
 function Field({ label, hint, required, children }) {
   return (

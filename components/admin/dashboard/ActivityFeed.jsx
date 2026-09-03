@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
-import { UserPlus, GraduationCap } from "lucide-react";
+import { UserAdd as UserPlus, GraduationCap } from "reicon-react";
 
 function timeAgo(value) {
   try {

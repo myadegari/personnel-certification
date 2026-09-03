@@ -26,16 +26,7 @@ import GuestCertificateActions from "@/components/admin/GuestCertificateActions"
 import { gooeyToast } from "goey-toast";
 import { motion, AnimatePresence } from "motion/react";
 import { fadeUp } from "@/lib/motion";
-import {
-  Check,
-  X,
-  Lock,
-  Users,
-  Clock,
-  BadgeCheck,
-  Ban,
-  FileCheck2,
-} from "lucide-react";
+import { Check, X, Lock, Users, Clock, CheckCircle as BadgeCheck, Ban, FileCheck as FileCheck2 } from "reicon-react";
 import DataTableShell from "./ui/DataTableShell";
 import TablePager from "@/components/shared/TablePager";
 import { toPersianDigits } from "@/lib/persian-date";

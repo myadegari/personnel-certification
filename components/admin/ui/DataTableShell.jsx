@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Inbox } from "lucide-react";
+import { AlertTriangle, Inbox } from "reicon-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";

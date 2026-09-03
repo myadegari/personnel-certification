@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "motion/react";
-import { Clock3 } from "lucide-react";
+import { Clock3 } from "reicon-react";
 import { fadeUp, spring } from "@/lib/motion";
 import AnimatedCounter from "@/components/admin/ui/AnimatedCounter";
 import { PersianYearPicker } from "@/components/admin/PersianDatePicker";

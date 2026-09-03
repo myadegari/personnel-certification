@@ -14,7 +14,7 @@ import {
 import { useState, useEffect } from "react";
 import {internalAxios} from "@/lib/axios";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader as Loader2 } from "reicon-react";
 import { cn } from "@/lib/utils";
 
 function UserSearchCombobox({ selectedUser, onSelectUser }) {

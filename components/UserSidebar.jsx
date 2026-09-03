@@ -9,7 +9,7 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { LogOut, LayoutDashboard, GraduationCap, Settings, Building2, FileCheck2 } from "lucide-react";
+import { Logout as LogOut, Grid as LayoutDashboard, GraduationCap, Settings, Building2, FileCheck as FileCheck2 } from "reicon-react";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";

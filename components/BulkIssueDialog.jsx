@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { BADGE_TONES } from "@/lib/statusLabels";
-import { Download, UploadCloud, FileSpreadsheet } from "lucide-react";
+import { Download, CloudUpload as UploadCloud, FileText as FileSpreadsheet } from "reicon-react";
 import { clsx } from "clsx";
 import { PersianDatePicker } from "@/components/admin/PersianDatePicker";
 

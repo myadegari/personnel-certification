@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/admin/ui/PageHeader";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "reicon-react";
 
 const getBaseUrl = () => {
   if (typeof window === 'undefined') {

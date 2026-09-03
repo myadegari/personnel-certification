@@ -8,7 +8,7 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { LogOut, Users, LayoutDashboard, Layers, ImagePlus, ScrollText, Building2 } from "lucide-react";
+import { Logout as LogOut, Users, Grid as LayoutDashboard, Layers, ImagePlus, Scroll as ScrollText, Building2 } from "reicon-react";
 import { useSession, signOut } from 'next-auth/react';
 import Image from "next/image";
 import Link from 'next/link';

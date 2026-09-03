@@ -3,15 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { internalAxios } from '@/lib/axios';
 import { gooeyToast } from 'goey-toast';
 import { Button } from './ui/button';
-import {
-  CheckCircle2,
-  Clock3,
-  XCircle,
-  CalendarX2,
-  Users,
-  Loader2,
-  Plus,
-} from 'lucide-react';
+import { CheckCircle as CheckCircle2, Clock3, CloseCircle as XCircle, CalendarX as CalendarX2, Users, Loader as Loader2, Add as Plus } from "reicon-react";
 
 const enrollInCourse = (courseId) => internalAxios.post('/enrollments', { courseId });
 

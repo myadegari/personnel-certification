@@ -1,7 +1,7 @@
 "use client"
 
 import { useId, useState } from "react"
-import { EyeIcon, EyeOffIcon } from "lucide-react"
+import { Eye as EyeIcon, EyeOff as EyeOffIcon } from "reicon-react"
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

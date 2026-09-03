@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ExternalLink } from "lucide-react";
+import { Link as ExternalLink } from "reicon-react";
 import { PersianDatePicker } from "@/components/admin/PersianDatePicker";
 
 const emptyForm = { firstName: "", lastName: "", nationalId: "", gender: "" };

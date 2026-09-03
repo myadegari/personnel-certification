@@ -4,7 +4,7 @@
 // and redirect them before they see this content.
 // Unauthenticated users will be redirected to /login by the middleware.
 
-import { Loader2 } from "lucide-react"; // A nice spinner icon from lucide-react
+import { Loader as Loader2 } from "reicon-react"; // spinner
 
 export default function RootPage() {
   return (

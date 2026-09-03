@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Home } from "lucide-react";
+import { Home } from "reicon-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Breadcrumb,

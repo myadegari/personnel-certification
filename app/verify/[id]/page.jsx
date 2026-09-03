@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, use, useCallback } from 'react';
-import { BadgeCheck, FileDown, Share2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { CheckCircle as BadgeCheck, FileDown, Share as Share2, AlertTriangle, Refresh as RefreshCw } from "reicon-react";
 import { Button } from '@/components/ui/button';
 
 function toPersianDigits(value) {

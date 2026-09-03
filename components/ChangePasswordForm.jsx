@@ -7,7 +7,7 @@ import { internalAxios } from '@/lib/axios';
 import { gooeyToast } from 'goey-toast';
 import { motion } from 'motion/react';
 import { fadeUp } from '@/lib/motion';
-import { KeyRound, Loader2 } from 'lucide-react';
+import { Key as KeyRound, Loader as Loader2 } from "reicon-react";
 import PasswordInput from "@/components/password-input";
 import SectionCard from "@/components/admin/ui/SectionCard";
 

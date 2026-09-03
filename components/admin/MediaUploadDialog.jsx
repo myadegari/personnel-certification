@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { UploadCloud, Image as ImageIcon } from "lucide-react";
+import { CloudUpload as UploadCloud, Image as ImageIcon } from "reicon-react";
 import { motion } from "motion/react";
 import { fadeUp } from "@/lib/motion";
 

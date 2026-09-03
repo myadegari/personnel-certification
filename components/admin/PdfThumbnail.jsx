@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText } from "lucide-react";
+import { FileText } from "reicon-react";
 import { cn } from "@/lib/utils";
 
 // Rendered-page cache (fileId@width -> dataURL), FIFO-capped so a long

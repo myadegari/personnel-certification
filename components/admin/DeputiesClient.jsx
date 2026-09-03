@@ -15,7 +15,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Building2 } from "lucide-react";
+import { Add as Plus, Edit as Pencil, Trash as Trash2, Building2 } from "reicon-react";
 import { motion } from "motion/react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import PageHeader from "@/components/admin/ui/PageHeader";

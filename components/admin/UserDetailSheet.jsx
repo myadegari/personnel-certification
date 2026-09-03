@@ -1,17 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import {
-  BadgeCheck,
-  Briefcase,
-  Calendar,
-  GraduationCap,
-  Hash,
-  Mail,
-  PenLine,
-  ShieldCheck,
-  UserRound,
-} from "lucide-react";
+import { CheckCircle as BadgeCheck, Briefcase, Calendar, GraduationCap, Hashtag as Hash, Mailbox as Mail, PenLine, ShieldCheck, User as UserRound } from "reicon-react";
 import {
   Sheet,
   SheetContent,

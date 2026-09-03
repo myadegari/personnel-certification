@@ -19,15 +19,7 @@ import {
 } from "@/components/ui/select";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import SectionCard from "@/components/admin/ui/SectionCard";
-import {
-  AlertTriangle,
-  ExternalLink,
-  Search,
-  ArrowRight,
-  ChevronRight,
-  ChevronLeft,
-  FileCheck2,
-} from "lucide-react";
+import { AlertTriangle, Link as ExternalLink, Search, ArrowRight, ChevronRight, ChevronLeft, FileCheck as FileCheck2 } from "reicon-react";
 import Link from "next/link";
 import { toShamsi, toPersianDigits } from "@/lib/persian-date";
 

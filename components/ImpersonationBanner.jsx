@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { ShieldAlert, LogIn } from "lucide-react";
+import { ShieldAlert, Login as LogIn } from "reicon-react";
 import { Button } from "@/components/ui/button";
 import { ROLE_LABELS_FA } from "@/lib/roles";
 

@@ -3,16 +3,7 @@
 
 import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  Search,
-  Calendar,
-  Clock,
-  Users,
-  Hash,
-  Timer,
-  Inbox,
-  GraduationCap,
-} from 'lucide-react';
+import { Search, Calendar, Clock, Users, Hashtag as Hash, Timer, Inbox, GraduationCap } from "reicon-react";
 import { Input } from '@/components/ui/input';
 import {
   Select,

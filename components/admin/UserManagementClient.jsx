@@ -40,23 +40,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { USER_STATUS_META, FALLBACK_STATUS_META } from "@/lib/statusLabels";
 import { clsx } from "clsx";
-import {
-  Search,
-  RefreshCw,
-  Download,
-  Upload,
-  MoreVertical,
-  Eye,
-  Pencil,
-  Check,
-  X,
-  Trash2,
-  LogIn,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  UserPlus,
-} from "lucide-react";
+import { Search, Refresh as RefreshCw, Download, Upload, More as MoreVertical, Eye, Edit as Pencil, Check, X, Trash as Trash2, Login as LogIn, SortDownUp as ArrowUpDown, ArrowUp, ArrowDown, UserAdd as UserPlus } from "reicon-react";
 import { ROLE_LABELS_FA, ASSIGNABLE_ROLES, isSuperAdmin, canManageUser, canImpersonate } from "@/lib/roles";
 import { toPersianDigits } from "@/lib/persian-date";
 import { motion, AnimatePresence } from "motion/react";

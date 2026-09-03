@@ -21,19 +21,7 @@ import { BADGE_TONES } from "@/lib/statusLabels";
 import { formatBytes, cn } from "@/lib/utils";
 import { formatDate } from "@/lib/persian-date";
 import PdfThumbnail from "@/components/admin/PdfThumbnail";
-import {
-  Calendar,
-  Copy,
-  Download,
-  ExternalLink,
-  FileText,
-  FolderOpen,
-  Hash,
-  FileType2,
-  Loader2,
-  Save,
-  Trash2,
-} from "lucide-react";
+import { Calendar, Copy, Download, Link as ExternalLink, FileText, FolderOpen, Hashtag as Hash, FileText as FileType2, Loader as Loader2, Save, Trash as Trash2 } from "reicon-react";
 import { BUCKET_LABELS_FA } from "@/lib/mediaConstants";
 
 const isPdf = (item) => item.mimeType === "application/pdf";

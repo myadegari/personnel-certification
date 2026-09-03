@@ -23,7 +23,7 @@ import PageHeader from "@/components/admin/ui/PageHeader";
 import StatCard from "@/components/admin/ui/StatCard";
 import SectionCard from "@/components/admin/ui/SectionCard";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
-import { AlertTriangle, FileCheck2, Building2, Layers, FileUp, Plus, Pencil, Trash2, UserPlus, Search, ChevronRight, ChevronLeft } from "lucide-react";
+import { AlertTriangle, FileCheck as FileCheck2, Building2, Layers, FileUp, Add as Plus, Edit as Pencil, Trash as Trash2, UserAdd as UserPlus, Search, ChevronRight, ChevronLeft } from "reicon-react";
 import BulkIssueDialog from "@/components/BulkIssueDialog";
 import SingleIssueDialog from "@/components/SingleIssueDialog";
 import DeputyCourseFormDialog from "@/components/DeputyCourseFormDialog";
