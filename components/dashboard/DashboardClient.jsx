@@ -21,6 +21,8 @@ function VerifyOverlay() {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-md rounded-3xl border border-amber-200 bg-white/80 p-8 text-center shadow-[0_20px_60px_rgb(0,0,0,0.12)] backdrop-blur-xl"
+        role="status"
+        aria-live="polite"
       >
         <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
           <Clock className="size-7" />
@@ -89,6 +91,7 @@ export default function DashboardClient({ stats, initialCoursesData, user }) {
             value={stats.certificatesIssued}
             icon={FileCheck2}
             accent="rose"
+            className="md:col-span-2 lg:col-span-2"
           />
         </motion.div>
 

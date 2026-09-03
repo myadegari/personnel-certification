@@ -6,6 +6,8 @@ const LABELS = {
   "": "داشبورد",
   courses: "دوره‌های مرکز",
   profile: "پروفایل کاربری",
+  deputy: "داشبورد معاون",
+  certificates: "گواهی‌های صادرشده",
 };
 
 export default function UserTopbar() {

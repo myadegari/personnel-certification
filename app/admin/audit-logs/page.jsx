@@ -110,7 +110,7 @@ export default function AuditLogsPage() {
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-14 rounded-xl shimmer" />
+              <Skeleton key={i} className="h-14 rounded-xl" />
             ))}
           </div>
         ) : logs.length ? (

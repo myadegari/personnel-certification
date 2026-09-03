@@ -83,13 +83,13 @@ export default function MediaPickerDialog({
 
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="جستجو در رسانه‌ها..."
                 aria-label="جستجو در رسانه‌ها"
-                className="pr-9"
+                className="ps-9"
               />
             </div>
             <Button

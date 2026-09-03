@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { BADGE_TONES } from "@/lib/statusLabels";
-import { Download, UploadCloud, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Download, UploadCloud, FileSpreadsheet } from "lucide-react";
 import { clsx } from "clsx";
 
 const STEPS = ["upload", "preview", "results"];
@@ -64,9 +64,23 @@ export default function UserImportDialog({ open, onOpenChange }) {
     onOpenChange(next);
   };
 
+  // CSV is validated by extension or MIME: the accept attr only filters the
+  // file picker, so drag-and-drop must be checked separately.
+  const isCsvFile = (f) =>
+    Boolean(f) && (/\.csv$/i.test(f.name || "") || f.type === "text/csv");
+
+  const acceptFile = (candidate) => {
+    if (!candidate) return false;
+    if (!isCsvFile(candidate)) {
+      gooeyToast.error("فقط فایل CSV پذیرفته می‌شود.");
+      return false;
+    }
+    setFile(candidate);
+    return true;
+  };
+
   const onFileChange = (e) => {
-    const selected = e.target.files?.[0];
-    if (selected) setFile(selected);
+    acceptFile(e.target.files?.[0]);
   };
 
   const runImport = async (mode) => {
@@ -137,16 +151,24 @@ export default function UserImportDialog({ open, onOpenChange }) {
         {step === "upload" && (
           <div className="space-y-4 py-2">
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="انتخاب فایل CSV"
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
-                const dropped = e.dataTransfer.files?.[0];
-                if (dropped) setFile(dropped);
+                acceptFile(e.dataTransfer.files?.[0]);
               }}
               className={clsx(
-                "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors",
-                file ? "border-emerald-500 bg-emerald-50/50" : "border-gray-300 hover:border-emerald-400"
+                "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                file ? "border-emerald-500 bg-emerald-50/50" : "border-border hover:border-emerald-400"
               )}
             >
               <UploadCloud className="h-8 w-8 text-emerald-600" />
@@ -162,7 +184,9 @@ export default function UserImportDialog({ open, onOpenChange }) {
                 ref={fileInputRef}
                 type="file"
                 accept=".csv,text/csv"
-                className="hidden"
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
                 onChange={onFileChange}
               />
             </div>
@@ -191,18 +215,26 @@ export default function UserImportDialog({ open, onOpenChange }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {preview.results.map((r, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>{r.line}</TableCell>
-                      <TableCell>{r.personnelNumber || "—"}</TableCell>
-                      <TableCell>
-                        <RowStatusBadge status={r.status} />
-                      </TableCell>
-                      <TableCell className="text-xs text-red-600">
-                        {(r.errors || []).join("، ") || "—"}
+                  {preview.results.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                        نتیجه‌ای برای نمایش نیست
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    preview.results.map((r, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{r.line}</TableCell>
+                        <TableCell>{r.personnelNumber || "—"}</TableCell>
+                        <TableCell>
+                          <RowStatusBadge status={r.status} />
+                        </TableCell>
+                        <TableCell className="text-xs text-destructive">
+                          {(r.errors || []).join("، ") || "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -227,8 +259,12 @@ export default function UserImportDialog({ open, onOpenChange }) {
           {step === "upload" && (
             <>
               <Button variant="outline" className="cursor-pointer" onClick={() => handleOpenChange(false)}>انصراف</Button>
-              <Button className="cursor-pointer" disabled={!file || loading} onClick={() => runImport("dry-run")}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              <Button
+                className="cursor-pointer"
+                disabled={!file}
+                loading={loading}
+                onClick={() => runImport("dry-run")}
+              >
                 بررسی فایل
               </Button>
             </>
@@ -238,8 +274,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
               <Button variant="outline" className="cursor-pointer" onClick={() => setStep("upload")} disabled={loading}>
                 بازگشت
               </Button>
-              <Button className="cursor-pointer" disabled={loading} onClick={() => runImport("commit")}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              <Button className="cursor-pointer" loading={loading} onClick={() => runImport("commit")}>
                 تایید و اجرای ایمپورت
               </Button>
             </>

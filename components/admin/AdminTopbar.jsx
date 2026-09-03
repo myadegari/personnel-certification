@@ -7,6 +7,7 @@ const LABELS = {
   courses: "دوره‌ها",
   enrollments: "ثبت‌نام‌ها",
   users: "کاربران",
+  deputies: "معاونت‌ها",
   media: "کتابخانه رسانه",
   "audit-logs": "گزارش فعالیت‌ها",
 };

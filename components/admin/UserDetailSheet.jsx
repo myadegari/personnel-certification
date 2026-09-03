@@ -35,7 +35,7 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-full overflow-y-auto sm:max-w-md">
+      <SheetContent side="end" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle>{fullName}</SheetTitle>
           <SheetDescription>جزئیات کاربر</SheetDescription>
@@ -59,7 +59,7 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
                   {initialsOf(fullName)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-lg font-bold text-gray-900">{fullName}</p>
+                  <p className="truncate text-lg font-bold text-foreground">{fullName}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <Badge variant="outline" className="border-sky-600/20 text-sky-700">
                       <ShieldCheck className="me-1 size-3" />
@@ -74,7 +74,7 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
                 {user.personnelNumber && (
                   <span
                     dir="ltr"
-                    className="hidden shrink-0 items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium tabular-nums text-gray-700 sm:inline-flex"
+                    className="hidden shrink-0 items-center gap-1 rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium tabular-nums text-muted-foreground sm:inline-flex"
                   >
                     <Hash className="size-3" /> {user.personnelNumber}
                   </span>
@@ -129,7 +129,7 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
                 <PenLine className="size-3.5" /> امضای کاربر
               </p>
               {signatureQuery.isLoading ? (
-                <div className="h-24 w-full animate-pulse rounded-2xl bg-gray-100" />
+                <div className="h-24 w-full animate-pulse rounded-2xl bg-muted" />
               ) : signatureQuery.data ? (
                 <div className="inline-flex max-w-full rounded-2xl border border-black/5 bg-white p-3 shadow-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -141,7 +141,7 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-black/10 bg-white/60 py-6 text-center">
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-stone-100 text-stone-400">
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                     <PenLine className="size-4" />
                   </span>
                   <p className="text-xs text-muted-foreground">امضایی ثبت نشده است</p>

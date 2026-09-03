@@ -23,11 +23,32 @@ const sahel = localFont({
 });
 
 export const metadata = {
-  title: "گواهیار",
+  metadataBase: new URL(process.env.NEXTAUTH_URL || "http://localhost:3000"),
+  title: {
+    default: "گواهیار",
+    template: "%s | گواهیار",
+  },
   description: "سامانه جامع مدیریت دوره‌ها و گواهینامه‌های کارکنان",
   icons: {
     icon: "/fav-icon.png",
   },
+  openGraph: {
+    type: "website",
+    siteName: "گواهیار",
+    title: "گواهیار",
+    description: "سامانه جامع مدیریت دوره‌ها و گواهینامه‌های کارکنان",
+  },
+  twitter: {
+    card: "summary",
+    title: "گواهیار",
+    description: "سامانه جامع مدیریت دوره‌ها و گواهینامه‌های کارکنان",
+  },
+};
+
+export const viewport = {
+  themeColor: "#f8fafc",
+  width: "device-width",
+  initialScale: 1,
 };
 
 
@@ -37,7 +58,7 @@ export default function RootLayout({ children }) {
       <body className={sahel.variable}>
         <AuthProvider>
           <Providers>
-            <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-background">
               {children}
             </div>
             <AppToaster />

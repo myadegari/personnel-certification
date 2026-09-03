@@ -62,7 +62,13 @@ export default function UserCoursesTable({ initialData, year = null }) {
     {
       accessorKey: 'course.duration',
       header: 'مدت زمان',
-      cell: ({ row }) => <span className="tabular-nums">{row.original.course?.duration ?? 'نامشخص'}</span>,
+      cell: ({ row }) => (
+        <span className="tabular-nums">
+          {row.original.course?.duration != null
+            ? toPersianDigits(String(row.original.course.duration))
+            : 'نامشخص'}
+        </span>
+      ),
     },
     {
       accessorKey: 'course.date',
@@ -94,7 +100,7 @@ export default function UserCoursesTable({ initialData, year = null }) {
     return (
       <div className="space-y-2 p-1">
         {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 rounded-xl shimmer" />
+          <Skeleton key={i} className="h-12 rounded-xl" />
         ))}
       </div>
     );
@@ -106,7 +112,7 @@ export default function UserCoursesTable({ initialData, year = null }) {
     <div className="space-y-3">
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader className="bg-stone-50">
+          <TableHeader className="bg-muted/50">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (

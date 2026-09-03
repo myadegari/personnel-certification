@@ -35,7 +35,7 @@ export function PersianDatePicker({
           variant="outline"
           disabled={disabled}
           className={cn(
-            "h-10 w-full justify-between rounded-2xl border-black/10 bg-stone-100/60 px-3 font-normal shadow-none",
+            "h-10 w-full justify-between rounded-lg border-border bg-muted/60 px-3 font-normal shadow-none",
             !value && "text-muted-foreground"
           )}
         >
@@ -110,7 +110,7 @@ export function PersianYearPicker({
           type="button"
           variant="outline"
           disabled={disabled}
-          className="h-10 w-auto min-w-24 justify-between gap-2 rounded-2xl border-black/10 bg-stone-100/60 px-3 font-normal shadow-none"
+          className="h-10 w-auto min-w-24 justify-between gap-2 rounded-lg border-border bg-muted/60 px-3 font-normal shadow-none"
         >
           <span className="tabular-nums">{year ? toPersianDigits(String(year)) : "سال"}</span>
           <ChevronDown className="size-4 shrink-0 opacity-60" />

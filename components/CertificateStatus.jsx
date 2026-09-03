@@ -1,12 +1,15 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { gooeyToast } from 'goey-toast';
 import { internalAxios } from '@/lib/axios';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 
 export default function CertificateStatus({ enrollment }) {
   const hasJob = !!enrollment?.jobId;
+  const [downloading, setDownloading] = useState(false);
 
   // Short-lived polling instead of one held-open SSE connection per row
   // (browsers cap ~6 concurrent connections per origin, so a table of rows
@@ -31,13 +34,14 @@ export default function CertificateStatus({ enrollment }) {
 
   const viewCertificate = () => {
     if (enrollment.certificateUrl) {
-      window.open(enrollment.certificateUrl, '_blank');
+      window.open(enrollment.certificateUrl, '_blank', 'noopener');
     } else {
-      alert('لینک گواهی هنوز آماده نشده است.');
+      gooeyToast.error('لینک گواهی هنوز آماده نشده است.');
     }
   };
 
   const downloadCertificate = async () => {
+    setDownloading(true);
     try {
       const response = await fetch(`/api/verify/${enrollment._id}`);
       if (!response.ok) {
@@ -55,7 +59,9 @@ export default function CertificateStatus({ enrollment }) {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Certificate download error:', error);
-      alert(error.message || 'خطا در دانلود گواهی.');
+      gooeyToast.error(error.message || 'خطا در دانلود گواهی.');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -77,11 +83,16 @@ export default function CertificateStatus({ enrollment }) {
         return (
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={viewCertificate}>مشاهده گواهی</Button>
-            <Button size="sm" variant="outline" onClick={downloadCertificate}>دانلود گواهی</Button>
+            <Button size="sm" variant="outline" loading={downloading} onClick={downloadCertificate}>دانلود گواهی</Button>
           </div>
         );
       case 'failed':
-        return <Badge variant="destructive">خطا در صدور</Badge>;
+        return (
+          <div className="flex flex-col items-start gap-1">
+            <Badge variant="destructive">خطا در صدور</Badge>
+            <span className="text-xs text-muted-foreground">با مدیر سیستم تماس بگیرید</span>
+          </div>
+        );
       default:
         return <span className="text-xs text-muted-foreground">صادر نشده</span>;
     }

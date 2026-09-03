@@ -135,13 +135,13 @@ export default function MediaLibraryClient() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-black/5 bg-white/80 p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
         <div className="relative min-w-52 flex-1">
-          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             placeholder="جستجوی نام، عنوان یا متن جایگزین..."
             aria-label="جستجوی رسانه"
-            className="pr-9"
+            className="ps-9"
           />
         </div>
         <Select value={bucket} onValueChange={(v) => { setBucket(v); setPage(1); }}>
@@ -178,13 +178,13 @@ export default function MediaLibraryClient() {
             exit={{ opacity: 0, y: -8, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center justify-between rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+            <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
               <span className="text-sm font-medium">{selected.size.toLocaleString("fa-IR")} مورد انتخاب شده</span>
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="cursor-pointer text-red-600 hover:bg-red-500/10"
+                  className="cursor-pointer text-destructive hover:bg-destructive/10"
                   disabled={deleteMutation.isPending}
                   onClick={() => requestDelete([...selected], `${selected.size.toLocaleString("fa-IR")} رسانه`)}
                 >
@@ -203,7 +203,7 @@ export default function MediaLibraryClient() {
       {isLoading ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
           {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-            <Skeleton key={i} className="aspect-square rounded-2xl shimmer" />
+            <Skeleton key={i} className="aspect-square rounded-2xl" />
           ))}
         </div>
       ) : isError ? (
@@ -294,11 +294,11 @@ function MediaTile({ item, selected, onToggle, onOpen }) {
           ) : isPdf(item) && item.url ? (
             <PdfThumbnail fileId={item.id} name={item.title || item.originalName} />
           ) : (
-            <div className="flex flex-col items-center gap-2 bg-gradient-to-br from-stone-50 to-stone-100 text-stone-400">
+            <div className="flex flex-col items-center gap-2 bg-gradient-to-br from-muted to-muted text-muted-foreground">
               <span className="flex size-12 items-center justify-center rounded-2xl bg-white shadow-sm">
                 <FileText className="size-6" />
               </span>
-              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-bold text-stone-500">
+              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
                 {item.mimeType?.split("/")[1]?.toUpperCase() || "FILE"}
               </span>
             </div>
@@ -309,10 +309,10 @@ function MediaTile({ item, selected, onToggle, onOpen }) {
           <button
             type="button"
             onClick={onToggle}
-            className={`flex size-6 cursor-pointer items-center justify-center rounded-md border transition-colors ${
-              selected ? "border-emerald-500 bg-emerald-500 text-white" : "border-white/60 bg-white/70 opacity-0 group-hover:opacity-100"
+            className={`flex size-6 cursor-pointer items-center justify-center rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              selected ? "border-emerald-500 bg-emerald-500 text-white" : "border-white/60 bg-white/70 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100"
             }`}
-            aria-label="انتخاب"
+            aria-label={`انتخاب ${item.title || item.originalName}`}
           >
             {selected && <Check className="size-4" />}
           </button>

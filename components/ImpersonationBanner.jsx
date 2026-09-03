@@ -32,7 +32,7 @@ export default function ImpersonationBanner() {
         <span>
           شما در حال مشاهده سامانه به‌عنوان{" "}
           <span className="underline">{session.user.name}</span> هستید
-          <span className="mr-1 text-xs opacity-90">
+          <span className="ms-1 text-xs opacity-90">
             ({ROLE_LABELS_FA[session.user.role] || session.user.role})
           </span>
         </span>

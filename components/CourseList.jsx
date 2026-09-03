@@ -45,8 +45,8 @@ const TONES = {
     accent: 'from-sky-500/10 to-sky-500/0',
   },
   stone: {
-    pill: 'bg-stone-100 text-stone-600 ring-stone-500/20',
-    accent: 'from-stone-500/5 to-stone-500/0',
+    pill: 'bg-muted text-muted-foreground ring-border',
+    accent: 'from-muted-foreground/10 to-transparent',
   },
 };
 
@@ -104,21 +104,21 @@ function pillFor(d) {
 function MetaRow({ icon: Icon, label, value }) {
   return (
     <div className="flex items-center gap-2 text-sm">
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-black/[0.04] text-muted-foreground">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-muted-foreground">
         <Icon className="size-3.5" />
       </span>
       <span className="text-muted-foreground">{label}:</span>
-      <span className="font-medium text-gray-700">{value}</span>
+      <span className="font-medium text-foreground">{value}</span>
     </div>
   );
 }
 
 function Countdown({ d }) {
   if (!d.registrationOpen) {
-    return <span className="text-stone-600">مهلت ثبت‌نام به پایان رسیده است</span>;
+    return <span className="text-muted-foreground">مهلت ثبت‌نام به پایان رسیده است</span>;
   }
   if (d.capacityFull) {
-    return <span className="text-stone-600">ظرفیت این دوره تکمیل شده است</span>;
+    return <span className="text-muted-foreground">ظرفیت این دوره تکمیل شده است</span>;
   }
   if (d.daysLeft <= 0) {
     return <span className="font-medium text-rose-600">امروز آخرین مهلت ثبت‌نام است</span>;
@@ -142,13 +142,13 @@ function CourseCard({ d, onEnrolled }) {
       exit={{ opacity: 0, scale: 0.96 }}
       whileHover={{ y: -6 }}
       transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-      className="group relative flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white/80 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm"
+      className="group relative flex flex-col overflow-hidden rounded-3xl border border-border/60 bg-white/80 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm"
     >
       <div className={cn('pointer-events-none absolute inset-0 bg-gradient-to-br opacity-70 transition-opacity group-hover:opacity-100', tone.accent)} />
       <div className="relative flex flex-1 flex-col">
         <header className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="truncate text-lg font-bold text-gray-800" title={course.name}>{course.name}</h3>
+            <h3 className="truncate text-lg font-bold text-foreground" title={course.name}>{course.name}</h3>
             <p className="mt-0.5 truncate text-sm text-muted-foreground">{course.organizingUnit}</p>
           </div>
           <span className={cn('shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset', tone.pill)}>
@@ -156,7 +156,7 @@ function CourseCard({ d, onEnrolled }) {
           </span>
         </header>
 
-        <div className="mt-5 grid grid-cols-1 gap-2.5 border-t border-black/5 pt-4 sm:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-2.5 border-t border-border/60 pt-4 sm:grid-cols-2">
           <MetaRow icon={Calendar} label="تاریخ" value={formatDate(new Date(course.date * 1000), 'yyyy/MM/dd')} />
           <MetaRow icon={Clock} label="مدت" value={`${toPersianDigits(String(course.duration))} ساعت`} />
           {course.courseCode ? <MetaRow icon={Hash} label="کد" value={course.courseCode} /> : null}
@@ -257,11 +257,11 @@ export default function CourseList({ initialCourses, enrollmentMap, approvedCoun
             onChange={(e) => setQuery(e.target.value)}
             placeholder="جست‌وجوی دوره، واحد یا کد..."
             aria-label="جست‌وجوی دوره"
-            className="rounded-xl border-black/5 bg-white/70 pr-9 backdrop-blur-sm"
+            className="rounded-xl border-border/60 bg-white/70 pr-9 backdrop-blur-sm"
           />
         </div>
         <Select value={sort} onValueChange={setSort}>
-          <SelectTrigger className="w-full cursor-pointer rounded-xl border-black/5 bg-white/70 backdrop-blur-sm lg:w-52">
+          <SelectTrigger className="w-full cursor-pointer rounded-xl border-border/60 bg-white/70 backdrop-blur-sm lg:w-52">
             <SelectValue placeholder="مرتب‌سازی" />
           </SelectTrigger>
           <SelectContent>
@@ -285,14 +285,14 @@ export default function CourseList({ initialCourses, enrollmentMap, approvedCoun
                 'flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition-colors',
                 active
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'border border-black/5 bg-white/70 text-slate-600 hover:bg-white'
+                  : 'border border-border/60 bg-white/70 text-muted-foreground hover:bg-white'
               )}
             >
               {f.label}
               <span
                 className={cn(
                   'rounded-full px-1.5 text-xs tabular-nums',
-                  active ? 'bg-white/25' : 'bg-black/5 text-slate-500'
+                  active ? 'bg-white/25' : 'bg-muted text-muted-foreground'
                 )}
               >
                 {toPersianDigits(String(counts[f.value] || 0))}
@@ -334,7 +334,7 @@ export default function CourseList({ initialCourses, enrollmentMap, approvedCoun
 
 function EmptyState({ icon: Icon, title, description }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-black/10 bg-white/60 py-16 text-center backdrop-blur-sm">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border bg-white/60 py-16 text-center backdrop-blur-sm">
       <div className="flex size-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600">
         <Icon className="size-7" />
       </div>

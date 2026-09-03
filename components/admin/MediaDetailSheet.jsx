@@ -53,11 +53,11 @@ function MediaPreview({ item }) {
     return <PdfThumbnail fileId={item.id} name={item.title || item.originalName} width={640} />;
   }
   return (
-    <div className="flex flex-col items-center gap-2 text-stone-400">
+    <div className="flex flex-col items-center gap-2 text-muted-foreground">
       <span className="flex size-14 items-center justify-center rounded-2xl bg-white shadow-sm">
         <FileText className="size-7" />
       </span>
-      <span className="rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-bold text-stone-500">
+      <span className="rounded-full bg-black/5 px-2.5 py-0.5 text-xs font-bold text-muted-foreground">
         {item.mimeType?.split("/")[1]?.toUpperCase() || "FILE"}
       </span>
       <span className="text-xs">پیش‌نمایش تصویری موجود نیست</span>
@@ -73,7 +73,7 @@ function MetaCard({ icon: Icon, label, value, ltr }) {
       </span>
       <div className="min-w-0">
         <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={cn("truncate text-sm font-medium text-gray-800", ltr && "font-mono text-xs")} dir={ltr ? "ltr" : undefined}>
+        <p className={cn("truncate text-sm font-medium text-foreground", ltr && "font-mono text-xs")} dir={ltr ? "ltr" : undefined}>
           {value || "—"}
         </p>
       </div>
@@ -131,11 +131,11 @@ function MediaDetailBody({ item, onRequestDelete }) {
       {/* Hero preview */}
       <motion.div
         variants={fadeUp}
-        className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-2xl border border-black/5 bg-gradient-to-br from-stone-50 to-stone-100 p-4"
+        className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-muted to-muted p-4"
       >
         <MediaPreview item={item} />
         {item.inUse && (
-          <div className="absolute right-3 top-3">
+          <div className="absolute start-3 top-3">
             <Badge className={BADGE_TONES.amber}>در حال استفاده</Badge>
           </div>
         )}
@@ -222,7 +222,7 @@ function MediaDetailBody({ item, onRequestDelete }) {
         <Button
           size="sm"
           variant="outline"
-          className="cursor-pointer text-red-600 hover:bg-red-500/10"
+          className="cursor-pointer text-destructive hover:bg-destructive/10"
           disabled={!item.deletable}
           onClick={() => onRequestDelete?.(item)}
         >
@@ -241,7 +241,7 @@ function MediaDetailBody({ item, onRequestDelete }) {
 export default function MediaDetailSheet({ item, open, onOpenChange, onRequestDelete }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="left" className="w-full overflow-y-auto sm:max-w-md">
+      <SheetContent side="end" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle>جزئیات رسانه</SheetTitle>
           <SheetDescription>{item?.originalName}</SheetDescription>

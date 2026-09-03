@@ -17,7 +17,8 @@ import {
 /**
  * Shared sticky topbar: mobile sidebar trigger + breadcrumb trail built from
  * the current pathname. `labels` maps path segments to Persian titles;
- * unknown segments fall back to "نامشخص" instead of a raw enum value.
+ * unknown segments render as plain text (they often have no matching route,
+ * e.g. an id segment) rather than links to nowhere.
  */
 export default function BreadcrumbTopbar({ root, labels }) {
   const pathname = usePathname();
@@ -28,7 +29,10 @@ export default function BreadcrumbTopbar({ root, labels }) {
   let path = "";
   for (const seg of rest) {
     path += `/${seg}`;
-    crumbs.push({ label: labels[seg] || "نامشخص", href: `${root.href}${path}` });
+    crumbs.push({
+      label: labels[seg] || "نامشخص",
+      href: labels[seg] ? `${root.href}${path}` : null,
+    });
   }
 
   return (
@@ -46,7 +50,7 @@ export default function BreadcrumbTopbar({ root, labels }) {
             return (
               <BreadcrumbItem key={c.href} className="flex items-center gap-1.5">
                 {c.root && <Home className="size-3.5 text-muted-foreground" />}
-                {last ? (
+                {last || !c.href ? (
                   <BreadcrumbPage>{c.label}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>

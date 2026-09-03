@@ -49,7 +49,7 @@ export default function DashboardClient() {
       {isLoading || !stats ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-36 rounded-3xl shimmer" />
+            <Skeleton key={i} className="h-36 rounded-3xl" />
           ))}
         </div>
       ) : (
@@ -73,14 +73,14 @@ export default function DashboardClient() {
           className="lg:col-span-2"
         >
           {isLoading ? (
-            <Skeleton className="h-[260px] rounded-xl shimmer" />
+            <Skeleton className="h-[260px] rounded-xl" />
           ) : (
             <EnrollmentsAreaChart data={data.timeseries} />
           )}
         </SectionCard>
         <SectionCard title="وضعیت ثبت‌نام‌ها">
           {isLoading ? (
-            <Skeleton className="h-[260px] rounded-xl shimmer" />
+            <Skeleton className="h-[260px] rounded-xl" />
           ) : (
             <StatusDonut data={data.statusBreakdown} />
           )}
@@ -90,7 +90,7 @@ export default function DashboardClient() {
       <div className="grid gap-4 lg:grid-cols-3">
         <SectionCard title="پرمخاطب‌ترین دوره‌ها" className="lg:col-span-2">
           {isLoading ? (
-            <Skeleton className="h-[260px] rounded-xl shimmer" />
+            <Skeleton className="h-[260px] rounded-xl" />
           ) : data.topCourses.length ? (
             <TopCoursesBar data={data.topCourses} />
           ) : (
@@ -99,7 +99,7 @@ export default function DashboardClient() {
         </SectionCard>
         <SectionCard title="فعالیت‌های اخیر">
           {isLoading ? (
-            <Skeleton className="h-[260px] rounded-xl shimmer" />
+            <Skeleton className="h-[260px] rounded-xl" />
           ) : (
             <ActivityFeed items={data.activity} />
           )}

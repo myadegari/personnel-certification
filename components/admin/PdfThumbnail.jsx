@@ -124,7 +124,7 @@ export default function PdfThumbnail({ fileId, name, width = 320, className }) {
     return (
       <div
         className={cn(
-          "flex h-full w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-rose-50 to-stone-100 text-stone-400",
+          "flex h-full w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-rose-50 to-stone-100 text-muted-foreground",
           className
         )}
       >
@@ -145,9 +145,9 @@ export default function PdfThumbnail({ fileId, name, width = 320, className }) {
         )}
       />
       {state === "loading" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-stone-50">
-          <div className="size-7 animate-spin rounded-full border-2 border-stone-200 border-t-rose-400" />
-          <span className="text-[10px] text-stone-400">در حال ساخت پیش‌نمایش…</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted">
+          <div className="size-7 animate-spin rounded-full border-2 border-border border-t-rose-400" />
+          <span className="text-[10px] text-muted-foreground">در حال ساخت پیش‌نمایش…</span>
         </div>
       )}
     </div>

@@ -20,11 +20,13 @@ import { Badge } from "@/components/ui/badge";
 import { BADGE_TONES } from "@/lib/statusLabels";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, Plus, Pencil, Trash2, ArrowLeft, CalendarDays } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, ArrowLeft, CalendarDays, UserPlus, FileUp, Users2 } from "lucide-react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import CourseFormModal from "./CourseFormModal";
 import ConfirmDialog from "./ConfirmDialog";
 import DataTableShell from "./ui/DataTableShell";
+import SingleIssueDialog from "@/components/SingleIssueDialog";
+import BulkIssueDialog from "@/components/BulkIssueDialog";
 import { internalAxios } from "@/lib/axios";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { gooeyToast } from "goey-toast";
@@ -37,12 +39,14 @@ const fmtDate = (ts) =>
     ? new DateObject({ date: new Date(ts * 1000), calendar: persian, locale: persian_fa }).format()
     : "—";
 
-export default function CoursesClient({ initialCourses }) {
+export default function CoursesClient({ initialCourses, isLoading = false, isError = false, onRetry }) {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [search, setSearch] = useState("");
   const [confirm, setConfirm] = useState(null);
+  const [singleIssueCourse, setSingleIssueCourse] = useState(null);
+  const [bulkIssueCourse, setBulkIssueCourse] = useState(null);
 
   const data = initialCourses || [];
 
@@ -73,7 +77,14 @@ export default function CoursesClient({ initialCourses }) {
       {
         accessorKey: "name",
         header: "نام دوره",
-        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+        cell: ({ row }) => (
+          <span className="flex items-center gap-2">
+            <span className="font-medium">{row.original.name}</span>
+            {row.original.visibility === "DEPUTY" && (
+              <Badge className={BADGE_TONES.blue}>خصوصی</Badge>
+            )}
+          </span>
+        ),
       },
       { accessorKey: "organizingUnit", header: "واحد برگزار کننده" },
       {
@@ -96,7 +107,7 @@ export default function CoursesClient({ initialCourses }) {
             <div className="flex flex-col">
               <span dir="ltr">{fmtDate(deadline)}</span>
               {!course.enrollmentDeadline && (
-                <span className="text-xs text-gray-500">(پیش‌فرض)</span>
+                <span className="text-xs text-muted-foreground">(پیش‌فرض)</span>
               )}
             </div>
           );
@@ -109,9 +120,15 @@ export default function CoursesClient({ initialCourses }) {
           const course = row.original;
           return (
             <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-emerald-700" aria-label={`صدور گواهی برای ${course.name}`} title="صدور تکی گواهی" onClick={() => setSingleIssueCourse(course)}>
+                <UserPlus className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-emerald-700" aria-label={`صدور دسته‌جمعی برای ${course.name}`} title="صدور دسته‌جمعی گواهی" onClick={() => setBulkIssueCourse(course)}>
+                <FileUp className="h-4 w-4" />
+              </Button>
               <Button asChild variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
                 <Link href={`/admin/courses/${course._id}/enrollments`} aria-label={`مدیریت ثبت‌نام‌های دوره ${course.name}`} title="مدیریت ثبت‌نام‌ها">
-                  <Users2 />
+                  <Users2 className="h-4 w-4" />
                 </Link>
               </Button>
               <Button
@@ -126,7 +143,7 @@ export default function CoursesClient({ initialCourses }) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 cursor-pointer text-red-600 hover:text-red-700"
+                className="h-8 w-8 cursor-pointer text-destructive hover:text-destructive/80"
                 aria-label={`حذف دوره ${course.name}`}
                 onClick={() => setConfirm({ type: "delete", course })}
               >
@@ -150,13 +167,13 @@ export default function CoursesClient({ initialCourses }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative min-w-56 flex-1 max-w-sm">
-          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="جستجوی دوره..."
             aria-label="جستجوی دوره"
-            className="pr-9"
+            className="ps-9"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -174,9 +191,19 @@ export default function CoursesClient({ initialCourses }) {
       />
 
       <DataTableShell
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={onRetry}
         isEmpty={!filtered.length}
         emptyTitle="دوره‌ای یافت نشد"
         emptyDescription={search ? "با فیلتر دیگری جستجو کنید." : "اولین دوره را ایجاد کنید."}
+        emptyAction={
+          !search && (
+            <Button size="sm" className="cursor-pointer" onClick={() => { setEditingCourse(null); setIsModalOpen(true); }}>
+              <Plus className="h-4 w-4" /> ایجاد اولین دوره
+            </Button>
+          )
+        }
       >
         <div className="hidden overflow-x-auto md:block">
           <Table>
@@ -223,7 +250,12 @@ export default function CoursesClient({ initialCourses }) {
               <div className="rounded-2xl border border-black/5 bg-white/80 p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-semibold">{course.name}</p>
+                    <p className="flex items-center gap-2 font-semibold">
+                      {course.name}
+                      {course.visibility === "DEPUTY" && (
+                        <Badge className={BADGE_TONES.blue}>خصوصی</Badge>
+                      )}
+                    </p>
                     <p className="text-xs text-muted-foreground">{course.organizingUnit}</p>
                   </div>
                   <Badge className={BADGE_TONES.green}>{course.duration} ساعت</Badge>
@@ -237,10 +269,16 @@ export default function CoursesClient({ initialCourses }) {
                       ثبت‌نام‌ها <ArrowLeft className="h-4 w-4" />
                     </Link>
                   </Button>
+                  <Button variant="outline" size="icon" className="cursor-pointer text-emerald-700" aria-label={`صدور تکی گواهی برای ${course.name}`} title="صدور تکی گواهی" onClick={() => setSingleIssueCourse(course)}>
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" className="cursor-pointer text-emerald-700" aria-label={`صدور دسته‌جمعی برای ${course.name}`} title="صدور دسته‌جمعی گواهی" onClick={() => setBulkIssueCourse(course)}>
+                    <FileUp className="h-4 w-4" />
+                  </Button>
                   <Button variant="outline" size="icon" className="cursor-pointer" aria-label={`ویرایش دوره ${course.name}`} onClick={() => { setEditingCourse(course); setIsModalOpen(true); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" className="cursor-pointer text-red-600" aria-label={`حذف دوره ${course.name}`} onClick={() => setConfirm({ type: "delete", course })}>
+                  <Button variant="outline" size="icon" className="cursor-pointer text-destructive" aria-label={`حذف دوره ${course.name}`} onClick={() => setConfirm({ type: "delete", course })}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -265,14 +303,19 @@ export default function CoursesClient({ initialCourses }) {
           }
         }}
       />
-    </div>
-  );
-}
 
-function Users2() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
+      <SingleIssueDialog
+        open={!!singleIssueCourse}
+        onOpenChange={(v) => !v && setSingleIssueCourse(null)}
+        initialCourseId={singleIssueCourse?._id}
+        scope="admin"
+      />
+      <BulkIssueDialog
+        open={!!bulkIssueCourse}
+        onOpenChange={(v) => !v && setBulkIssueCourse(null)}
+        initialCourseId={bulkIssueCourse?._id}
+        scope="admin"
+      />
+    </div>
   );
 }

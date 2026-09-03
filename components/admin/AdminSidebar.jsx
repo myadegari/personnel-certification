@@ -76,7 +76,7 @@ export function AdminSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-[11px] font-bold text-gray-400">ناوبری</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-3 text-[11px] font-bold text-muted-foreground">ناوبری</SidebarGroupLabel>
           <motion.div
             variants={staggerContainer(0.06)}
             initial={reduced ? false : "hidden"}
@@ -102,8 +102,8 @@ export function AdminSidebar() {
       <SidebarFooter className="p-3 group-data-[collapsible=icon]:p-2">
         {status === 'loading' ? (
           <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-            <div className="size-10 shrink-0 animate-pulse rounded-xl bg-gray-200 group-data-[collapsible=icon]:size-8" />
-            <div className="h-8 flex-1 animate-pulse rounded-md bg-gray-200 group-data-[collapsible=icon]:hidden" />
+            <div className="size-10 shrink-0 animate-pulse rounded-xl bg-muted group-data-[collapsible=icon]:size-8" />
+            <div className="h-8 flex-1 animate-pulse rounded-md bg-muted group-data-[collapsible=icon]:hidden" />
           </div>
         ) : status === 'authenticated' ? (
           <div className="flex items-center gap-3 rounded-2xl border border-black/5 bg-white/60 p-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
@@ -111,7 +111,7 @@ export function AdminSidebar() {
               {initialsOf(session.user.name)}
             </span>
             <div className="min-w-0 flex-1 text-right group-data-[collapsible=icon]:hidden">
-              <div className="truncate text-sm font-semibold text-gray-800">{session.user.name}</div>
+              <div className="truncate text-sm font-semibold text-foreground">{session.user.name}</div>
               <div className="truncate text-xs text-muted-foreground">{getUserSubtitle()}</div>
             </div>
             <button
@@ -119,7 +119,7 @@ export function AdminSidebar() {
               onClick={() => signOut()}
               aria-label="خروج از سامانه"
               title="خروج از سامانه"
-              className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:hidden"
+              className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive group-data-[collapsible=icon]:hidden"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -128,7 +128,7 @@ export function AdminSidebar() {
               onClick={() => signOut()}
               aria-label="خروج از سامانه"
               title="خروج از سامانه"
-              className="hidden size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:flex"
+              className="hidden size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive group-data-[collapsible=icon]:flex"
             >
               <LogOut className="h-4 w-4" />
             </button>

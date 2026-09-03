@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import SectionCard from "@/components/admin/ui/SectionCard";
 import { Badge } from "@/components/ui/badge";
-import { useFileUrl } from "@/hooks/useFileUrl";
+// import { Skeleton } from "@/components/ui/skeleton";
+// import { useFileUrl } from "@/hooks/useFileUrl";
 import { ROLE_LABELS_FA } from "@/lib/roles";
 import { USER_STATUS_META, FALLBACK_STATUS_META } from "@/lib/statusLabels";
 import { formatDate } from "@/lib/persian-date";
@@ -23,7 +24,7 @@ import { initialsOf } from "@/components/shared/SidebarNavLink";
 import InfoField from "@/components/shared/InfoField";
 
 export default function ProfileSummary({ user }) {
-  const signatureFileQuery = useFileUrl(user?.signatureImage);
+  // const signatureFileQuery = useFileUrl(user?.signatureImage);
   const statusMeta = USER_STATUS_META[user?.status] || FALLBACK_STATUS_META;
   const fullName = `${user?.firstName || ""} ${user?.lastName || ""}`.trim();
 
@@ -38,7 +39,7 @@ export default function ProfileSummary({ user }) {
       <motion.div
         variants={fadeUp}
         whileHover={{ y: -4 }}
-        className="group relative overflow-hidden rounded-3xl border border-black/5 bg-white/80 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm"
+        className="group relative overflow-hidden rounded-3xl border border-border/60 bg-white/80 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm"
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/15 to-emerald-500/0 opacity-70 transition-opacity group-hover:opacity-100" />
         <div className="relative flex flex-wrap items-center gap-4">
@@ -46,7 +47,7 @@ export default function ProfileSummary({ user }) {
             {initialsOf(fullName)}
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-2xl font-bold text-gray-900">
+            <h2 className="truncate text-2xl font-bold text-foreground">
               {fullName || "—"}
             </h2>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -75,7 +76,7 @@ export default function ProfileSummary({ user }) {
             {user?.personnelNumber && (
               <span
                 dir="ltr"
-                className="inline-flex w-fit items-center gap-1.5 rounded-full bg-black/5 px-2.5 py-1 text-xs font-medium tabular-nums text-gray-700"
+                className="inline-flex w-fit items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium tabular-nums text-foreground"
               >
                 <Hash className="size-3" /> {user.personnelNumber}
               </span>
@@ -120,15 +121,15 @@ export default function ProfileSummary({ user }) {
       </SectionCard>
 
       {/* Signature */}
-      <SectionCard
+      {/* <SectionCard
         title="امضای شما"
         description="این امضا روی گواهی‌های صادرشده شما درج می‌شود"
       >
         {signatureFileQuery.isLoading ? (
-          <div className="h-28 w-full max-w-xs animate-pulse rounded-2xl bg-gray-100" />
+          <Skeleton className="h-28 w-full max-w-xs rounded-2xl" />
         ) : signatureFileQuery.data ? (
-          <div className="inline-flex max-w-full rounded-2xl border border-black/5 bg-white p-3 shadow-sm">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div className="inline-flex max-w-full rounded-2xl border border-border/60 bg-white p-3 shadow-sm">
+            
             <img
               src={signatureFileQuery.data}
               alt="امضای کاربر"
@@ -136,8 +137,8 @@ export default function ProfileSummary({ user }) {
             />
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-black/10 bg-white/60 py-8 text-center">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-stone-100 text-stone-400">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-white/60 py-8 text-center">
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
               <PenLine className="size-5" />
             </span>
             <p className="text-sm font-medium">امضایی ثبت نشده است</p>
@@ -146,7 +147,7 @@ export default function ProfileSummary({ user }) {
             </p>
           </div>
         )}
-      </SectionCard>
+      </SectionCard> */}
     </motion.div>
   );
 }

@@ -3,7 +3,7 @@
 import { AlertTriangle, Inbox } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { clsx } from "clsx";
+import { cn } from "@/lib/utils";
 
 export function TableSkeleton({ rows = 6, cols = 5 }) {
   return (
@@ -13,7 +13,7 @@ export function TableSkeleton({ rows = 6, cols = 5 }) {
           {Array.from({ length: cols }).map((_, c) => (
             <Skeleton
               key={c}
-              className="h-9 flex-1 shimmer"
+              className="h-9 flex-1"
             />
           ))}
         </div>
@@ -29,19 +29,26 @@ export default function DataTableShell({
   onRetry,
   skeletonRows = 6,
   skeletonCols = 5,
+  skeleton,
   emptyTitle = "موردی یافت نشد",
   emptyDescription,
   emptyAction,
   toolbar,
   children,
   className,
+  contentClassName,
 }) {
   return (
-    <div className={clsx("space-y-3", className)}>
+    <div className={cn("space-y-3", className)}>
       {toolbar}
-      <div className="overflow-hidden rounded-2xl border border-black/5 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+      <div
+        className={cn(
+          "overflow-hidden rounded-2xl border border-black/5 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm",
+          contentClassName
+        )}
+      >
         {isLoading ? (
-          <TableSkeleton rows={skeletonRows} cols={skeletonCols} />
+          skeleton ?? <TableSkeleton rows={skeletonRows} cols={skeletonCols} />
         ) : isError ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <AlertTriangle className="size-8 text-rose-500" />

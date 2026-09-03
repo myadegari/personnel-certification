@@ -13,7 +13,6 @@ import { internalAxios } from "@/lib/axios";
 import { gooeyToast } from "goey-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -54,10 +53,12 @@ import {
   Trash2,
   LogIn,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   UserPlus,
-  AlertTriangle,
 } from "lucide-react";
 import { ROLE_LABELS_FA, ASSIGNABLE_ROLES, isSuperAdmin, canManageUser, canImpersonate } from "@/lib/roles";
+import { toPersianDigits } from "@/lib/persian-date";
 import { motion, AnimatePresence } from "motion/react";
 import { fadeUp } from "@/lib/motion";
 import UserFormModal from "./UserFormModal";
@@ -65,6 +66,7 @@ import UserDetailSheet from "./UserDetailSheet";
 import UserImportDialog from "./UserImportDialog";
 import ConfirmDialog from "./ConfirmDialog";
 import PageHeader from "./ui/PageHeader";
+import DataTableShell from "./ui/DataTableShell";
 import TablePager from "@/components/shared/TablePager";
 
 const StatusBadge = ({ status }) => {
@@ -253,7 +255,7 @@ export default function UserManagementClient({ initialData }) {
             checked={row.getIsSelected()}
             onCheckedChange={(value) => row.toggleSelected(!!value)}
             disabled={!row.getCanSelect()}
-            aria-label="انتخاب ردیف"
+            aria-label={`انتخاب ${row.original.firstName} ${row.original.lastName}`}
           />
         ),
       },
@@ -348,7 +350,7 @@ export default function UserManagementClient({ initialData }) {
                       className="cursor-pointer"
                       onClick={() => setConfirm({ type: "status", user: { ...u, nextStatus: "REJECTED" } })}
                     >
-                      <X className="h-4 w-4 text-red-600" /> رد کاربر
+                      <X className="h-4 w-4 text-destructive" /> رد کاربر
                     </DropdownMenuItem>
                   )}
                   {canImp && (
@@ -363,7 +365,7 @@ export default function UserManagementClient({ initialData }) {
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        className="cursor-pointer text-red-600 focus:text-red-600"
+                        className="cursor-pointer text-destructive focus:text-destructive"
                         onClick={() => setConfirm({ type: "delete", user: u })}
                       >
                         <Trash2 className="h-4 w-4" /> حذف
@@ -380,6 +382,17 @@ export default function UserManagementClient({ initialData }) {
     [currentRole, currentUserId]
   );
 
+  const handlePaginationChange = useCallback(
+    (updater) => {
+      const next = typeof updater === "function" ? updater(pagination) : updater;
+      if (next.pageIndex !== pagination.pageIndex) {
+        setRowSelection({});
+      }
+      setPagination(next);
+    },
+    [pagination]
+  );
+
   const table = useReactTable({
     data: tableData?.users ?? [],
     columns,
@@ -387,7 +400,7 @@ export default function UserManagementClient({ initialData }) {
     manualPagination: true,
     pageCount: tableData?.pagination?.pageCount ?? 1,
     state: { pagination, rowSelection },
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
     onRowSelectionChange: setRowSelection,
     enableRowSelection: (row) =>
       row.original._id !== currentUserId && canManageUser(currentRole, row.original.role),
@@ -398,19 +411,26 @@ export default function UserManagementClient({ initialData }) {
   const from = total === 0 ? 0 : pagination.pageIndex * pagination.pageSize + 1;
   const to = Math.min(total, (pagination.pageIndex + 1) * pagination.pageSize);
 
-  const SortHeader = ({ field, children }) => (
-    <button
-      type="button"
-      onClick={() => toggleSort(field)}
-      className={clsx(
-        "flex items-center gap-1 cursor-pointer select-none hover:text-foreground",
-        sort.field === field && "text-emerald-700"
-      )}
-    >
-      {children}
-      <ArrowUpDown className="h-3.5 w-3.5" />
-    </button>
-  );
+  const SortHeader = ({ field, children }) => {
+    const sorted = sort.field === field;
+    const desc = sorted && sort.order === "desc";
+    const Icon = !sorted ? ArrowUpDown : desc ? ArrowDown : ArrowUp;
+    return (
+      <TableHead aria-sort={sorted ? (desc ? "descending" : "ascending") : "none"}>
+        <button
+          type="button"
+          onClick={() => toggleSort(field)}
+          className={clsx(
+            "flex items-center gap-1 cursor-pointer select-none hover:text-foreground",
+            sorted && "text-emerald-700"
+          )}
+        >
+          {children}
+          <Icon className="h-3.5 w-3.5" />
+        </button>
+      </TableHead>
+    );
+  };
 
   const confirmConfig = (() => {
     if (!confirm) return {};
@@ -460,13 +480,13 @@ export default function UserManagementClient({ initialData }) {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-black/5 bg-white/80 p-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
         <div className="relative min-w-52 flex-1">
-          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={qInput}
             onChange={(e) => setQInput(e.target.value)}
             placeholder="جستجوی نام، شماره پرسنلی، ایمیل یا کد ملی..."
             aria-label="جستجوی کاربران"
-            className="pr-9"
+            className="ps-9"
           />
         </div>
         {isSuper && (
@@ -522,7 +542,14 @@ export default function UserManagementClient({ initialData }) {
       </AnimatePresence>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-black/5 bg-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+      <DataTableShell
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => refetch()}
+        isEmpty={!tableData?.users?.length}
+        emptyTitle="کاربری یافت نشد."
+        skeletonCols={columns.length}
+      >
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-stone-50">
@@ -531,15 +558,13 @@ export default function UserManagementClient({ initialData }) {
                   {headerGroup.headers.map((header) => {
                     const key = header.column.id;
                     const sortable = ["personnelNumber", "role", "status", "createdAt"].includes(key);
-                    return (
+                    return sortable ? (
+                      <SortHeader key={header.id} field={key}>
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                      </SortHeader>
+                    ) : (
                       <TableHead key={header.id}>
-                        {sortable ? (
-                          <SortHeader field={key}>
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </SortHeader>
-                        ) : (
-                          flexRender(header.column.columnDef.header, header.getContext())
-                        )}
+                        {flexRender(header.column.columnDef.header, header.getContext())}
                       </TableHead>
                     );
                   })}
@@ -547,58 +572,30 @@ export default function UserManagementClient({ initialData }) {
               ))}
             </TableHeader>
             <TableBody>
-              {isLoading ? (
-                Array.from({ length: pagination.pageSize }).map((_, i) => (
-                  <TableRow key={i}>
-                    {columns.map((c) => (
-                      <TableCell key={c.id}>
-                        <Skeleton className="h-5 w-full" />
+              <AnimatePresence initial={false}>
+                {table.getRowModel().rows.map((row, i) => (
+                  <motion.tr
+                    key={row.id}
+                    variants={fadeUp}
+                    initial="hidden"
+                    animate="show"
+                    exit="hidden"
+                    transition={{ delay: i * 0.02 }}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="border-b transition-colors hover:bg-emerald-50/40 data-[state=selected]:bg-muted"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
-                  </TableRow>
-                ))
-              ) : isError ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center">
-                    <div className="flex flex-col items-center gap-2 text-red-600">
-                      <AlertTriangle className="h-6 w-6" />
-                      <span>خطا در بارگذاری اطلاعات.</span>
-                      <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => refetch()}>تلاش مجدد</Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : table.getRowModel().rows?.length ? (
-                <AnimatePresence initial={false}>
-                  {table.getRowModel().rows.map((row, i) => (
-                    <motion.tr
-                      key={row.id}
-                      variants={fadeUp}
-                      initial="hidden"
-                      animate="show"
-                      exit="hidden"
-                      transition={{ delay: i * 0.02 }}
-                      data-state={row.getIsSelected() && "selected"}
-                      className="border-b transition-colors hover:bg-emerald-50/40 data-[state=selected]:bg-muted"
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
-                      ))}
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                    کاربری یافت نشد.
-                  </TableCell>
-                </TableRow>
-              )}
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             </TableBody>
           </Table>
         </div>
-      </div>
+      </DataTableShell>
 
       {/* Pagination */}
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -610,7 +607,7 @@ export default function UserManagementClient({ initialData }) {
           >
             <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {[10, 25, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{n} ردیف</SelectItem>)}
+              {[10, 25, 50, 100].map((n) => <SelectItem key={n} value={String(n)}>{toPersianDigits(String(n))} ردیف</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

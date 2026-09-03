@@ -364,7 +364,7 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
               </div>
             </fieldset>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>انصراف</Button>
