@@ -30,6 +30,12 @@ export async function POST(request) {
     return NextResponse.json({ error: "انتخاب دوره الزامی است." }, { status: 400 });
   }
 
+  // Optional explicit issue date (unix seconds); must not predate the course.
+  const issueDate = Number(body?.issueDate) || null;
+  if (body?.issueDate != null && body.issueDate !== "" && !Number.isFinite(Number(body.issueDate))) {
+    return NextResponse.json({ error: "تاریخ صدور نامعتبر است." }, { status: 400 });
+  }
+
   const validation = validateCertificateRow({
     firstName: body?.firstName,
     lastName: body?.lastName,
@@ -49,15 +55,22 @@ export async function POST(request) {
   }
   const course = access.course;
 
+  if (issueDate && Number.isFinite(course.date) && issueDate < course.date) {
+    return NextResponse.json(
+      { error: "تاریخ صدور نمی‌تواند قدیمی‌تر از تاریخ برگزاری دوره باشد." },
+      { status: 400 }
+    );
+  }
+
   try {
     const existingUser = await findUserByNationalId(data.nationalId);
     let outcome;
     let isGuest = false;
 
     if (existingUser) {
-      outcome = await issueForExistingUser(existingUser, course);
+      outcome = await issueForExistingUser(existingUser, course, { issueDate });
     } else {
-      outcome = await issueForGuest(data, course, session.user);
+      outcome = await issueForGuest(data, course, session.user, { issueDate });
       isGuest = true;
     }
 
@@ -77,6 +90,7 @@ export async function POST(request) {
         fullName: `${data.firstName} ${data.lastName}`,
         certificateNumber: outcome.certificateUniqueId,
         isGuest,
+        issuedAt: outcome.issuedAt ?? null,
       },
     });
 

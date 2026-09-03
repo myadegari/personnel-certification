@@ -4,7 +4,6 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import Course from "@/models/Course";
 import Enrollment, { LIVE_ENROLLMENT_FILTER } from "@/models/Enrollment";
-import GuestCertificate from "@/models/GuestCertificate";
 import Indicator from "@/models/Indicator";
 import IndicatorUsage from "@/models/IndicatorUsage";
 import { requireVerified } from "@/lib/authGuard";
@@ -27,7 +26,7 @@ export async function GET() {
     await dbConnect();
 
     const user = await User.findById(session.user.id)
-      .populate("headedDeputy", "name number")
+      .populate("headedDeputy")
       .lean();
 
     if (!user?.headedDeputy) {
@@ -39,7 +38,9 @@ export async function GET() {
 
     const deputy = user.headedDeputy;
 
-    const courses = await Course.find({ deputy: deputy._id })
+    // Deputy heads only manage their own PRIVATE courses; PUBLIC center
+    // courses are never surfaced here.
+    const courses = await Course.find({ deputy: deputy._id, visibility: "DEPUTY" })
       .sort({ date: -1 })
       .lean();
 
@@ -105,7 +106,7 @@ export async function GET() {
         courseCode: c.courseCode,
         courseSeq: c.courseSeq ?? null,
         date: c.date,
-        enrollmentDeadline: c.enrollmentDeadline || c.date + 86399,
+        enrollmentDeadline: c.visibility === "DEPUTY" ? null : (c.enrollmentDeadline || c.date + 86399),
         duration: c.duration,
         organizingUnit: c.organizingUnit,
         visibility: c.visibility || "PUBLIC",
@@ -119,61 +120,13 @@ export async function GET() {
       };
     });
 
-    // Certificates issued for this deputy's courses: enrollment-based
-    // certificates plus guest certificates (bulk/single issuance).
-    const [certificates, guestCertificates] = await Promise.all([
-      Enrollment.find({
-        course: { $in: courseIds },
-        status: "APPROVED",
-        certificateStatus: "completed",
-        ...LIVE_ENROLLMENT_FILTER,
-      })
-        .populate("user", "firstName lastName nationalId personnelNumber")
-        .populate("course", "name courseSeq")
-        .sort({ issuedAt: -1 })
-        .limit(200)
-        .lean(),
-      GuestCertificate.find({
-        course: { $in: courseIds },
-        certificateStatus: "completed",
-      })
-        .populate("course", "name courseSeq")
-        .sort({ issuedAt: -1 })
-        .limit(200)
-        .lean(),
-    ]);
-
-    const certRows = [
-      ...certificates.map((e) => ({
-        enrollmentId: e._id,
-        guestId: null,
-        isGuest: false,
-        fullName: `${e.user?.firstName || ""} ${e.user?.lastName || ""}`.trim(),
-        nationalId: e.user?.nationalId || null,
-        courseName: e.course?.name,
-        courseSeq: e.course?.courseSeq ?? null,
-        certificateUniqueId: e.certificateUniqueId,
-        certificateUrl: e.certificateUrl,
-        issuedAt: e.issuedAt,
-      })),
-      ...guestCertificates.map((g) => ({
-        enrollmentId: null,
-        guestId: g._id,
-        isGuest: true,
-        fullName: g.fullName,
-        nationalId: g.nationalId,
-        courseName: g.course?.name,
-        courseSeq: g.course?.courseSeq ?? null,
-        certificateUniqueId: g.certificateNumber,
-        certificateUrl: g.certificateUrl || `/verify/${g._id}`,
-        issuedAt: g.issuedAt,
-      })),
-    ];
-
     return NextResponse.json({
-      deputy: { name: deputy.name, number: deputy.number },
+      deputy: {
+        name: deputy.name,
+        number: deputy.number,
+        units: deputy.units || [],
+      },
       courses: coursesData,
-      certificates: certRows,
     });
   } catch (err) {
     console.error("Dashboard deputy error:", err);

@@ -20,6 +20,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { useCourseMutation } from "@/hooks/useCourseMutation";
 import { useUploadFile } from "@/hooks/useUploadFile";
@@ -29,6 +39,8 @@ import UserSearchCombobox from "./UserSearchCombobox";
 import MediaPickerDialog from "./MediaPickerDialog";
 import { PersianDatePicker } from "./PersianDatePicker";
 import { formatDate } from "@/lib/persian-date";
+import { joinUnits } from "@/lib/organizingUnits";
+import OrganizingUnitsPicker from "@/components/OrganizingUnitsPicker";
 import { motion, AnimatePresence } from "motion/react";
 import { spring, fadeUp, staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
 import { clsx } from "clsx";
@@ -59,7 +71,7 @@ function formatPersian(dateLike) {
 function Field({ label, hint, className, children }) {
   return (
     <div className={clsx("space-y-1.5", className)}>
-      <Label className="text-xs font-medium text-gray-600">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
       {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
     </div>
@@ -112,7 +124,7 @@ function Stepper({ currentStep }) {
                       ? "bg-emerald-500 text-white"
                       : done
                         ? "bg-emerald-100 text-emerald-700"
-                        : "bg-black/5 text-gray-500"
+                        : "bg-black/5 text-muted-foreground"
                   )}
                 >
                   {done ? <Check className="size-3.5" /> : n}
@@ -132,17 +144,46 @@ function Stepper({ currentStep }) {
 }
 
 function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
+  const selectedDeputy = deputies.find((d) => d._id === formData.deputy) || null;
+
+  // Options = the deputy's own name + its defined units; legacy snapshot
+  // values from an existing course keep showing as chips when editing.
+  const unitOptions = (() => {
+    if (!selectedDeputy) return [];
+    const opts = [{ value: selectedDeputy.name, label: selectedDeputy.name }];
+    for (const u of selectedDeputy.units || []) {
+      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
+    }
+    for (const u of formData.organizingUnits || []) {
+      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
+    }
+    return opts;
+  })();
+
   const handleDeputyChange = (value) => {
     setFormData((prev) => {
       const next = { ...prev, deputy: value === "none" ? "" : value };
-      // Auto-fill the organizing unit with the deputy's name when one is
-      // chosen; the value stays editable afterwards.
       if (value !== "none") {
         const deputy = deputies.find((d) => d._id === value);
-        if (deputy?.name) next.organizingUnit = deputy.name;
+        if (deputy?.name) {
+          // A deputy change resets the selection to the deputy itself.
+          next.organizingUnits = [deputy.name];
+          next.organizingUnit = deputy.name;
+        }
+      } else {
+        // No deputy: back to the free-text single-unit field.
+        next.organizingUnits = [];
       }
       return next;
     });
+  };
+
+  const handleUnitsChange = (units) => {
+    setFormData((prev) => ({
+      ...prev,
+      organizingUnits: units,
+      organizingUnit: joinUnits(units),
+    }));
   };
 
   return (
@@ -186,7 +227,7 @@ function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
         </Field>
         <Field
           label="معاونت"
-          hint="انتخاب معاونت، واحد برگزارکننده را با نام معاونت تکمیل می‌کند."
+          hint="انتخاب معاونت، انتخاب واحد برگزارکننده را از نام معاونت و واحدهای آن فعال می‌کند."
         >
           <Select value={formData.deputy || "none"} onValueChange={handleDeputyChange}>
             <SelectTrigger>
@@ -202,15 +243,30 @@ function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
             </SelectContent>
           </Select>
         </Field>
-        <Field label="واحد برگزارکننده">
-          <Input
-            name="organizingUnit"
-            placeholder="واحد برگزار کننده"
-            value={formData.organizingUnit}
-            onChange={(e) => setFormData({ ...formData, organizingUnit: e.target.value })}
-            required
-          />
-        </Field>
+        {selectedDeputy ? (
+          <Field
+            label="واحد برگزارکننده"
+            hint="نام معاونت و/یا حداکثر دو واحد از واحدهای آن — برای انتخاب/حذف روی گزینه‌ها بزنید."
+            className="sm:col-span-2"
+          >
+            <OrganizingUnitsPicker
+              options={unitOptions}
+              selected={formData.organizingUnits}
+              onChange={handleUnitsChange}
+              max={2}
+            />
+          </Field>
+        ) : (
+          <Field label="واحد برگزارکننده">
+            <Input
+              name="organizingUnit"
+              placeholder="واحد برگزار کننده"
+              value={formData.organizingUnit}
+              onChange={(e) => setFormData({ ...formData, organizingUnit: e.target.value })}
+              required
+            />
+          </Field>
+        )}
         <Field
           label="کد دوره"
           hint="کد ۵ رقمی یکتا؛ پس از ساخت دوره به‌صورت خودکار تخصیص می‌یابد."
@@ -221,7 +277,7 @@ function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
             readOnly
             dir="ltr"
             placeholder="پس از ساخت تخصیص می‌یابد"
-            className="cursor-default bg-stone-100/80 font-mono text-center tracking-widest"
+            className="cursor-default bg-muted/80 font-mono text-center tracking-widest"
           />
         </Field>
       </div>
@@ -238,13 +294,16 @@ function StepSummary({ formData, onEdit, deputies = [] }) {
     { label: "مهلت ثبت‌نام", value: formData.enrollmentDeadline ? formatPersian(formData.enrollmentDeadline) : "خودکار (یک روز پس از برگزاری)" },
     { label: "مدت زمان", value: formData.duration ? `${formData.duration} ساعت` : "—" },
     { label: "معاونت", value: deputyName },
-    { label: "واحد برگزارکننده", value: formData.organizingUnit },
+    {
+      label: "واحد برگزارکننده",
+      value: formData.organizingUnits?.length ? joinUnits(formData.organizingUnits) : formData.organizingUnit,
+    },
     { label: "کد دوره", value: formData.courseCode },
   ];
   return (
     <motion.div variants={fadeUp} className="rounded-3xl border border-black/5 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
       <div className="mb-3 flex items-center justify-between">
-        <h4 className="font-semibold text-gray-800">خلاصه اطلاعات دوره</h4>
+        <h4 className="font-semibold text-foreground">خلاصه اطلاعات دوره</h4>
         <Button type="button" size="sm" variant="ghost" className="cursor-pointer text-emerald-700 hover:bg-emerald-500/10" onClick={onEdit}>
           <ArrowRight className="size-4" /> ویرایش
         </Button>
@@ -253,7 +312,7 @@ function StepSummary({ formData, onEdit, deputies = [] }) {
         {rows.map((r) => (
           <div key={r.label} className="flex items-center justify-between gap-3 border-b border-dashed border-black/5 py-1.5 text-sm last:border-0">
             <dt className="text-muted-foreground">{r.label}</dt>
-            <dd className="truncate font-medium text-gray-800">{r.value || "—"}</dd>
+            <dd className="truncate font-medium text-foreground">{r.value || "—"}</dd>
           </div>
         ))}
       </dl>
@@ -275,11 +334,11 @@ function StampPickerTile({ preview, inputRef, onFileChange, onOpenPicker, onClea
       {preview ? (
         <div className="group relative flex h-28 items-center justify-center overflow-hidden rounded-2xl border border-black/5 bg-stone-50">
           <img src={preview} alt={label} className="max-h-full object-contain" />
-          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/45 group-hover:opacity-100">
-            <button type="button" onClick={onOpenPicker} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-white">
+          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/45 group-hover:opacity-100 group-focus-within:bg-black/45 group-focus-within:opacity-100 [@media(hover:none)]:bg-black/45 [@media(hover:none)]:opacity-100">
+            <button type="button" onClick={onOpenPicker} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-white">
               کتابخانه
             </button>
-            <button type="button" onClick={() => inputRef.current?.click()} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-white">
+            <button type="button" onClick={() => inputRef.current?.click()} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-white">
               تغییر
             </button>
             <button type="button" onClick={onClear} className="cursor-pointer rounded-lg bg-red-500/90 p-1.5 text-white hover:bg-red-500" aria-label="حذف">
@@ -339,6 +398,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     date: null,
     duration: "",
     organizingUnit: "",
+    organizingUnits: [],
     deputy: "",
     signatory: null,
     signatory2: null,
@@ -359,6 +419,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
   const [stampId2, setStampId2] = useState(null);
   const [pickerTarget, setPickerTarget] = useState(null);
   const [error, setError] = useState("");
+  const [confirmClose, setConfirmClose] = useState(false);
 
   const isEditing = !!courseData;
   const isSubmitting = courseMutation.isPending || uploadFileMutation.isPending;
@@ -383,6 +444,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             : null,
           duration: courseData.duration || "",
           organizingUnit: courseData.organizingUnit || "",
+          organizingUnits: courseData.organizingUnits || [],
           deputy: courseData.deputy?._id || courseData.deputy || "",
           signatory: courseData.signatory?._id || null,
           signatory2: courseData.signatory2?._id || null,
@@ -462,6 +524,19 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     setPickerTarget(null);
   };
 
+  // Guard against silently abandoning a course that was already created on
+  // step 1: once the record exists (create mode, advanced to step 2), a close
+  // request must be confirmed so the user knows the course persists (editable
+  // later) without signatories.
+  const requestClose = (nextOpen) => {
+    if (nextOpen) return;
+    if (!isEditing && createdCourseId) {
+      setConfirmClose(true);
+      return;
+    }
+    onClose();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -478,6 +553,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             : null,
           duration: formData.duration,
           organizingUnit: formData.organizingUnit,
+          organizingUnits: formData.organizingUnits,
           deputy: formData.deputy || null,
         };
         const createdCourse = await courseMutation.mutateAsync(step1Data);
@@ -572,7 +648,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog open={isOpen} onOpenChange={requestClose}>
         <DialogContent className="max-w-4xl rounded-3xl">
           <DialogHeader>
             <div className="flex items-center gap-3">
@@ -598,7 +674,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
                   exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="mb-3 flex items-center gap-2 rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">
+                  <div role="alert" className="mb-3 flex items-center gap-2 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
                     <AlertTriangle className="size-4 shrink-0" /> {error}
                   </div>
                 </motion.div>
@@ -638,7 +714,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             <DialogFooter className="mt-4 sm:justify-between">
               {isEditing ? (
                 <>
-                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={onClose}>انصراف</Button>
+                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={requestClose}>انصراف</Button>
                   <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
                     {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                     ذخیره تغییرات
@@ -646,7 +722,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
                 </>
               ) : currentStep === 1 ? (
                 <>
-                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={onClose}>انصراف</Button>
+                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={requestClose}>انصراف</Button>
                   <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
                     ادامه
                     {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowLeft className="size-4" />}
@@ -673,6 +749,30 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
         onOpenChange={(v) => !v && setPickerTarget(null)}
         onSelect={handlePickStamp}
       />
+
+      <AlertDialog open={confirmClose} onOpenChange={setConfirmClose}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>بستن ویرایشگر دوره</AlertDialogTitle>
+            <AlertDialogDescription>
+              دوره با موفقیت ایجاد شده است. اگر اکنون خارج شوید، دوره بدون
+              امضاکننده باقی می‌ماند و می‌توانید بعداً از فهرست دوره‌ها آن را
+              ویرایش کنید.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>ادامه ویرایش</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmClose(false);
+                onClose();
+              }}
+            >
+              خروج
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

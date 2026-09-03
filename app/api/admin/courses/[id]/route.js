@@ -4,6 +4,7 @@ import dbConnect from '@/lib/dbConnect';
 import Course from '@/models/Course';
 import Enrollment from '@/models/Enrollment';
 import { requireAdmin } from '@/lib/authGuard';
+import { sanitizeUnits, joinUnits, MAX_COURSE_UNITS } from '@/lib/organizingUnits';
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
 
 const ALLOWED_FIELDS = [
@@ -13,6 +14,7 @@ const ALLOWED_FIELDS = [
   "enrollmentDeadline",
   "enrollmentLimit",
   "organizingUnit",
+  "organizingUnits",
   "deputy",
   "signatory",
   "unitStamp",
@@ -61,6 +63,16 @@ export async function PUT(request, { params }) {
     if (update.signatory === '') update.signatory = null;
     if (update.signatory2 === '') update.signatory2 = null;
     if (update.deputy === '') update.deputy = null;
+
+    // Structured units array wins over the free-text string: sanitize (max 2)
+    // and recompute the joined display string. An empty array is dropped so
+    // the free-text organizingUnit (no-deputy courses) still applies.
+    if (Array.isArray(update.organizingUnits)) {
+      const units = sanitizeUnits(update.organizingUnits, { max: MAX_COURSE_UNITS }) || [];
+      update.organizingUnits = units;
+      if (units.length) update.organizingUnit = joinUnits(units);
+      else delete update.organizingUnits;
+    }
 
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });

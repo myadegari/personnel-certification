@@ -3,6 +3,7 @@ import dbConnect from "@/lib/dbConnect";
 import Course from "@/models/Course";
 import { generateUniqueCourseCode } from "@/lib/courseCode";
 import { requireAdmin } from "@/lib/authGuard";
+import { sanitizeUnits, joinUnits, MAX_COURSE_UNITS } from "@/lib/organizingUnits";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 // GET: Fetch all courses
@@ -14,7 +15,7 @@ export async function GET() {
     await dbConnect();
     const courses = await Course.find({})
       .populate("signatory", "firstName lastName")
-      .populate("deputy", "name number")
+      .populate("deputy", "name number units")
       .sort({ createdAt: -1 });
     return NextResponse.json(courses);
   } catch (err) {
@@ -29,6 +30,7 @@ const ALLOWED_FIELDS = [
   "enrollmentDeadline",
   "enrollmentLimit",
   "organizingUnit",
+  "organizingUnits",
   "deputy",
   "signatory",
   "unitStamp",
@@ -50,6 +52,14 @@ export async function POST(request) {
       if (field in body) data[field] = body[field];
     }
     if (data.deputy === '') data.deputy = null;
+
+    // When a structured units array is provided, it wins: sanitize (max 2)
+    // and recompute the joined display string so the two never diverge.
+    if (Array.isArray(data.organizingUnits)) {
+      const units = sanitizeUnits(data.organizingUnits, { max: MAX_COURSE_UNITS }) || [];
+      data.organizingUnits = units;
+      if (units.length) data.organizingUnit = joinUnits(units);
+    }
 
     await dbConnect();
 

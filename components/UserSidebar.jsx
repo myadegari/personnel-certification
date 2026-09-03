@@ -1,4 +1,5 @@
 "use client";
+import { Fragment } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -8,13 +9,14 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { LogOut, LayoutDashboard, GraduationCap, Settings, Building2 } from "lucide-react";
+import { LogOut, LayoutDashboard, GraduationCap, Settings, Building2, FileCheck2 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import { clsx } from "clsx";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ROLES, ROLE_LABELS_FA } from "@/lib/roles";
 import { staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
 import { useUser } from "@/hooks/useUser";
@@ -43,16 +45,24 @@ export function UserSidebar() {
     { href: "/dashboard/courses", label: "دوره‌های مرکز", icon: GraduationCap },
     { href: "/dashboard/profile", label: "پروفایل کاربری", icon: Settings },
   ];
-  // DEPUTY_HEAD gets a dedicated tracking page for their deputy's courses.
+  // DEPUTY_HEAD gets a dedicated tracking page for their deputy's courses,
+  // with issued certificates as a sub-page.
   if (userData?.role === ROLES.DEPUTY_HEAD) {
-    items.push({ href: "/dashboard/deputy", label: "معاونت من", icon: Building2 });
+    items.push({
+      href: "/dashboard/deputy",
+      label: "معاونت من",
+      icon: Building2,
+      children: [
+        { href: "/dashboard/deputy/certificates", label: "گواهی‌های صادر شده", icon: FileCheck2 },
+      ],
+    });
   }
 
   return (
     <Sidebar
       side="right"
       collapsible="icon"
-      className="border-l border-black/5 bg-white/70 backdrop-blur-xl"
+      className="border-l border-border/60 bg-white/70 backdrop-blur-xl"
       style={{ "--sidebar": "transparent" }}
     >
       <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-2">
@@ -80,24 +90,48 @@ export function UserSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-[11px] font-bold text-gray-400">ناوبری</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-3 text-[11px] font-bold text-muted-foreground">ناوبری</SidebarGroupLabel>
           <motion.div
             variants={staggerContainer(0.06)}
             initial={reduced ? false : "hidden"}
             animate={reduced ? false : "show"}
             className="flex flex-col gap-1"
           >
-            {items.map((item) => (
-              <SidebarNavLink
-                key={item.href}
-                href={item.href}
-                icon={item.icon}
-                active={isActivePath(pathname, item.href, "/dashboard")}
-                collapsed={collapsed}
-              >
-                {item.label}
-              </SidebarNavLink>
-            ))}
+            {items.map((item) => {
+              const hasChildren = !!item.children?.length;
+              // A parent with children is only active on its exact page so the
+              // sub-page never lights up two pills (shared layoutId) at once.
+              const parentActive = hasChildren
+                ? pathname === item.href
+                : isActivePath(pathname, item.href, "/dashboard");
+              return (
+                <Fragment key={item.href}>
+                  <SidebarNavLink
+                    href={item.href}
+                    icon={item.icon}
+                    active={parentActive}
+                    collapsed={collapsed}
+                  >
+                    {item.label}
+                  </SidebarNavLink>
+                  {hasChildren && !collapsed && (
+                    <div className="flex flex-col gap-1 border-r border-border pr-3 mr-5">
+                      {item.children.map((child) => (
+                        <SidebarNavLink
+                          key={child.href}
+                          href={child.href}
+                          icon={child.icon}
+                          active={isActivePath(pathname, child.href, "/dashboard")}
+                          collapsed={false}
+                        >
+                          {child.label}
+                        </SidebarNavLink>
+                      ))}
+                    </div>
+                  )}
+                </Fragment>
+              );
+            })}
           </motion.div>
         </SidebarGroup>
         <SidebarGroup />
@@ -106,11 +140,11 @@ export function UserSidebar() {
       <SidebarFooter className="p-3 group-data-[collapsible=icon]:p-2">
         {status === "loading" ? (
           <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-            <div className="size-10 shrink-0 animate-pulse rounded-xl bg-gray-200 group-data-[collapsible=icon]:size-8" />
-            <div className="h-8 flex-1 animate-pulse rounded-md bg-gray-200 group-data-[collapsible=icon]:hidden" />
+            <Skeleton className="size-10 shrink-0 rounded-xl group-data-[collapsible=icon]:size-8" />
+            <Skeleton className="h-8 flex-1 rounded-md group-data-[collapsible=icon]:hidden" />
           </div>
         ) : status === "authenticated" ? (
-          <div className="flex items-center gap-3 rounded-2xl border border-black/5 bg-white/60 p-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
+          <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-white/60 p-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:border-transparent group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
             <div className="relative shrink-0">
               <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white shadow-sm group-data-[collapsible=icon]:size-8">
                 {initialsOf(`${userData?.firstName || ""} ${userData?.lastName || ""}`.trim() || session.user.name)}
@@ -126,7 +160,7 @@ export function UserSidebar() {
               />
             </div>
             <div className="min-w-0 flex-1 text-right group-data-[collapsible=icon]:hidden">
-              <div className="truncate text-sm font-semibold text-gray-800">
+              <div className="truncate text-sm font-semibold text-foreground">
                 {`${userData?.firstName || ""} ${userData?.lastName || ""}`.trim() || session.user.name}
               </div>
               <div className="truncate text-xs text-muted-foreground">{getUserSubtitle()}</div>
@@ -136,7 +170,7 @@ export function UserSidebar() {
               onClick={() => signOut()}
               aria-label="خروج از سامانه"
               title="خروج از سامانه"
-              className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:hidden"
+              className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:hidden"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -145,7 +179,7 @@ export function UserSidebar() {
               onClick={() => signOut()}
               aria-label="خروج از سامانه"
               title="خروج از سامانه"
-              className="hidden size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-gray-500 transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:flex"
+              className="hidden size-8 shrink-0 cursor-pointer items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 group-data-[collapsible=icon]:flex"
             >
               <LogOut className="h-4 w-4" />
             </button>

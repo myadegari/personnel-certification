@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gooeyToast } from "goey-toast";
 import { internalAxios } from "@/lib/axios";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { useUser } from "@/hooks/useUser";
+import { joinUnits } from "@/lib/organizingUnits";
+import OrganizingUnitsPicker from "@/components/OrganizingUnitsPicker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -22,12 +24,11 @@ import { PersianDatePicker } from "@/components/admin/PersianDatePicker";
 import UserSearchCombobox from "@/components/admin/UserSearchCombobox";
 import MediaPickerDialog from "@/components/admin/MediaPickerDialog";
 import { ImagePlus, Loader2, Save, X } from "lucide-react";
-import { clsx } from "clsx";
 
 function Field({ label, hint, required, children }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-gray-600">
+      <Label className="text-xs font-medium text-muted-foreground">
         {label} {required && <span className="text-red-500">*</span>}
       </Label>
       {children}
@@ -48,13 +49,13 @@ function StampTile({ preview, inputRef, onFileChange, onOpenPicker, onClear, lab
         className="hidden"
       />
       {preview ? (
-        <div className="group relative flex h-24 items-center justify-center overflow-hidden rounded-2xl border border-black/5 bg-stone-50">
+        <div className="group relative flex h-24 items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-muted/50">
           <img src={preview} alt={label} className="max-h-full object-contain" />
-          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/45 group-hover:opacity-100">
-            <button type="button" onClick={onOpenPicker} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-white">
+          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/45 group-hover:opacity-100 group-focus-within:bg-black/45 group-focus-within:opacity-100 [@media(hover:none)]:bg-black/45 [@media(hover:none)]:opacity-100">
+            <button type="button" onClick={onOpenPicker} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-white">
               کتابخانه
             </button>
-            <button type="button" onClick={() => inputRef.current?.click()} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-gray-800 hover:bg-white">
+            <button type="button" onClick={() => inputRef.current?.click()} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-white">
               تغییر
             </button>
             <button type="button" onClick={onClear} className="cursor-pointer rounded-lg bg-red-500/90 p-1.5 text-white hover:bg-red-500" aria-label="حذف">
@@ -63,7 +64,7 @@ function StampTile({ preview, inputRef, onFileChange, onOpenPicker, onClear, lab
           </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-black/10 p-3 text-center transition-colors hover:border-emerald-400/50">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border p-3 text-center transition-colors hover:border-emerald-400/50">
           <ImagePlus className="size-5 text-emerald-600" />
           <div className="flex gap-2">
             <Button type="button" size="sm" variant="outline" className="cursor-pointer" onClick={onOpenPicker}>
@@ -82,8 +83,9 @@ function StampTile({ preview, inputRef, onFileChange, onOpenPicker, onClear, lab
 const emptyForm = {
   name: "",
   date: null,
-  enrollmentDeadline: null,
   duration: "",
+  organizingUnits: [],
+  organizingUnit: "",
   signatory: null,
   signatory2: null,
 };
@@ -92,6 +94,15 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
   const queryClient = useQueryClient();
   const uploadFileMutation = useUploadFile();
   const { data: currentUser } = useUser();
+
+  // Units of the deputy head's own deputy (from the cached dashboard payload).
+  const { data: dashboard } = useQuery({
+    queryKey: ["deputyDashboard"],
+    queryFn: async () => (await internalAxios.get("/dashboard/deputy")).data,
+    enabled: open,
+  });
+  const deputyName = dashboard?.deputy?.name || "";
+  const deputyUnits = dashboard?.deputy?.units || [];
 
   const isEditing = !!courseData;
   const [formData, setFormData] = useState(emptyForm);
@@ -118,10 +129,9 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
         setFormData({
           name: courseData.name || "",
           date: courseData.date ? new Date(courseData.date * 1000) : null,
-          enrollmentDeadline: courseData.enrollmentDeadline
-            ? new Date(courseData.enrollmentDeadline * 1000)
-            : null,
           duration: courseData.duration || "",
+          organizingUnits: courseData.organizingUnits || [],
+          organizingUnit: courseData.organizingUnit || "",
           signatory: courseData.signatory?._id || null,
           signatory2: courseData.signatory2?._id || null,
         });
@@ -146,6 +156,39 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseData, open, stamp1UrlQuery.data, stamp2UrlQuery.data]);
+
+  // In create mode the selection defaults to the deputy itself once the
+  // dashboard payload (with its units) is available.
+  useEffect(() => {
+    if (open && !isEditing && deputyName && formData.organizingUnits.length === 0) {
+      setFormData((prev) => ({
+        ...prev,
+        organizingUnits: [deputyName],
+        organizingUnit: deputyName,
+      }));
+    }
+  }, [open, isEditing, deputyName, formData.organizingUnits.length]);
+
+  // Options = the deputy's own name + its units; legacy snapshot values from
+  // an existing course keep showing as chips when editing.
+  const unitOptions = (() => {
+    const opts = [];
+    for (const u of [deputyName, ...deputyUnits]) {
+      if (u && !opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
+    }
+    for (const u of formData.organizingUnits || []) {
+      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
+    }
+    return opts;
+  })();
+
+  const handleUnitsChange = (units) => {
+    setFormData((prev) => ({
+      ...prev,
+      organizingUnits: units,
+      organizingUnit: joinUnits(units),
+    }));
+  };
 
   // Default signatory 1 to the deputy head themself in create mode (still
   // changeable via the combobox). Applied once the profile is available.
@@ -213,8 +256,9 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
       const payload = {
         name: formData.name.trim(),
         date: toSec(formData.date),
-        enrollmentDeadline: toSec(formData.enrollmentDeadline),
         duration: Number(formData.duration),
+        organizingUnits: formData.organizingUnits,
+        organizingUnit: formData.organizingUnit || joinUnits(formData.organizingUnits),
         signatory: formData.signatory,
         signatory2: formData.signatory2 || null,
         unitStamp: stampFile1 ? null : stampId1,
@@ -291,13 +335,6 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
                   placeholder="تاریخ برگزاری"
                 />
               </Field>
-              <Field label="مهلت ثبت‌نام (اختیاری)">
-                <PersianDatePicker
-                  value={formData.enrollmentDeadline}
-                  onChange={(d) => setFormData({ ...formData, enrollmentDeadline: d })}
-                  placeholder="پیش‌فرض: یک روز پس از شروع دوره"
-                />
-              </Field>
               <Field label="مدت زمان (ساعت)" required>
                 <Input
                   type="number"
@@ -306,11 +343,16 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
                   required
                 />
               </Field>
-              <Field label="واحد برگزارکننده">
-                <Input
-                  value={courseData?.organizingUnit || ""}
-                  readOnly
-                  className={clsx("cursor-default bg-stone-100/80")}
+              <Field
+                label="واحد برگزارکننده"
+                hint={`${deputyName || "معاونت"} و/یا حداکثر دو واحد از واحدهای آن — برای انتخاب/حذف روی گزینه‌ها بزنید.`}
+                className="sm:col-span-2"
+              >
+                <OrganizingUnitsPicker
+                  options={unitOptions}
+                  selected={formData.organizingUnits}
+                  onChange={handleUnitsChange}
+                  max={2}
                 />
               </Field>
               <Field label="امضاکننده اول" required>

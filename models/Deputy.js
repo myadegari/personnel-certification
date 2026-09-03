@@ -14,6 +14,12 @@ const DeputySchema = new mongoose.Schema({
     min: 1,
     max: 99,
   },
+  // Organizing units (واحدها) under this deputy. Courses may belong to the
+  // deputy itself and/or up to two of these units.
+  units: {
+    type: [String],
+    default: [],
+  },
 }, { timestamps: true });
 
 export default mongoose.models.Deputy || mongoose.model('Deputy', DeputySchema);

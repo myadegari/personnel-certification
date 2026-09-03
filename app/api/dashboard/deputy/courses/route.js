@@ -5,6 +5,7 @@ import Course from "@/models/Course";
 import User from "@/models/User";
 import { generateUniqueCourseCode } from "@/lib/courseCode";
 import { resolveDeputyHead } from "@/lib/deputyAccess";
+import { sanitizeUnits, joinUnits, MAX_COURSE_UNITS } from "@/lib/organizingUnits";
 import { requireVerified } from "@/lib/authGuard";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
@@ -41,8 +42,9 @@ export async function GET(request, { params }) {
 }
 
 // POST: create a private course owned by the caller's deputy.
-// deputy/visibility/organizingUnit are forced server-side; the deputy head
-// can never create a PUBLIC course or touch another deputy.
+// deputy/visibility are forced server-side; organizingUnits are validated
+// against the deputy's own name/units. The deputy head can never create a
+// PUBLIC course or touch another deputy.
 export async function POST(request) {
   const { session, error } = await requireVerified();
   if (error) return error;
@@ -73,6 +75,21 @@ export async function POST(request) {
       return NextResponse.json({ error: "امضاکننده یافت نشد." }, { status: 400 });
     }
 
+    // Organizing units: the deputy itself and/or up to two of its defined
+    // units. Defaults to the deputy's own name when not provided.
+    const allowedUnits = new Set([deputy.name, ...(deputy.units || [])]);
+    let organizingUnits = [deputy.name];
+    if (Array.isArray(body?.organizingUnits) && body.organizingUnits.length > 0) {
+      const requested = sanitizeUnits(body.organizingUnits, { max: MAX_COURSE_UNITS });
+      if (!requested.length || requested.some((u) => !allowedUnits.has(u))) {
+        return NextResponse.json(
+          { error: "واحد برگزارکننده باید نام معاونت یا یکی از واحدهای آن باشد." },
+          { status: 400 }
+        );
+      }
+      organizingUnits = requested;
+    }
+
     const data = {
       name,
       date,
@@ -82,13 +99,10 @@ export async function POST(request) {
       unitStamp: toObjectIdOrNull(body?.unitStamp),
       unitStamp2: toObjectIdOrNull(body?.unitStamp2),
       deputy: deputy._id,
-      organizingUnit: deputy.name,
+      organizingUnit: joinUnits(organizingUnits),
+      organizingUnits,
       visibility: "DEPUTY",
     };
-    if (Number.isFinite(Number(body?.enrollmentDeadline))) {
-      data.enrollmentDeadline = Number(body.enrollmentDeadline);
-    }
-
     // The course code is a server-generated unique 5-digit number; retry on
     // a rare duplicate race.
     for (let attempt = 0; attempt < 3; attempt += 1) {

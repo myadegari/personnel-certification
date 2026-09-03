@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gooeyToast } from "goey-toast";
 import { internalAxios } from "@/lib/axios";
@@ -23,29 +23,46 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { PersianDatePicker } from "@/components/admin/PersianDatePicker";
 
 const emptyForm = { firstName: "", lastName: "", nationalId: "", gender: "" };
 
-export default function SingleIssueDialog({ open, onOpenChange, initialCourseId }) {
+export default function SingleIssueDialog({ open, onOpenChange, initialCourseId, scope = "deputy" }) {
   const queryClient = useQueryClient();
   const [courseId, setCourseId] = useState("");
   const [formData, setFormData] = useState(emptyForm);
+  const [issueDate, setIssueDate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const courseSelectId = useId();
+  const issueDateId = useId();
 
+  // Deputy scope lists the head's own private courses; admin scope lists all
+  // courses (issuance authorization is enforced server-side either way).
   const { data: dashboard } = useQuery({
     queryKey: ["deputyDashboard"],
     queryFn: async () => (await internalAxios.get("/dashboard/deputy")).data,
-    enabled: open,
+    enabled: open && scope === "deputy",
   });
-  const courses = dashboard?.courses || [];
+  const { data: adminCourses } = useQuery({
+    queryKey: ["adminCourses"],
+    queryFn: async () => (await internalAxios.get("/admin/courses")).data,
+    enabled: open && scope === "admin",
+  });
+  const courses = (scope === "admin"
+    ? (adminCourses || []).map((c) => ({ _id: c._id, name: c.name, date: c.date }))
+    : dashboard?.courses || []
+  ).filter(Boolean);
+
+  const selectedCourse = courses.find((c) => c._id === courseId) || null;
 
   useEffect(() => {
     if (open) {
       setCourseId(initialCourseId || "");
       setFormData(emptyForm);
+      setIssueDate(null);
       setResult(null);
       setError("");
     }
@@ -58,11 +75,17 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId 
       setError("انتخاب دوره الزامی است.");
       return;
     }
+    const issueDateSec = issueDate ? Math.floor(new Date(issueDate).getTime() / 1000) : null;
+    if (issueDateSec && selectedCourse && Number.isFinite(selectedCourse.date) && issueDateSec < selectedCourse.date) {
+      setError("تاریخ صدور نمی‌تواند قدیمی‌تر از تاریخ برگزاری دوره باشد.");
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await internalAxios.post("/dashboard/deputy/issue", {
         courseId,
         ...formData,
+        issueDate: issueDateSec,
       });
       if (data.skipped) {
         setError(data.reason || "این گواهی قبلاً صادر شده است.");
@@ -70,6 +93,7 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId 
         setResult(data);
         gooeyToast.success(`گواهی ${data.certificateNumber} صادر شد.`);
         queryClient.invalidateQueries({ queryKey: ["deputyDashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["enrollments"] });
       }
     } catch (err) {
       setError(err.response?.data?.error || "خطا در صدور گواهی.");
@@ -109,12 +133,12 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId 
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">{error}</div>
+              <div role="alert" className="rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">{error}</div>
             )}
             <div className="space-y-1.5">
-              <Label>دوره</Label>
+              <Label htmlFor={courseSelectId}>دوره</Label>
               <Select value={courseId} onValueChange={setCourseId}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id={courseSelectId} className="w-full">
                   <SelectValue placeholder="انتخاب دوره" />
                 </SelectTrigger>
                 <SelectContent>
@@ -160,6 +184,7 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId 
                 value={formData.gender}
                 onValueChange={(v) => setFormData((p) => ({ ...p, gender: v }))}
                 className="flex gap-6"
+                aria-label="جنسیت"
                 required
               >
                 <div className="flex items-center gap-2">
@@ -172,12 +197,29 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId 
                 </div>
               </RadioGroup>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={issueDateId}>تاریخ صدور (اختیاری)</Label>
+              <PersianDatePicker
+                id={issueDateId}
+                value={issueDate}
+                onChange={(d) => setIssueDate(d)}
+                placeholder="پیش‌فرض: امروز"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                در صورت انتخاب، روی گواهی و شماره آن اعمال می‌شود؛ نمی‌تواند قدیمی‌تر از تاریخ برگزاری دوره باشد.
+              </p>
+            </div>
             <DialogFooter>
               <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => onOpenChange(false)} disabled={loading}>
                 انصراف
               </Button>
-              <Button type="submit" className="cursor-pointer" disabled={loading || !courseId}>
-                {loading ? <Loader2 className="size-4 animate-spin" /> : <ExternalLink className="size-4" />}
+              <Button
+                type="submit"
+                className="cursor-pointer"
+                disabled={!courseId}
+                loading={loading}
+              >
+                <ExternalLink className="size-4" />
                 صدور گواهی
               </Button>
             </DialogFooter>

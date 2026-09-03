@@ -24,10 +24,18 @@ const CourseSchema = new mongoose.Schema({
     type: Number, // مدت زمان به ساعت
     required: true,
   },
-  organizingUnit: {
+   organizingUnit: {
     type: String,
     required: true,
-  },
+   },
+   // Structured snapshot of the chosen organizing units (deputy name and/or
+   // its units, max 2). organizingUnit above is the " و "-joined display
+   // string derived from it; kept as plain strings so later unit renames
+   // never rewrite course history.
+   organizingUnits: {
+    type: [String],
+    default: [],
+   },
   // Owning deputy (معاونت); its 2-digit number is embedded in certificate
   // numbers and its name can pre-fill organizingUnit on the form.
   deputy: {

@@ -31,12 +31,18 @@ export async function POST(request) {
   const file = formData.get("file");
   const mode = formData.get("mode") === "commit" ? "commit" : "dry-run";
   const courseId = String(formData.get("courseId") || "").trim();
+  // Optional explicit issue date (unix seconds) applied to the whole file.
+  const issueDateRaw = formData.get("issueDate");
+  const issueDate = Number(issueDateRaw) || null;
 
   if (!file || typeof file === "string") {
     return NextResponse.json({ error: "فایل CSV ارسال نشده است." }, { status: 400 });
   }
   if (!courseId) {
     return NextResponse.json({ error: "انتخاب دوره الزامی است." }, { status: 400 });
+  }
+  if (issueDateRaw != null && issueDateRaw !== "" && !Number.isFinite(Number(issueDateRaw))) {
+    return NextResponse.json({ error: "تاریخ صدور نامعتبر است." }, { status: 400 });
   }
 
   const text = await file.text();
@@ -66,6 +72,13 @@ export async function POST(request) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
   const course = access.course;
+
+  if (issueDate && Number.isFinite(course.date) && issueDate < course.date) {
+    return NextResponse.json(
+      { error: "تاریخ صدور نمی‌تواند قدیمی‌تر از تاریخ برگزاری دوره باشد." },
+      { status: 400 }
+    );
+  }
 
   const results = [];
   const summary = {
@@ -112,7 +125,7 @@ export async function POST(request) {
     // commit
     try {
       if (existingUser) {
-        const outcome = await issueForExistingUser(existingUser, course);
+        const outcome = await issueForExistingUser(existingUser, course, { issueDate });
         if (outcome.skipped) {
           summary.skipped += 1;
           results.push({ line, nationalId: data.nationalId, status: "skipped", errors: [outcome.reason] });
@@ -127,7 +140,7 @@ export async function POST(request) {
           });
         }
       } else {
-        const outcome = await issueForGuest(data, course, session.user);
+        const outcome = await issueForGuest(data, course, session.user, { issueDate });
         if (outcome.skipped) {
           summary.skipped += 1;
           results.push({ line, nationalId: data.nationalId, status: "skipped", errors: [outcome.reason] });
@@ -161,7 +174,7 @@ export async function POST(request) {
       session,
       action: AUDIT_ACTIONS.CERTIFICATE_BULK_ISSUE,
       resourceType: AUDIT_RESOURCE_TYPES.CERTIFICATE,
-      metadata: { courseId, courseName: course.name, mode, summary },
+      metadata: { courseId, courseName: course.name, mode, summary, issuedAt: issueDate ? new Date(issueDate * 1000).toISOString() : null },
     });
   }
 

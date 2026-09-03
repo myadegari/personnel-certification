@@ -1,83 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { gooeyToast } from "goey-toast";
 import { motion } from "motion/react";
 import { internalAxios } from "@/lib/axios";
 import { fadeUp, staggerContainer } from "@/lib/motion";
+import { toShamsi, toPersianDigits } from "@/lib/persian-date";
 import { Badge } from "@/components/ui/badge";
 import { BADGE_TONES } from "@/lib/statusLabels";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatCard from "@/components/admin/ui/StatCard";
 import SectionCard from "@/components/admin/ui/SectionCard";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
-import { AlertTriangle, Users, FileCheck2, Clock, ExternalLink, Building2, Layers, FileUp, Plus, Pencil, Trash2, UserPlus } from "lucide-react";
-import { DateObject } from "react-multi-date-picker";
-import persian from "react-date-object/calendars/persian";
-import persian_fa from "react-date-object/locales/persian_fa";
+import { AlertTriangle, FileCheck2, Building2, Layers, FileUp, Plus, Pencil, Trash2, UserPlus, Search, ChevronRight, ChevronLeft } from "lucide-react";
 import BulkIssueDialog from "@/components/BulkIssueDialog";
 import SingleIssueDialog from "@/components/SingleIssueDialog";
 import DeputyCourseFormDialog from "@/components/DeputyCourseFormDialog";
 
-const fmtDate = (ts) =>
-  ts
-    ? new DateObject({ date: new Date(ts * 1000), calendar: persian, locale: persian_fa }).format()
-    : "—";
-
 function DeputyCourseCard({ course, onEdit, onDelete, onIssue, canManage }) {
-  const { stats, issueProgress } = course;
-  const progressPct = issueProgress.max > 0 ? Math.round((issueProgress.issued / issueProgress.max) * 100) : 0;
+  const { stats } = course;
 
   return (
-    <motion.div variants={fadeUp} className="rounded-2xl border border-black/5 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="font-semibold">{course.name}</p>
-          <p className="text-xs text-muted-foreground">{course.organizingUnit}</p>
+    <motion.div variants={fadeUp} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+      <p className="min-w-0 flex-1 truncate text-sm font-semibold">{course.name}</p>
+      <Badge className={`${BADGE_TONES.blue} shrink-0`} aria-label="تعداد گواهی صادر شده">
+        {stats.issued} گواهی
+      </Badge>
+      <Badge className={`${BADGE_TONES.green} shrink-0`}>{course.duration} ساعت</Badge>
+      {canManage && (
+        <div className="flex shrink-0 items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-emerald-700" aria-label={`صدور گواهی برای ${course.name}`} title="صدور گواهی" onClick={() => onIssue?.(course)}>
+            <UserPlus className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" aria-label={`ویرایش ${course.name}`} title="ویرایش دوره" onClick={() => onEdit?.(course)}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-red-600" aria-label={`حذف ${course.name}`} title="حذف دوره" onClick={() => onDelete?.(course)}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
         </div>
-        <Badge className={BADGE_TONES.green}>{course.duration} ساعت</Badge>
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-        <div>
-          <p className="text-lg font-bold text-amber-600">{stats.pending}</p>
-          <p className="text-xs text-muted-foreground">در انتظار</p>
-        </div>
-        <div>
-          <p className="text-lg font-bold text-emerald-600">{stats.approved}</p>
-          <p className="text-xs text-muted-foreground">تایید شده</p>
-        </div>
-        <div>
-          <p className="text-lg font-bold text-sky-600">{stats.issued}</p>
-          <p className="text-xs text-muted-foreground">صادر شده</p>
-        </div>
-      </div>
-      <div className="mt-3 space-y-1">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">پیشرفت صدور</span>
-          <span className="font-medium">{issueProgress.issued}/{issueProgress.max}</span>
-        </div>
-        <Progress value={progressPct} className="h-1.5" />
-      </div>
-      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-        <span>مهلت ثبت‌نام: {fmtDate(course.enrollmentDeadline)}</span>
-        {canManage && (
-          <span className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer text-emerald-700" aria-label={`صدور گواهی برای ${course.name}`} title="صدور گواهی" onClick={() => onIssue?.(course)}>
-              <UserPlus className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" aria-label={`ویرایش ${course.name}`} title="ویرایش دوره" onClick={() => onEdit?.(course)}>
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer text-red-600" aria-label={`حذف ${course.name}`} title="حذف دوره" onClick={() => onDelete?.(course)}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </span>
-        )}
-      </div>
+      )}
     </motion.div>
   );
 }
@@ -90,10 +63,23 @@ export default function DeputyDashboardPage() {
   const [courseDialogOpen, setCourseDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [courseYearFilter, setCourseYearFilter] = useState("all");
+  const [courseSearchInput, setCourseSearchInput] = useState("");
+  const [courseSearch, setCourseSearch] = useState("");
+  const [coursePage, setCoursePage] = useState(1);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["deputyDashboard"],
     queryFn: async () => (await internalAxios.get("/dashboard/deputy")).data,
   });
+
+  // Debounce the course search box so typing doesn't re-filter every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCourseSearch(courseSearchInput);
+      setCoursePage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [courseSearchInput]);
 
   const deleteCourseMutation = useMutation({
     mutationFn: (courseId) => internalAxios.delete(`/dashboard/deputy/courses/${courseId}`),
@@ -111,7 +97,7 @@ export default function DeputyDashboardPage() {
         <PageHeader title="معاونت من" description="در حال بارگذاری..." />
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-2xl shimmer" />
+            <Skeleton key={i} className="h-32 rounded-2xl" />
           ))}
         </div>
       </div>
@@ -130,11 +116,29 @@ export default function DeputyDashboardPage() {
     );
   }
 
-  const { deputy, courses = [], certificates = [] } = data || {};
-  const totalIssued = certificates.length;
+  const { deputy, courses = [] } = data || {};
   const totalCourses = courses.length;
-  const totalPending = courses.reduce((s, c) => s + c.stats.pending, 0);
-  const totalApproved = courses.reduce((s, c) => s + c.stats.approved, 0);
+  // Issued totals come from the per-course counters (unbounded). The full
+  // filterable list lives on /dashboard/deputy/certificates.
+  const totalIssued = courses.reduce((s, c) => s + (c.stats?.issued || 0), 0);
+
+  // Client-side course filtering/pagination — the dashboard payload already
+  // carries every course (and is shared with the issue dialogs).
+  const COURSES_PER_PAGE = 6;
+  const courseYearOf = (c) => toShamsi(new Date(c.date * 1000)).year;
+  const courseYearOptions = [...new Set(courses.map(courseYearOf))].sort((a, b) => b - a);
+  const filteredCourses = courses.filter((c) => {
+    if (courseYearFilter !== "all" && courseYearOf(c) !== Number(courseYearFilter)) return false;
+    if (courseSearch && !c.name?.toLowerCase().includes(courseSearch.toLowerCase())) return false;
+    return true;
+  });
+  const coursePageCount = Math.max(1, Math.ceil(filteredCourses.length / COURSES_PER_PAGE));
+  // A deleted course must not strand the pager past the last page.
+  const safeCoursePage = Math.min(coursePage, coursePageCount);
+  const visibleCourses = filteredCourses.slice(
+    (safeCoursePage - 1) * COURSES_PER_PAGE,
+    safeCoursePage * COURSES_PER_PAGE
+  );
 
   return (
     <>
@@ -161,80 +165,99 @@ export default function DeputyDashboardPage() {
         variants={staggerContainer(0.08)}
         initial="hidden"
         animate="show"
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+        className="grid gap-4 md:grid-cols-2"
       >
         <StatCard title="دوره‌ها" value={totalCourses} icon={Layers} accent="emerald" />
-        <StatCard title="در انتظار تایید" value={totalPending} icon={Clock} accent="amber" />
-        <StatCard title="تایید شده" value={totalApproved} icon={Users} accent="violet" />
         <StatCard title="گواهی‌های صادر شده" value={totalIssued} icon={FileCheck2} accent="rose" />
       </motion.div>
 
       {courses.length > 0 && (
         <SectionCard title="دوره‌های معاونت" description="دوره‌های تحت مدیریت شما">
-          <motion.div
-            variants={staggerContainer(0.05)}
-            initial="hidden"
-            animate="show"
-            className="grid gap-4 md:grid-cols-2"
-          >
-            {courses.map((course) => (
-              <DeputyCourseCard
-                key={course._id}
-                course={course}
-                canManage={course.visibility === "DEPUTY"}
-                onEdit={(c) => { setEditingCourse(c); setCourseDialogOpen(true); }}
-                onDelete={(c) => setDeleteConfirm(c)}
-                onIssue={(c) => { setSingleIssueCourse(c); setSingleDialogOpen(true); }}
-              />
-            ))}
-          </motion.div>
-        </SectionCard>
-      )}
-
-      {certificates.length > 0 && (
-        <SectionCard title="گواهی‌های صادر شده" description="آخرین گواهی‌های صادر شده برای این معاونت">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-stone-50">
-                <tr>
-                  <th className="px-3 py-2 text-right text-xs font-bold text-gray-500">کاربر</th>
-                  <th className="px-3 py-2 text-right text-xs font-bold text-gray-500">کد ملی</th>
-                  <th className="px-3 py-2 text-right text-xs font-bold text-gray-500">شماره گواهی</th>
-                  <th className="px-3 py-2 text-right text-xs font-bold text-gray-500">تاریخ صدور</th>
-                  <th className="px-3 py-2 text-center text-xs font-bold text-gray-500">مشاهده</th>
-                </tr>
-              </thead>
-              <tbody>
-                {certificates.map((cert) => (
-                  <tr key={cert.enrollmentId || cert.guestId} className="border-b transition-colors hover:bg-emerald-50/40">
-                    <td className="px-3 py-2 text-sm">
-                      {cert.fullName || "—"}
-                      {cert.isGuest && (
-                        <Badge className={`${BADGE_TONES.blue} ms-2`} aria-label="گواهی مهمان">مهمان</Badge>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-sm font-mono" dir="ltr">{cert.user?.nationalId || "—"}</td>
-                    <td className="px-3 py-2 text-sm font-mono" dir="ltr">{cert.certificateUniqueId || "—"}</td>
-                    <td className="px-3 py-2 text-sm">{cert.issuedAt || "—"}</td>
-                    <td className="px-3 py-2 text-center">
-                      <Button asChild variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
-                        <a href={cert.certificateUrl || "#"} target="_blank" rel="noopener noreferrer" aria-label="مشاهده گواهی">
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    </td>
-                  </tr>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Select
+              value={courseYearFilter}
+              onValueChange={(v) => { setCourseYearFilter(v); setCoursePage(1); }}
+            >
+              <SelectTrigger className="w-40 cursor-pointer">
+                <SelectValue placeholder="همه سال‌ها" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">همه سال‌ها</SelectItem>
+                {courseYearOptions.map((y) => (
+                  <SelectItem key={y} value={String(y)}>سال {y}</SelectItem>
                 ))}
-              </tbody>
-            </table>
+              </SelectContent>
+            </Select>
+            <div className="relative min-w-56 flex-1 max-w-xs">
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={courseSearchInput}
+                onChange={(e) => setCourseSearchInput(e.target.value)}
+                placeholder="جستجو بر اساس نام دوره"
+                aria-label="جستجو بر اساس نام دوره"
+                className="pr-9"
+              />
+            </div>
           </div>
+
+          {visibleCourses.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">دوره‌ای با این فیلترها یافت نشد.</p>
+          ) : (
+            <motion.div
+              variants={staggerContainer(0.05)}
+              initial="hidden"
+              animate="show"
+              className="flex flex-col gap-3"
+            >
+              {visibleCourses.map((course) => (
+                <DeputyCourseCard
+                  key={course._id}
+                  course={course}
+                  canManage={course.visibility === "DEPUTY"}
+                  onEdit={(c) => { setEditingCourse(c); setCourseDialogOpen(true); }}
+                  onDelete={(c) => setDeleteConfirm(c)}
+                  onIssue={(c) => { setSingleIssueCourse(c); setSingleDialogOpen(true); }}
+                />
+              ))}
+            </motion.div>
+          )}
+
+          {coursePageCount > 1 && (
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                صفحه {toPersianDigits(String(safeCoursePage))} از {toPersianDigits(String(coursePageCount))} — {toPersianDigits(String(filteredCourses.length))} دوره
+              </p>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="cursor-pointer"
+                  disabled={safeCoursePage <= 1}
+                  onClick={() => setCoursePage((p) => Math.max(1, p - 1))}
+                  aria-label="صفحه قبل"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="cursor-pointer"
+                  disabled={safeCoursePage >= coursePageCount}
+                  onClick={() => setCoursePage((p) => Math.min(coursePageCount, p + 1))}
+                  aria-label="صفحه بعد"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </SectionCard>
       )}
 
-      {!courses.length && !certificates.length && (
+      {!courses.length && (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <Building2 className="size-10 text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground">دوره یا گواهی‌ای برای این معاونت ثبت نشده است.</p>
+          <p className="text-sm text-muted-foreground">دوره‌ای برای این معاونت ثبت نشده است.</p>
         </div>
       )}
     </div>

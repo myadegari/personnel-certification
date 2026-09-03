@@ -5,6 +5,7 @@ import Course from "@/models/Course";
 import Enrollment from "@/models/Enrollment";
 import GuestCertificate from "@/models/GuestCertificate";
 import { resolveDeputyHead } from "@/lib/deputyAccess";
+import { sanitizeUnits, joinUnits, MAX_COURSE_UNITS } from "@/lib/organizingUnits";
 import { requireVerified } from "@/lib/authGuard";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
@@ -45,12 +46,22 @@ export async function PUT(request, { params }) {
     if (Number.isFinite(Number(body?.duration)) && Number(body.duration) > 0) {
       update.duration = Number(body.duration);
     }
-    if (Number.isFinite(Number(body?.enrollmentDeadline))) {
-      update.enrollmentDeadline = Number(body.enrollmentDeadline);
-    }
-
     for (const field of ["signatory", "signatory2", "unitStamp", "unitStamp2"]) {
       if (field in body) update[field] = toObjectIdOrNull(body[field]);
+    }
+    // Units are only touched when the request explicitly carries them; any
+    // provided set must be the deputy's name and/or its own units (max 2).
+    if (Array.isArray(body?.organizingUnits) && body.organizingUnits.length > 0) {
+      const allowedUnits = new Set([access.deputy.name, ...(access.deputy.units || [])]);
+      const requested = sanitizeUnits(body.organizingUnits, { max: MAX_COURSE_UNITS });
+      if (!requested.length || requested.some((u) => !allowedUnits.has(u))) {
+        return NextResponse.json(
+          { error: "واحد برگزارکننده باید نام معاونت یا یکی از واحدهای آن باشد." },
+          { status: 400 }
+        );
+      }
+      update.organizingUnits = requested;
+      update.organizingUnit = joinUnits(requested);
     }
     if (update.signatory === null) {
       return NextResponse.json({ error: "امضاکننده الزامی است." }, { status: 400 });

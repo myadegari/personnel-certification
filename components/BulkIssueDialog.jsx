@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Papa from "papaparse";
 import { gooeyToast } from "goey-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -32,8 +33,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { BADGE_TONES } from "@/lib/statusLabels";
-import { Download, UploadCloud, FileSpreadsheet, Loader2 } from "lucide-react";
+import { Download, UploadCloud, FileSpreadsheet } from "lucide-react";
 import { clsx } from "clsx";
+import { PersianDatePicker } from "@/components/admin/PersianDatePicker";
 
 const STEPS = ["upload", "preview", "results"];
 const STEP_LABELS = { upload: "انتخاب فایل", preview: "پیش‌نمایش و اعتبارسنجی", results: "نتیجه" };
@@ -48,27 +50,48 @@ function downloadTextFile(filename, text, type = "text/csv;charset=utf-8") {
   URL.revokeObjectURL(url);
 }
 
-export default function BulkIssueDialog({ open, onOpenChange }) {
+export default function BulkIssueDialog({ open, onOpenChange, initialCourseId, scope = "deputy" }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
   const [step, setStep] = useState("upload");
   const [courseId, setCourseId] = useState("");
   const [file, setFile] = useState(null);
+  const [issueDate, setIssueDate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [results, setResults] = useState(null);
+  const courseSelectId = useId();
+  const issueDateId = useId();
 
+  // Deputy scope lists the head's own private courses; admin scope lists all
+  // courses (issuance authorization is enforced server-side either way).
   const { data: dashboard } = useQuery({
     queryKey: ["deputyDashboard"],
     queryFn: async () => (await internalAxios.get("/dashboard/deputy")).data,
-    enabled: open,
+    enabled: open && scope === "deputy",
   });
-  const courses = dashboard?.courses || [];
+  const { data: adminCourses } = useQuery({
+    queryKey: ["adminCourses"],
+    queryFn: async () => (await internalAxios.get("/admin/courses")).data,
+    enabled: open && scope === "admin",
+  });
+  const courses = (scope === "admin"
+    ? (adminCourses || []).map((c) => ({ _id: c._id, name: c.name, date: c.date }))
+    : dashboard?.courses || []
+  ).filter(Boolean);
+
+  const selectedCourse = courses.find((c) => c._id === courseId) || null;
+
+  // Preselect the course when opened from a per-course action button.
+  useEffect(() => {
+    if (open) setCourseId(initialCourseId || "");
+  }, [open, initialCourseId]);
 
   const reset = () => {
     setStep("upload");
     setCourseId("");
     setFile(null);
+    setIssueDate(null);
     setPreview(null);
     setResults(null);
     setLoading(false);
@@ -80,9 +103,23 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
     onOpenChange(next);
   };
 
+  // CSV is validated by extension or MIME: the accept attr only filters the
+  // file picker, so drag-and-drop must be checked separately.
+  const isCsvFile = (f) =>
+    Boolean(f) && (/\.csv$/i.test(f.name || "") || f.type === "text/csv");
+
+  const acceptFile = (candidate) => {
+    if (!candidate) return false;
+    if (!isCsvFile(candidate)) {
+      gooeyToast.error("فقط فایل CSV پذیرفته می‌شود.");
+      return false;
+    }
+    setFile(candidate);
+    return true;
+  };
+
   const onFileChange = (e) => {
-    const selected = e.target.files?.[0];
-    if (selected) setFile(selected);
+    acceptFile(e.target.files?.[0]);
   };
 
   const runImport = async (mode) => {
@@ -94,12 +131,18 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
       gooeyToast.error("ابتدا یک فایل CSV انتخاب کنید.");
       return;
     }
+    const issueDateSec = issueDate ? Math.floor(new Date(issueDate).getTime() / 1000) : null;
+    if (issueDateSec && selectedCourse && Number.isFinite(selectedCourse.date) && issueDateSec < selectedCourse.date) {
+      gooeyToast.error("تاریخ صدور نمی‌تواند قدیمی‌تر از تاریخ برگزاری دوره باشد.");
+      return;
+    }
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("mode", mode);
       formData.append("courseId", courseId);
+      if (issueDateSec) formData.append("issueDate", String(issueDateSec));
       const { data } = await internalAxios.post("/dashboard/deputy/bulk-issue", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -110,6 +153,7 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
         setResults(data);
         setStep("results");
         queryClient.invalidateQueries({ queryKey: ["deputyDashboard"] });
+        queryClient.invalidateQueries({ queryKey: ["enrollments"] });
         gooeyToast.success("صدور گواهی‌ها با موفقیت انجام شد.");
       }
     } catch (err) {
@@ -147,9 +191,9 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
         {step === "upload" && (
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-gray-700">دوره</label>
+              <Label htmlFor={courseSelectId} className="text-sm font-medium text-foreground">دوره</Label>
               <Select value={courseId} onValueChange={setCourseId}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger id={courseSelectId} className="w-full">
                   <SelectValue placeholder="انتخاب دوره" />
                 </SelectTrigger>
                 <SelectContent>
@@ -161,17 +205,37 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={issueDateId} className="text-sm font-medium text-foreground">تاریخ صدور (اختیاری)</Label>
+              <PersianDatePicker
+                id={issueDateId}
+                value={issueDate}
+                onChange={(d) => setIssueDate(d)}
+                placeholder="پیش‌فرض: امروز"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                در صورت انتخاب، روی همه گواهی‌های این فایل اعمال می‌شود؛ نمی‌تواند قدیمی‌تر از تاریخ برگزاری دوره باشد.
+              </p>
+            </div>
             <div
+              role="button"
+              tabIndex={0}
+              aria-label="انتخاب فایل CSV"
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 e.preventDefault();
-                const dropped = e.dataTransfer.files?.[0];
-                if (dropped) setFile(dropped);
+                acceptFile(e.dataTransfer.files?.[0]);
               }}
               className={clsx(
-                "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors",
-                file ? "border-emerald-500 bg-emerald-50/50" : "border-gray-300 hover:border-emerald-400"
+                "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+                file ? "border-emerald-500 bg-emerald-50/50" : "border-border hover:border-emerald-400"
               )}
             >
               <UploadCloud className="h-8 w-8 text-emerald-600" />
@@ -189,7 +253,9 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
                 ref={fileInputRef}
                 type="file"
                 accept=".csv,text/csv"
-                className="hidden"
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
                 onChange={onFileChange}
               />
             </div>
@@ -218,18 +284,26 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {preview.results.map((r, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>{r.line}</TableCell>
-                      <TableCell dir="ltr">{r.nationalId || "—"}</TableCell>
-                      <TableCell>
-                        <RowStatusBadge status={r.status} />
-                      </TableCell>
-                      <TableCell className="text-xs text-red-600">
-                        {(r.errors || []).join("، ") || "—"}
+                  {preview.results.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                        نتیجه‌ای برای نمایش نیست
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    preview.results.map((r, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{r.line}</TableCell>
+                        <TableCell dir="ltr">{r.nationalId || "—"}</TableCell>
+                        <TableCell>
+                          <RowStatusBadge status={r.status} />
+                        </TableCell>
+                        <TableCell className="text-xs text-destructive">
+                          {(r.errors || []).join("، ") || "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -251,19 +325,27 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {results.results.map((r, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell>{r.line}</TableCell>
-                      <TableCell dir="ltr">{r.nationalId || "—"}</TableCell>
-                      <TableCell>
-                        <RowStatusBadge status={r.status} />
-                      </TableCell>
-                      <TableCell dir="ltr" className="font-mono text-xs">{r.certificateNumber || "—"}</TableCell>
-                      <TableCell className="text-xs text-red-600">
-                        {(r.errors || []).join("، ") || "—"}
+                  {results.results.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                        نتیجه‌ای برای نمایش نیست
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    results.results.map((r, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>{r.line}</TableCell>
+                        <TableCell dir="ltr">{r.nationalId || "—"}</TableCell>
+                        <TableCell>
+                          <RowStatusBadge status={r.status} />
+                        </TableCell>
+                        <TableCell dir="ltr" className="font-mono text-xs">{r.certificateNumber || "—"}</TableCell>
+                        <TableCell className="text-xs text-destructive">
+                          {(r.errors || []).join("، ") || "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -277,8 +359,12 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
           {step === "upload" && (
             <>
               <Button variant="outline" className="cursor-pointer" onClick={() => handleOpenChange(false)}>انصراف</Button>
-              <Button className="cursor-pointer" disabled={!file || !courseId || loading} onClick={() => runImport("dry-run")}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              <Button
+                className="cursor-pointer"
+                disabled={!file || !courseId}
+                loading={loading}
+                onClick={() => runImport("dry-run")}
+              >
                 بررسی فایل
               </Button>
             </>
@@ -288,8 +374,7 @@ export default function BulkIssueDialog({ open, onOpenChange }) {
               <Button variant="outline" className="cursor-pointer" onClick={() => setStep("upload")} disabled={loading}>
                 بازگشت
               </Button>
-              <Button className="cursor-pointer" disabled={loading} onClick={() => runImport("commit")}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              <Button className="cursor-pointer" loading={loading} onClick={() => runImport("commit")}>
                 تایید و صدور گواهی‌ها
               </Button>
             </>

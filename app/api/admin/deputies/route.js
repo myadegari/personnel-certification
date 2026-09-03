@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import Deputy from "@/models/Deputy";
 import { requireAdmin } from "@/lib/authGuard";
+import { sanitizeUnits, MAX_DEPUTY_UNITS } from "@/lib/organizingUnits";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 const MAX_DEPUTY_NUMBER = 99;
@@ -32,6 +33,8 @@ export async function POST(request) {
     if (!name) {
       return NextResponse.json({ error: "نام معاونت الزامی است." }, { status: 400 });
     }
+    // Units are optional on create; "not provided" (null) defaults to [].
+    const units = sanitizeUnits(body?.units, { max: MAX_DEPUTY_UNITS }) || [];
 
     await dbConnect();
 
@@ -44,7 +47,7 @@ export async function POST(request) {
       );
     }
 
-    const deputy = await Deputy.create({ name, number: nextNumber });
+    const deputy = await Deputy.create({ name, units, number: nextNumber });
 
     await recordAuditEvent({
       request,
@@ -52,7 +55,7 @@ export async function POST(request) {
       action: AUDIT_ACTIONS.DEPUTY_CREATE,
       resourceType: AUDIT_RESOURCE_TYPES.DEPUTY,
       resourceId: deputy._id,
-      metadata: { deputyName: deputy.name, deputyNumber: deputy.number },
+      metadata: { deputyName: deputy.name, deputyNumber: deputy.number, units: deputy.units },
     });
 
     return NextResponse.json(deputy, { status: 201 });

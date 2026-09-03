@@ -5,9 +5,11 @@ import Deputy from "@/models/Deputy";
 import Course from "@/models/Course";
 import User from "@/models/User";
 import { requireAdmin } from "@/lib/authGuard";
+import { sanitizeUnits, MAX_DEPUTY_UNITS } from "@/lib/organizingUnits";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
-// PUT: Rename a deputy (its number is immutable — certificate numbers embed it)
+// PUT: Rename a deputy and/or edit its units (its number is immutable —
+// certificate numbers embed it)
 export async function PUT(request, { params }) {
   const { session, error } = await requireAdmin();
   if (error) return error;
@@ -20,8 +22,19 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: "نام معاونت الزامی است." }, { status: 400 });
     }
 
+    const update = { name };
+    // Units are only touched when the request explicitly carries them, so a
+    // rename-only PUT can never wipe the units list.
+    if ("units" in body) {
+      const units = sanitizeUnits(body.units, { max: MAX_DEPUTY_UNITS });
+      if (units === null) {
+        return NextResponse.json({ error: "فهرست واحدها نامعتبر است." }, { status: 400 });
+      }
+      update.units = units;
+    }
+
     await dbConnect();
-    const updated = await Deputy.findByIdAndUpdate(id, { name }, { new: true, runValidators: true });
+    const updated = await Deputy.findByIdAndUpdate(id, update, { new: true, runValidators: true });
     if (!updated) {
       return NextResponse.json({ error: "معاونت یافت نشد." }, { status: 404 });
     }
@@ -32,7 +45,7 @@ export async function PUT(request, { params }) {
       action: AUDIT_ACTIONS.DEPUTY_UPDATE,
       resourceType: AUDIT_RESOURCE_TYPES.DEPUTY,
       resourceId: updated._id,
-      metadata: { deputyName: updated.name, deputyNumber: updated.number },
+      metadata: { deputyName: updated.name, deputyNumber: updated.number, units: updated.units },
     });
 
     return NextResponse.json(updated);

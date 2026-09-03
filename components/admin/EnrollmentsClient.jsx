@@ -16,10 +16,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { BADGE_TONES } from "@/lib/statusLabels";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { internalAxios } from "@/lib/axios";
 import CertificateStatus from "@/components/CertificateStatus";
+import GuestCertificateActions from "@/components/admin/GuestCertificateActions";
 import { gooeyToast } from "goey-toast";
 import { motion, AnimatePresence } from "motion/react";
 import { fadeUp } from "@/lib/motion";
@@ -31,9 +34,11 @@ import {
   Clock,
   BadgeCheck,
   Ban,
+  FileCheck2,
 } from "lucide-react";
 import DataTableShell from "./ui/DataTableShell";
 import TablePager from "@/components/shared/TablePager";
+import { toPersianDigits } from "@/lib/persian-date";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,12 +105,18 @@ function StatusCell({ enrollment, onApprove, onReject, isPending }) {
   );
 }
 
+// Guest certificate rows participate in listing only: no enrollment status,
+// never selectable, never approved/rejected.
+const isGuestRow = (e) => !!e.isGuest;
+const isTerminal = (e) => isGuestRow(e) || ENROLLMENT_STATUS[e.status]?.locked;
+
 function StatCards({ counts }) {
   const items = [
-    { key: "total", label: "کل ثبت‌نام‌ها", value: counts?.total ?? 0, icon: Users, tone: "text-slate-600 bg-slate-100" },
+    { key: "total", label: "کل ثبت‌نام‌ها", value: counts?.total ?? 0, icon: Users, tone: "text-muted-foreground bg-muted" },
     { key: "PENDING", label: ENROLLMENT_STATUS.PENDING.label, value: counts?.PENDING ?? 0, icon: Clock, tone: "text-amber-600 bg-amber-100" },
     { key: "APPROVED", label: ENROLLMENT_STATUS.APPROVED.label, value: counts?.APPROVED ?? 0, icon: BadgeCheck, tone: "text-emerald-600 bg-emerald-100" },
     { key: "REJECTED", label: ENROLLMENT_STATUS.REJECTED.label, value: counts?.REJECTED ?? 0, icon: Ban, tone: "text-rose-600 bg-rose-100" },
+    { key: "GUEST", label: "گواهی مهمان", value: counts?.GUEST ?? 0, icon: FileCheck2, tone: "text-sky-600 bg-sky-100" },
   ];
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -120,7 +131,7 @@ function StatCards({ counts }) {
               <it.icon className="h-4 w-4" />
             </span>
           </div>
-          <div className="mt-2 text-2xl font-bold tabular-nums">{it.value}</div>
+          <div className="mt-2 text-2xl font-bold tabular-nums">{toPersianDigits(String(it.value))}</div>
         </div>
       ))}
     </div>
@@ -141,7 +152,7 @@ function FilterChips({ value, onChange }) {
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
               active
                 ? "bg-emerald-600 text-white shadow-sm"
-                : "border border-black/5 bg-white/70 text-slate-600 hover:bg-white"
+                : "border border-black/5 bg-white/70 text-muted-foreground hover:bg-white"
             }`}
           >
             {f.label}
@@ -161,7 +172,7 @@ function SelectionBar({ count, onApprove, onReject, onClear, approving, rejectin
       className="flex flex-wrap items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-2.5 backdrop-blur"
     >
       <span className="text-sm font-medium text-emerald-900">
-        {count} مورد انتخاب شده
+        {toPersianDigits(String(count))} مورد انتخاب شده
       </span>
       <div className="ms-auto flex items-center gap-2">
         <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700" onClick={onApprove} disabled={approving}>
@@ -180,7 +191,8 @@ function SelectionBar({ count, onApprove, onReject, onClear, approving, rejectin
 
 function EnrollmentCard({ enrollment, index, selected, onToggle, onApprove, onReject, isPending }) {
   const u = enrollment.user || {};
-  const terminal = ENROLLMENT_STATUS[enrollment.status]?.locked;
+  const isGuest = !!enrollment.isGuest;
+  const terminal = isGuest || ENROLLMENT_STATUS[enrollment.status]?.locked;
   return (
     <motion.div
       variants={fadeUp}
@@ -196,27 +208,38 @@ function EnrollmentCard({ enrollment, index, selected, onToggle, onApprove, onRe
           checked={selected}
           onCheckedChange={() => onToggle(enrollment._id)}
           disabled={terminal}
-          aria-label="انتخاب"
+          aria-label={`انتخاب ${isGuest ? u.firstName || "مهمان" : `${u.firstName} ${u.lastName}`}`}
           className="mt-1"
         />
         <Avatar className="h-10 w-10">
-          <AvatarFallback className="bg-emerald-100 text-xs text-emerald-700">
-            {u.firstName?.[0]}
-            {u.lastName?.[0]}
-          </AvatarFallback>
+          {isGuest ? (
+            <AvatarFallback className="bg-sky-100 text-xs text-sky-700">؟</AvatarFallback>
+          ) : (
+            <AvatarFallback className="bg-emerald-100 text-xs text-emerald-700">
+              {u.firstName?.[0]}
+              {u.lastName?.[0]}
+            </AvatarFallback>
+          )}
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium">
-            {u.firstName} {u.lastName}
+            {isGuest ? u.firstName || "مهمان" : `${u.firstName} ${u.lastName}`}
+            {isGuest && (
+              <Badge className={`${BADGE_TONES.blue} ms-2`} aria-label="گواهی مهمان">مهمان</Badge>
+            )}
           </p>
           <p dir="ltr" className="text-xs text-muted-foreground tabular-nums">
-            {u.personnelNumber}
+            {isGuest ? u.nationalId : u.personnelNumber}
           </p>
         </div>
-        <StatusCell enrollment={enrollment} onApprove={onApprove} onReject={onReject} isPending={isPending} />
+        {isGuest ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : (
+          <StatusCell enrollment={enrollment} onApprove={onApprove} onReject={onReject} isPending={isPending} />
+        )}
       </div>
       <div className="mt-3 border-t border-black/5 pt-3">
-        <CertificateStatus enrollment={enrollment} />
+        {isGuest ? <GuestCertificateActions guest={enrollment} /> : <CertificateStatus enrollment={enrollment} />}
       </div>
     </motion.div>
   );
@@ -230,6 +253,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selected, setSelected] = useState(() => new Set());
   const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
+  const [singleRejectTarget, setSingleRejectTarget] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -253,11 +277,9 @@ export default function EnrollmentsClient({ initialData, courseId }) {
     placeholderData: keepPreviousData,
   });
 
-  const enrollmentsData = data?.enrollments || [];
+  const enrollmentsData = useMemo(() => data?.enrollments || [], [data]);
   const pageCount = data?.pagination?.pageCount || 0;
   const counts = data?.counts;
-
-  const isTerminal = (e) => ENROLLMENT_STATUS[e.status]?.locked;
   const selectableRows = useMemo(
     () => enrollmentsData.filter((e) => !isTerminal(e)),
     [enrollmentsData]
@@ -286,6 +308,17 @@ export default function EnrollmentsClient({ initialData, courseId }) {
 
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
+  const handlePaginationChange = useCallback(
+    (updater) => {
+      const next = typeof updater === "function" ? updater(pagination) : updater;
+      if (next.pageIndex !== pagination.pageIndex) {
+        setSelected(new Set());
+      }
+      setPagination(next);
+    },
+    [pagination]
+  );
+
   const onFilterChange = (val) => {
     setStatusFilter(val);
     setPagination((p) => ({ ...p, pageIndex: 0 }));
@@ -311,9 +344,9 @@ export default function EnrollmentsClient({ initialData, courseId }) {
       const skipped = res?.skippedCount ?? 0;
       const errs = res?.errorCount ?? 0;
       const verb = bulkMutation.variables?.status === "APPROVED" ? "تایید" : "رد";
-      let msg = `تعداد ${updated} ثبت‌نام ${verb} شد`;
-      if (skipped) msg += `، ${skipped} مورد نهایی شده نادیده گرفته شد`;
-      if (errs) msg += `، ${errs} خطا`;
+      let msg = `تعداد ${toPersianDigits(String(updated))} ثبت‌نام ${verb} شد`;
+      if (skipped) msg += `، ${toPersianDigits(String(skipped))} مورد نهایی شده نادیده گرفته شد`;
+      if (errs) msg += `، ${toPersianDigits(String(errs))} خطا`;
       gooeyToast.success(msg);
     },
     onError: (err) =>
@@ -324,7 +357,12 @@ export default function EnrollmentsClient({ initialData, courseId }) {
     singleMutation.isPending && singleMutation.variables?.id === e._id;
 
   const handleApprove = (e) => singleMutation.mutate({ id: e._id, status: "APPROVED" });
-  const handleReject = (e) => singleMutation.mutate({ id: e._id, status: "REJECTED" });
+  const handleReject = (e) => setSingleRejectTarget(e);
+  const confirmSingleReject = () => {
+    const target = singleRejectTarget;
+    setSingleRejectTarget(null);
+    if (target) singleMutation.mutate({ id: target._id, status: "REJECTED" });
+  };
 
   const handleBulkApprove = () => {
     bulkMutation.mutate({ ids: Array.from(selected), status: "APPROVED" });
@@ -347,22 +385,37 @@ export default function EnrollmentsClient({ initialData, courseId }) {
       ),
       cell: ({ row }) => {
         const e = row.original;
+        const name = [e.user?.firstName, e.user?.lastName].filter(Boolean).join(" ");
         return (
           <Checkbox
             checked={selected.has(e._id)}
             onCheckedChange={() => toggleRow(e._id)}
             disabled={isTerminal(e)}
-            aria-label="انتخاب ردیف"
+            aria-label={name ? `انتخاب ${name}` : "انتخاب ردیف"}
           />
         );
       },
     },
     {
       id: "user",
-      accessorFn: (row) => `${row.user?.firstName || ""} ${row.user?.lastName || ""}`,
+      accessorFn: (row) =>
+        row.isGuest
+          ? row.user?.firstName || "مهمان"
+          : `${row.user?.firstName || ""} ${row.user?.lastName || ""}`,
       header: "کاربر",
       cell: ({ row }) => {
         const u = row.original.user || {};
+        if (row.original.isGuest) {
+          return (
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-sky-100 text-xs text-sky-700">؟</AvatarFallback>
+              </Avatar>
+              <span className="font-medium">{u.firstName || "مهمان"}</span>
+              <Badge className={`${BADGE_TONES.blue} shrink-0`} aria-label="گواهی مهمان">مهمان</Badge>
+            </div>
+          );
+        }
         return (
           <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8">
@@ -380,29 +433,49 @@ export default function EnrollmentsClient({ initialData, courseId }) {
     },
     {
       accessorKey: "user.personnelNumber",
-      header: "شماره پرسنلی",
-      cell: ({ row }) => (
-        <span dir="ltr" className="tabular-nums">
-          {row.original.user?.personnelNumber}
-        </span>
-      ),
+      header: "کد ملی / پرسنلی",
+      cell: ({ row }) => {
+        const e = row.original;
+        if (e.isGuest) {
+          return (
+            <span dir="ltr" className="font-mono tabular-nums">
+              {e.user?.nationalId || "—"}
+            </span>
+          );
+        }
+        return (
+          <span dir="ltr" className="tabular-nums">
+            {e.user?.personnelNumber}
+          </span>
+        );
+      },
     },
     {
       accessorKey: "status",
       header: "وضعیت",
-      cell: ({ row }) => (
-        <StatusCell
-          enrollment={row.original}
-          onApprove={handleApprove}
-          onReject={handleReject}
-          isPending={isRowPending(row.original)}
-        />
-      ),
+      cell: ({ row }) => {
+        if (row.original.isGuest) {
+          return <span className="text-xs text-muted-foreground">—</span>;
+        }
+        return (
+          <StatusCell
+            enrollment={row.original}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            isPending={isRowPending(row.original)}
+          />
+        );
+      },
     },
     {
       accessorKey: "certificateUrl",
       header: "گواهی",
-      cell: ({ row }) => <CertificateStatus enrollment={row.original} />,
+      cell: ({ row }) =>
+        row.original.isGuest ? (
+          <GuestCertificateActions guest={row.original} />
+        ) : (
+          <CertificateStatus enrollment={row.original} />
+        ),
     },
   ];
 
@@ -413,7 +486,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
     manualPagination: true,
     pageCount,
     state: { pagination },
-    onPaginationChange: setPagination,
+    onPaginationChange: handlePaginationChange,
   });
 
   return (
@@ -513,7 +586,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
           <AlertDialogHeader>
             <AlertDialogTitle>رد گروهی ثبت‌نام‌ها</AlertDialogTitle>
             <AlertDialogDescription>
-              آیا از رد کردن {selected.size} ثبت‌نام انتخاب‌شده اطمینان دارید؟ این وضعیت نهایی
+              آیا از رد کردن {toPersianDigits(String(selected.size))} ثبت‌نام انتخاب‌شده اطمینان دارید؟ این وضعیت نهایی
               و غیرقابل تغییر خواهد بود.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -522,6 +595,33 @@ export default function EnrollmentsClient({ initialData, courseId }) {
             <AlertDialogAction
               className="bg-rose-600 hover:bg-rose-700"
               onClick={confirmBulkReject}
+            >
+              رد کردن
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!singleRejectTarget}
+        onOpenChange={(open) => !open && setSingleRejectTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>رد ثبت‌نام</AlertDialogTitle>
+            <AlertDialogDescription>
+              آیا از رد کردن ثبت‌نام{" "}
+              {singleRejectTarget?.user?.firstName
+                ? `${singleRejectTarget.user.firstName} ${singleRejectTarget.user.lastName || ""}`
+                : ""}{" "}
+              اطمینان دارید؟ این وضعیت نهایی و غیرقابل تغییر خواهد بود.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>انصراف</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-rose-600 hover:bg-rose-700"
+              onClick={confirmSingleReject}
             >
               رد کردن
             </AlertDialogAction>
