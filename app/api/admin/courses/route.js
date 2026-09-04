@@ -14,7 +14,16 @@ export async function GET() {
   try {
     await dbConnect();
     const courses = await Course.find({})
-      .populate("signatory", "firstName lastName")
+      .populate({
+        path: "signatory",
+        select: "firstName lastName deputy",
+        populate: { path: "deputy", select: "name units" },
+      })
+      .populate({
+        path: "signatory2",
+        select: "firstName lastName deputy",
+        populate: { path: "deputy", select: "name units" },
+      })
       .populate("deputy", "name number units")
       .sort({ createdAt: -1 });
     return NextResponse.json(courses);
@@ -31,6 +40,8 @@ const ALLOWED_FIELDS = [
   "enrollmentLimit",
   "organizingUnit",
   "organizingUnits",
+  "organizingUnit2",
+  "organizingUnits2",
   "deputy",
   "signatory",
   "unitStamp",
@@ -59,6 +70,14 @@ export async function POST(request) {
       const units = sanitizeUnits(data.organizingUnits, { max: MAX_COURSE_UNITS }) || [];
       data.organizingUnits = units;
       if (units.length) data.organizingUnit = joinUnits(units);
+    }
+
+    // Second signatory's units (template2): always recompute the joined string
+    // so clearing the selection also clears organizingUnit2.
+    if (Array.isArray(data.organizingUnits2)) {
+      const units2 = sanitizeUnits(data.organizingUnits2, { max: MAX_COURSE_UNITS }) || [];
+      data.organizingUnits2 = units2;
+      data.organizingUnit2 = joinUnits(units2);
     }
 
     await dbConnect();

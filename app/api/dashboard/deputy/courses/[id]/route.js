@@ -4,6 +4,7 @@ import dbConnect from "@/lib/dbConnect";
 import Course from "@/models/Course";
 import Enrollment from "@/models/Enrollment";
 import GuestCertificate from "@/models/GuestCertificate";
+import User from "@/models/User";
 import { resolveDeputyHead } from "@/lib/deputyAccess";
 import { sanitizeUnits, joinUnits, MAX_COURSE_UNITS } from "@/lib/organizingUnits";
 import { requireVerified } from "@/lib/authGuard";
@@ -62,6 +63,30 @@ export async function PUT(request, { params }) {
       }
       update.organizingUnits = requested;
       update.organizingUnit = joinUnits(requested);
+    }
+    // Second signatory's units (template2), validated against signatory 2's own
+    // deputy (the effective one after this request).
+    if (Array.isArray(body?.organizingUnits2)) {
+      const s2id = "signatory2" in body ? update.signatory2 : course.signatory2;
+      const requested2 = sanitizeUnits(body.organizingUnits2, { max: MAX_COURSE_UNITS }) || [];
+      if (requested2.length) {
+        if (!s2id) {
+          return NextResponse.json(
+            { error: "برای واحد امضاکننده دوم ابتدا خود امضاکننده دوم را انتخاب کنید." },
+            { status: 400 }
+          );
+        }
+        const s2 = await User.findById(s2id).select("deputy").populate("deputy", "name units").lean();
+        const allowed2 = new Set([s2?.deputy?.name, ...(s2?.deputy?.units || [])].filter(Boolean));
+        if (requested2.some((u) => !allowed2.has(u))) {
+          return NextResponse.json(
+            { error: "واحد امضاکننده دوم باید نام معاونت او یا یکی از واحدهای آن باشد." },
+            { status: 400 }
+          );
+        }
+      }
+      update.organizingUnits2 = requested2;
+      update.organizingUnit2 = joinUnits(requested2);
     }
     if (update.signatory === null) {
       return NextResponse.json({ error: "امضاکننده الزامی است." }, { status: 400 });

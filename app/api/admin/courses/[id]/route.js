@@ -15,6 +15,8 @@ const ALLOWED_FIELDS = [
   "enrollmentLimit",
   "organizingUnit",
   "organizingUnits",
+  "organizingUnit2",
+  "organizingUnits2",
   "deputy",
   "signatory",
   "unitStamp",
@@ -31,8 +33,16 @@ export async function GET(request, { params }) {
     const { id } = await params;
     await dbConnect();
     const course = await Course.findById(id)
-      .populate('signatory', 'firstName lastName')
-      .populate('signatory2', 'firstName lastName')
+      .populate({
+        path: 'signatory',
+        select: 'firstName lastName deputy',
+        populate: { path: 'deputy', select: 'name units' },
+      })
+      .populate({
+        path: 'signatory2',
+        select: 'firstName lastName deputy',
+        populate: { path: 'deputy', select: 'name units' },
+      })
       .populate('deputy', 'name number');
 
     if (!course) {
@@ -72,6 +82,14 @@ export async function PUT(request, { params }) {
       update.organizingUnits = units;
       if (units.length) update.organizingUnit = joinUnits(units);
       else delete update.organizingUnits;
+    }
+
+    // Second signatory's units (template2): always recompute the joined string
+    // so clearing the selection also clears organizingUnit2.
+    if (Array.isArray(update.organizingUnits2)) {
+      const units2 = sanitizeUnits(update.organizingUnits2, { max: MAX_COURSE_UNITS }) || [];
+      update.organizingUnits2 = units2;
+      update.organizingUnit2 = joinUnits(units2);
     }
 
     if (Object.keys(update).length === 0) {

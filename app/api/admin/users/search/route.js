@@ -29,7 +29,8 @@ export async function GET(request) {
         { lastName: { $regex: query, $options: 'i' } },
       ],
     })
-      .select('firstName lastName')
+      .select('firstName lastName deputy')
+      .populate('deputy', 'name units')
       .limit(10);
 
     return NextResponse.json(users);

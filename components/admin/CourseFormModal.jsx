@@ -58,46 +58,8 @@ function formatPersian(dateLike) {
 }
 
 function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
-  const selectedDeputy = deputies.find((d) => d._id === formData.deputy) || null;
-
-  // Options = the deputy's own name + its defined units; legacy snapshot
-  // values from an existing course keep showing as chips when editing.
-  const unitOptions = (() => {
-    if (!selectedDeputy) return [];
-    const opts = [{ value: selectedDeputy.name, label: selectedDeputy.name }];
-    for (const u of selectedDeputy.units || []) {
-      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
-    }
-    for (const u of formData.organizingUnits || []) {
-      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
-    }
-    return opts;
-  })();
-
   const handleDeputyChange = (value) => {
-    setFormData((prev) => {
-      const next = { ...prev, deputy: value === "none" ? "" : value };
-      if (value !== "none") {
-        const deputy = deputies.find((d) => d._id === value);
-        if (deputy?.name) {
-          // A deputy change resets the selection to the deputy itself.
-          next.organizingUnits = [deputy.name];
-          next.organizingUnit = deputy.name;
-        }
-      } else {
-        // No deputy: back to the free-text single-unit field.
-        next.organizingUnits = [];
-      }
-      return next;
-    });
-  };
-
-  const handleUnitsChange = (units) => {
-    setFormData((prev) => ({
-      ...prev,
-      organizingUnits: units,
-      organizingUnit: joinUnits(units),
-    }));
+    setFormData((prev) => ({ ...prev, deputy: value === "none" ? "" : value }));
   };
 
   return (
@@ -141,7 +103,7 @@ function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
         </Field>
         <Field
           label="معاونت"
-          hint="انتخاب معاونت، انتخاب واحد برگزارکننده را از نام معاونت و واحدهای آن فعال می‌کند."
+          hint="شماره این معاونت در شماره‌گذاری گواهی استفاده می‌شود."
         >
           <Select value={formData.deputy || "none"} onValueChange={handleDeputyChange}>
             <SelectTrigger>
@@ -157,30 +119,6 @@ function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
             </SelectContent>
           </Select>
         </Field>
-        {selectedDeputy ? (
-          <Field
-            label="واحد برگزارکننده"
-            hint="نام معاونت و/یا حداکثر دو واحد از واحدهای آن — برای انتخاب/حذف روی گزینه‌ها بزنید."
-            className="sm:col-span-2"
-          >
-            <OrganizingUnitsPicker
-              options={unitOptions}
-              selected={formData.organizingUnits}
-              onChange={handleUnitsChange}
-              max={2}
-            />
-          </Field>
-        ) : (
-          <Field label="واحد برگزارکننده">
-            <Input
-              name="organizingUnit"
-              placeholder="واحد برگزار کننده"
-              value={formData.organizingUnit}
-              onChange={(e) => setFormData({ ...formData, organizingUnit: e.target.value })}
-              required
-            />
-          </Field>
-        )}
         <Field
           label="کد دوره"
           hint="کد ۵ رقمی یکتا؛ پس از ساخت دوره به‌صورت خودکار تخصیص می‌یابد."
@@ -208,10 +146,6 @@ function StepSummary({ formData, onEdit, deputies = [] }) {
     { label: "مهلت ثبت‌نام", value: formData.enrollmentDeadline ? formatPersian(formData.enrollmentDeadline) : "خودکار (یک روز پس از برگزاری)" },
     { label: "مدت زمان", value: formData.duration ? `${formData.duration} ساعت` : "—" },
     { label: "معاونت", value: deputyName },
-    {
-      label: "واحد برگزارکننده",
-      value: formData.organizingUnits?.length ? joinUnits(formData.organizingUnits) : formData.organizingUnit,
-    },
     { label: "کد دوره", value: formData.courseCode },
   ];
   return (
@@ -234,12 +168,48 @@ function StepSummary({ formData, onEdit, deputies = [] }) {
   );
 }
 
-function SignatoryCard({ title, description, selectedUser, onSelectUser, preview, inputRef, onFileChange, onOpenPicker, onClear }) {
+function SignatoryCard({ title, description, optional, selectedUser, onSelectUser, units, onUnitsChange, preview, inputRef, onFileChange, onOpenPicker, onClear }) {
+  const deputy = selectedUser?.deputy || null;
+  // Options = the signatory's own deputy name + its units; legacy snapshot
+  // values keep showing as chips when editing.
+  const unitOptions = (() => {
+    if (!deputy) return [];
+    const opts = [];
+    if (deputy.name) opts.push({ value: deputy.name, label: deputy.name });
+    for (const u of deputy.units || []) {
+      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
+    }
+    for (const u of units || []) {
+      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
+    }
+    return opts;
+  })();
+
   return (
     <FormSection icon={Users} title={title} description={description}>
       <div className="space-y-4">
         <Field label="امضاکننده">
           <UserSearchCombobox selectedUser={selectedUser} onSelectUser={onSelectUser} />
+        </Field>
+        <Field
+          label="واحد(های) امضا"
+          hint={deputy ? "نام معاونت و/یا حداکثر دو واحد از واحدهای او." : "این کاربر معاونت ندارد؛ واحد را دستی وارد کنید."}
+        >
+          {deputy ? (
+            <OrganizingUnitsPicker
+              options={unitOptions}
+              selected={units || []}
+              onChange={onUnitsChange}
+              max={2}
+              min={optional ? 0 : 1}
+            />
+          ) : (
+            <Input
+              placeholder="نام واحد"
+              value={units?.[0] || ""}
+              onChange={(e) => onUnitsChange(e.target.value ? [e.target.value] : [])}
+            />
+          )}
         </Field>
         <Field label="تصویر مهر">
           <ImagePickerTile
@@ -270,6 +240,8 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     duration: "",
     organizingUnit: "",
     organizingUnits: [],
+    organizingUnit2: "",
+    organizingUnits2: [],
     deputy: "",
     signatory: null,
     signatory2: null,
@@ -316,6 +288,8 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
           duration: courseData.duration || "",
           organizingUnit: courseData.organizingUnit || "",
           organizingUnits: courseData.organizingUnits || [],
+          organizingUnit2: courseData.organizingUnit2 || "",
+          organizingUnits2: courseData.organizingUnits2 || [],
           deputy: courseData.deputy?._id || courseData.deputy || "",
           signatory: courseData.signatory?._id || null,
           signatory2: courseData.signatory2?._id || null,
@@ -423,8 +397,6 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             ? Math.floor(new Date(formData.enrollmentDeadline).getTime() / 1000)
             : null,
           duration: formData.duration,
-          organizingUnit: formData.organizingUnit,
-          organizingUnits: formData.organizingUnits,
           deputy: formData.deputy || null,
         };
         const createdCourse = await courseMutation.mutateAsync(step1Data);
@@ -437,6 +409,11 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
 
       if (!formData.signatory) {
         setError("لطفاً امضاکننده اول را انتخاب کنید.");
+        return;
+      }
+
+      if (!formData.organizingUnits?.length) {
+        setError("لطفاً حداقل یک واحد برای امضاکننده اول انتخاب کنید.");
         return;
       }
 
@@ -492,8 +469,22 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
         selectedUser={selectedManager1}
         onSelectUser={(user) => {
           setSelectedManager1(user);
-          setFormData({ ...formData, signatory: user?._id || null });
+          const units = user?.deputy?.name ? [user.deputy.name] : [];
+          setFormData({
+            ...formData,
+            signatory: user?._id || null,
+            organizingUnits: units,
+            organizingUnit: joinUnits(units),
+          });
         }}
+        units={formData.organizingUnits}
+        onUnitsChange={(units) =>
+          setFormData({
+            ...formData,
+            organizingUnits: units,
+            organizingUnit: joinUnits(units),
+          })
+        }
         preview={stampPreview1}
         inputRef={refStampFile1}
         onFileChange={handleFile1Change}
@@ -503,11 +494,25 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
       <SignatoryCard
         title="امضاکننده دوم"
         description="اختیاری"
+        optional
         selectedUser={selectedManager2}
         onSelectUser={(user) => {
           setSelectedManager2(user);
-          setFormData({ ...formData, signatory2: user?._id || null });
+          setFormData({
+            ...formData,
+            signatory2: user?._id || null,
+            organizingUnits2: [],
+            organizingUnit2: "",
+          });
         }}
+        units={formData.organizingUnits2}
+        onUnitsChange={(units) =>
+          setFormData({
+            ...formData,
+            organizingUnits2: units,
+            organizingUnit2: joinUnits(units),
+          })
+        }
         preview={stampPreview2}
         inputRef={refStampFile2}
         onFileChange={handleFile2Change}

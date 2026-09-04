@@ -26,13 +26,24 @@ const CourseSchema = new mongoose.Schema({
   },
    organizingUnit: {
     type: String,
-    required: true,
+    default: "",
    },
    // Structured snapshot of the chosen organizing units (deputy name and/or
    // its units, max 2). organizingUnit above is the " و "-joined display
    // string derived from it; kept as plain strings so later unit renames
    // never rewrite course history.
    organizingUnits: {
+    type: [String],
+    default: [],
+   },
+   // Second signatory's organizing units (template2 only). Mirrors the fields
+   // above but belongs to امضاکننده دوم; printed as the {{org2}} line, which is
+   // prefixed with "و " at render time only when non-empty.
+   organizingUnit2: {
+    type: String,
+    default: "",
+   },
+   organizingUnits2: {
     type: [String],
     default: [],
    },

@@ -5,16 +5,17 @@ import { clsx } from "clsx";
 
 /**
  * Toggle-chip multi-select for organizing units (deputy name + its units).
- * Enforces 1..max selections: the last remaining chip cannot be deselected
- * and further chips are disabled once `max` are active.
+ * Enforces min..max selections: with min>=1 the last remaining chip cannot be
+ * deselected; with min=0 the selection may be cleared entirely (used for the
+ * optional second signatory). Further chips are disabled once `max` are active.
  */
-export default function OrganizingUnitsPicker({ options, selected, onChange, max = 2 }) {
+export default function OrganizingUnitsPicker({ options, selected, onChange, max = 2, min = 1 }) {
   const atMax = selected.length >= max;
   return (
     <div className="flex flex-wrap gap-2" role="group" aria-label="انتخاب واحد برگزارکننده">
       {options.map((opt) => {
         const isSel = selected.includes(opt.value);
-        const disabled = isSel ? selected.length <= 1 : atMax;
+        const disabled = isSel ? selected.length <= min : atMax;
         return (
           <button
             key={opt.value}

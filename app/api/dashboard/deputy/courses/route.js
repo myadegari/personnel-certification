@@ -29,8 +29,16 @@ export async function GET(request, { params }) {
       deputy: access.deputy._id,
       visibility: "DEPUTY",
     })
-      .populate("signatory", "firstName lastName")
-      .populate("signatory2", "firstName lastName")
+      .populate({
+        path: "signatory",
+        select: "firstName lastName deputy",
+        populate: { path: "deputy", select: "name units" },
+      })
+      .populate({
+        path: "signatory2",
+        select: "firstName lastName deputy",
+        populate: { path: "deputy", select: "name units" },
+      })
       .sort({ date: -1 })
       .lean();
 
@@ -90,17 +98,49 @@ export async function POST(request) {
       organizingUnits = requested;
     }
 
+    // Second signatory (optional): its units are scoped to signatory 2's OWN
+    // deputy (auto-derived from the chosen user), which may differ from the
+    // head's deputy.
+    const signatory2 = toObjectIdOrNull(body?.signatory2);
+    let organizingUnits2 = [];
+    let organizingUnit2 = "";
+    if (signatory2) {
+      const s2 = await User.findById(signatory2)
+        .select("deputy")
+        .populate("deputy", "name units")
+        .lean();
+      if (!s2) {
+        return NextResponse.json({ error: "امضاکننده دوم یافت نشد." }, { status: 400 });
+      }
+      const allowed2 = new Set([s2.deputy?.name, ...(s2.deputy?.units || [])].filter(Boolean));
+      const requested2 = Array.isArray(body?.organizingUnits2)
+        ? sanitizeUnits(body.organizingUnits2, { max: MAX_COURSE_UNITS })
+        : [];
+      if (requested2 && requested2.length) {
+        if (requested2.some((u) => !allowed2.has(u))) {
+          return NextResponse.json(
+            { error: "واحد امضاکننده دوم باید نام معاونت او یا یکی از واحدهای آن باشد." },
+            { status: 400 }
+          );
+        }
+        organizingUnits2 = requested2;
+        organizingUnit2 = joinUnits(requested2);
+      }
+    }
+
     const data = {
       name,
       date,
       duration,
       signatory,
-      signatory2: toObjectIdOrNull(body?.signatory2),
+      signatory2,
       unitStamp: toObjectIdOrNull(body?.unitStamp),
       unitStamp2: toObjectIdOrNull(body?.unitStamp2),
       deputy: deputy._id,
       organizingUnit: joinUnits(organizingUnits),
       organizingUnits,
+      organizingUnit2,
+      organizingUnits2,
       visibility: "DEPUTY",
     };
     // The course code is a server-generated unique 5-digit number; retry on

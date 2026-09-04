@@ -86,6 +86,8 @@ const emptyForm = {
   duration: "",
   organizingUnits: [],
   organizingUnit: "",
+  organizingUnits2: [],
+  organizingUnit2: "",
   signatory: null,
   signatory2: null,
 };
@@ -132,6 +134,8 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
           duration: courseData.duration || "",
           organizingUnits: courseData.organizingUnits || [],
           organizingUnit: courseData.organizingUnit || "",
+          organizingUnits2: courseData.organizingUnits2 || [],
+          organizingUnit2: courseData.organizingUnit2 || "",
           signatory: courseData.signatory?._id || null,
           signatory2: courseData.signatory2?._id || null,
         });
@@ -169,26 +173,28 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
     }
   }, [open, isEditing, deputyName, formData.organizingUnits.length]);
 
-  // Options = the deputy's own name + its units; legacy snapshot values from
-  // an existing course keep showing as chips when editing.
-  const unitOptions = (() => {
+  // Signatory 1's units are scoped to the head's own deputy (the course's
+  // deputy, which the server validates against). Signatory 2's units come from
+  // that user's own deputy (auto-derived from the chosen person).
+  const buildUnitOptions = (deputy, selected) => {
+    if (!deputy) return [];
     const opts = [];
-    for (const u of [deputyName, ...deputyUnits]) {
-      if (u && !opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
+    if (deputy.name) opts.push({ value: deputy.name, label: deputy.name });
+    for (const u of deputy.units || []) {
+      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
     }
-    for (const u of formData.organizingUnits || []) {
+    for (const u of selected || []) {
       if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
     }
     return opts;
-  })();
-
-  const handleUnitsChange = (units) => {
-    setFormData((prev) => ({
-      ...prev,
-      organizingUnits: units,
-      organizingUnit: joinUnits(units),
-    }));
   };
+  const s1Deputy = deputyName ? { name: deputyName, units: deputyUnits } : null;
+  const s2Deputy = selectedSignatory2?.deputy?.name ? selectedSignatory2.deputy : null;
+
+  const handleUnits1Change = (units) =>
+    setFormData((prev) => ({ ...prev, organizingUnits: units, organizingUnit: joinUnits(units) }));
+  const handleUnits2Change = (units) =>
+    setFormData((prev) => ({ ...prev, organizingUnits2: units, organizingUnit2: joinUnits(units) }));
 
   // Default signatory 1 to the deputy head themself in create mode (still
   // changeable via the combobox). Applied once the profile is available.
@@ -259,6 +265,8 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
         duration: Number(formData.duration),
         organizingUnits: formData.organizingUnits,
         organizingUnit: formData.organizingUnit || joinUnits(formData.organizingUnits),
+        organizingUnits2: formData.signatory2 ? (formData.organizingUnits2 || []) : [],
+        organizingUnit2: formData.signatory2 ? (formData.organizingUnit2 || "") : "",
         signatory: formData.signatory,
         signatory2: formData.signatory2 || null,
         unitStamp: stampFile1 ? null : stampId1,
@@ -343,18 +351,6 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
                   required
                 />
               </Field>
-              <Field
-                label="واحد برگزارکننده"
-                hint={`${deputyName || "معاونت"} و/یا حداکثر دو واحد از واحدهای آن — برای انتخاب/حذف روی گزینه‌ها بزنید.`}
-                className="sm:col-span-2"
-              >
-                <OrganizingUnitsPicker
-                  options={unitOptions}
-                  selected={formData.organizingUnits}
-                  onChange={handleUnitsChange}
-                  max={2}
-                />
-              </Field>
               <Field label="امضاکننده اول" required>
                 <UserSearchCombobox
                   selectedUser={selectedSignatory1}
@@ -364,14 +360,54 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
                   }}
                 />
               </Field>
+              <Field
+                label="واحد(های) امضاکننده اول"
+                hint={s1Deputy ? "نام معاونت و/یا حداکثر دو واحد از واحدهای آن." : "معاونت در دسترس نیست؛ واحد را دستی وارد کنید."}
+              >
+                {s1Deputy ? (
+                  <OrganizingUnitsPicker
+                    options={buildUnitOptions(s1Deputy, formData.organizingUnits)}
+                    selected={formData.organizingUnits}
+                    onChange={handleUnits1Change}
+                    max={2}
+                  />
+                ) : (
+                  <Input
+                    placeholder="نام واحد"
+                    value={formData.organizingUnits?.[0] || ""}
+                    onChange={(e) => handleUnits1Change(e.target.value ? [e.target.value] : [])}
+                  />
+                )}
+              </Field>
               <Field label="امضاکننده دوم (اختیاری)">
                 <UserSearchCombobox
                   selectedUser={selectedSignatory2}
                   onSelectUser={(user) => {
                     setSelectedSignatory2(user);
-                    setFormData((p) => ({ ...p, signatory2: user?._id || null }));
+                    setFormData((p) => ({ ...p, signatory2: user?._id || null, organizingUnits2: [], organizingUnit2: "" }));
                   }}
                 />
+              </Field>
+              <Field
+                label="واحد(های) امضاکننده دوم"
+                hint={s2Deputy ? "نام معاونت و/یا حداکثر دو واحد از واحدهای او." : (selectedSignatory2 ? "این کاربر معاونت ندارد؛ واحد را دستی وارد کنید." : "ابتدا امضاکننده دوم را انتخاب کنید.")}
+              >
+                {s2Deputy ? (
+                  <OrganizingUnitsPicker
+                    options={buildUnitOptions(s2Deputy, formData.organizingUnits2)}
+                    selected={formData.organizingUnits2}
+                    onChange={handleUnits2Change}
+                    max={2}
+                    min={0}
+                  />
+                ) : (
+                  <Input
+                    placeholder="نام واحد"
+                    value={formData.organizingUnits2?.[0] || ""}
+                    onChange={(e) => handleUnits2Change(e.target.value ? [e.target.value] : [])}
+                    disabled={!selectedSignatory2}
+                  />
+                )}
               </Field>
               <Field label="مهر اول (اختیاری)">
                 <StampTile
