@@ -33,18 +33,18 @@ function DeputyCard({ deputy, onEdit, onDelete }) {
   const units = deputy.units || [];
   return (
     <motion.li variants={fadeUp} className="h-full">
-      <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-black/5 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-[0_16px_40px_rgb(16,185,129,0.14)]">
+      <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-black/5 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm transition-all duration-300  hover:border-emerald-300 hover:shadow-[0_16px_40px_rgb(16,185,129,0.14)]">
         <div className="flex items-start justify-between gap-3">
+          <h3 className="mt-3 text-lg font-bold text-balance">{deputy.name}</h3>
           <span className="select-none bg-gradient-to-b from-emerald-500/30 to-emerald-500/5 bg-clip-text text-6xl font-bold leading-[0.9] text-transparent">
             <span className="sr-only">شماره معاونت: </span>
             {deputyNumber(deputy.number)}
           </span>
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20 transition-transform duration-300 group-hover:scale-110">
+          {/* <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20 transition-transform duration-300 group-hover:scale-110">
             <Building2 className="size-5" aria-hidden />
-          </span>
+          </span> */}
         </div>
 
-        <h3 className="mt-3 text-lg font-bold text-balance">{deputy.name}</h3>
 
         {units.length > 0 ? (
           <ul className="mt-3 flex flex-wrap gap-1.5">
@@ -64,7 +64,7 @@ function DeputyCard({ deputy, onEdit, onDelete }) {
           {toPersianDigits(String(units.length))} واحد زیرمجموعه
         </p>
 
-        <div className="mt-auto flex items-center gap-1 border-t border-border/60 pt-3">
+        <div className="mt-auto flex justify-end items-center gap-1 border-t border-border/60 pt-3">
           <Button
             variant="ghost"
             size="icon"
@@ -226,14 +226,14 @@ export default function DeputiesClient() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/30">
+              {/* <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/30">
                 <Building2 className="size-6" aria-hidden />
-              </span>
+              </span> */}
               <div className="text-right">
                 <DialogTitle>
                   {editingDeputy ? "ویرایش معاونت" : "ایجاد معاونت جدید"}
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="mt-3">
                   {editingDeputy
                     ? "نام معاونت و واحدهای زیرمجموعه را به‌روزرسانی کنید."
                     : "نام معاونت را وارد کنید و در صورت نیاز واحدهای زیرمجموعه را بیفزایید."}

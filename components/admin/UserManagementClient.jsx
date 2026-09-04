@@ -323,7 +323,7 @@ export default function UserManagementClient({ initialData }) {
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-40">
+                <DropdownMenuContent align="end" dir='rtl' className="min-w-40">
                   <DropdownMenuItem className="cursor-pointer" onClick={() => setDetailUser(u)}>
                     <Eye className="h-4 w-4" /> مشاهده جزئیات
                   </DropdownMenuItem>

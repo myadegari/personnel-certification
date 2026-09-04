@@ -63,7 +63,7 @@ export default function DashboardClient() {
           <StatCard title="کل دوره‌ها" value={stats.courseCount} icon={Layers} accent="sky" />
           <StatCard title="کل ثبت‌نام‌ها" value={stats.enrollmentCount} icon={GraduationCap} accent="violet" />
           <StatCard title="در انتظار تایید" value={stats.pendingEnrollments} icon={Clock} accent="amber" />
-          <StatCard title="گواهی‌های صادرشده" value={stats.certificatesIssued} icon={FileCheck2} accent="rose" />
+          <StatCard title="گواهی‌های صادرشده" className=' lg:col-start-2 lg:col-end-4' value={stats.certificatesIssued} icon={FileCheck2} accent="rose" />
         </motion.div>
       )}
 
