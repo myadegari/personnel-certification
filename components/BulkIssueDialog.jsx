@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
+import { Stepper } from "@/components/ui/stepper";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -181,12 +181,15 @@ export default function BulkIssueDialog({ open, onOpenChange, initialCourseId, s
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>صدور دسته‌جمعی گواهی</DialogTitle>
-          <DialogDescription>
-            مرحله {stepIndex + 1} از {STEPS.length}: {STEP_LABELS[step]}
-          </DialogDescription>
+          <DialogDescription>{STEP_LABELS[step]}</DialogDescription>
         </DialogHeader>
 
-        <Progress value={((stepIndex + 1) / STEPS.length) * 100} className="mb-2" />
+        <Stepper
+          steps={STEPS.map((s) => STEP_LABELS[s])}
+          current={stepIndex}
+          onStepClick={(i) => i < stepIndex && setStep(STEPS[i])}
+          className="mb-2"
+        />
 
         {step === "upload" && (
           <div className="space-y-4 py-2">

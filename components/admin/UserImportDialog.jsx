@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
+import { Stepper } from "@/components/ui/stepper";
 import {
   Table,
   TableBody,
@@ -141,12 +141,15 @@ export default function UserImportDialog({ open, onOpenChange }) {
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>وارد کردن دسته‌جمعی کاربران</DialogTitle>
-          <DialogDescription>
-            مرحله {stepIndex + 1} از {STEPS.length}: {STEP_LABELS[step]}
-          </DialogDescription>
+          <DialogDescription>{STEP_LABELS[step]}</DialogDescription>
         </DialogHeader>
 
-        <Progress value={((stepIndex + 1) / STEPS.length) * 100} className="mb-2" />
+        <Stepper
+          steps={STEPS.map((s) => STEP_LABELS[s])}
+          current={stepIndex}
+          onStepClick={(i) => i < stepIndex && setStep(STEPS[i])}
+          className="mb-2"
+        />
 
         {step === "upload" && (
           <div className="space-y-4 py-2">
