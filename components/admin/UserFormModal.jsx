@@ -1,41 +1,52 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  UserSquare,
+  User,
+  Building2,
+  ShieldCheck,
+  Pen,
+  Save,
+  Loader as Loader2,
+  ArrowLeft,
+  ArrowRight,
+  AlertTriangle,
+} from 'reicon-react';
+import { useSession } from 'next-auth/react';
+import { useQuery } from '@tanstack/react-query';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogFooter,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useFileUrl } from "@/hooks/useFileUrl";
-import { useSession } from "next-auth/react";
-import { useQuery } from "@tanstack/react-query";
-import { internalAxios } from "@/lib/axios";
-import { ASSIGNABLE_ROLES, ROLES, ROLE_LABELS_FA, canAssignRole, isSuperAdmin } from "@/lib/roles";
-import MediaPickerDialog from "./MediaPickerDialog";
-
-const getBaseUrl = () => {
-  // If we are on the server, use the internal Docker URL
-  if (typeof window === 'undefined') {
-    return process.env.INTERNAL_API_URL || 'http://localhost:3000';
-  }
-  // If on client, use relative path or public URL
-  return ''; 
-};
+} from '@/components/ui/select';
+import { Stepper } from '@/components/ui/stepper';
+import {
+  Field,
+  FormSection,
+  DialogIconHeader,
+  ImagePickerTile,
+  useStagger,
+} from '@/components/shared/form-dialog';
+import { useFileUrl } from '@/hooks/useFileUrl';
+import { internalAxios } from '@/lib/axios';
+import { spring, usePrefersReducedMotion } from '@/lib/motion';
+import { ASSIGNABLE_ROLES, ROLES, ROLE_LABELS_FA, canAssignRole, isSuperAdmin } from '@/lib/roles';
+import MediaPickerDialog from './MediaPickerDialog';
 
 const emptyForm = {
   firstName: '',
@@ -43,22 +54,28 @@ const emptyForm = {
   personnelNumber: '',
   password: '',
   role: 'USER',
-  nationalId: "",
-  email: "",
-  gender: "",
-  position: "",
+  nationalId: '',
+  email: '',
+  gender: '',
+  position: '',
   isProfessor: false,
   deputy: '',
   headedDeputy: '',
 };
 
+const STEPS = ['اطلاعات کاربر', 'دسترسی و امضا'];
+
 export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
   const { data: session } = useSession();
   const { data: deputies = [] } = useQuery({
-    queryKey: ["adminDeputies"],
-    queryFn: async () => (await internalAxios.get("/admin/deputies")).data,
+    queryKey: ['adminDeputies'],
+    queryFn: async () => (await internalAxios.get('/admin/deputies')).data,
     enabled: isOpen,
   });
+  const reduced = usePrefersReducedMotion();
+  const staggerProps = useStagger();
+
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(emptyForm);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -76,6 +93,8 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
   const signatureFileQuery = useFileUrl(userData?.signatureImage);
 
   useEffect(() => {
+    if (!isOpen) return;
+    setCurrentStep(1);
     if (isEditing) {
       setFormData({
         firstName: userData.firstName || '',
@@ -83,9 +102,9 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
         personnelNumber: userData.personnelNumber || '',
         email: userData.email || '',
         role: userData.role || 'USER',
-        nationalId: userData.nationalId || "",
-        gender: userData.gender || "",
-        position: userData.position || "",
+        nationalId: userData.nationalId || '',
+        gender: userData.gender || '',
+        position: userData.position || '',
         isProfessor: userData.isProfessor || false,
         deputy: userData.deputy?._id || userData.deputy || '',
         headedDeputy: userData.headedDeputy?._id || userData.headedDeputy || '',
@@ -108,11 +127,11 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleRoleChange = (value) => {
-    setFormData(prev => ({ ...prev, role: value }));
+    setFormData((prev) => ({ ...prev, role: value }));
   };
 
   const handleSignatureChange = (e) => {
@@ -131,11 +150,23 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
     setPickerOpen(false);
   };
 
+  const clearSignature = () => {
+    setSignatureFile(null);
+    setSignatureFileId(null);
+    setSignaturePreview('');
+    if (signatureInputRef.current) signatureInputRef.current.value = '';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (currentStep === 1) {
+      setError('');
+      setCurrentStep(2);
+      return;
+    }
+
     setIsLoading(true);
     setError('');
-
     try {
       if (!isEditing && formData.password.length < 8) {
         throw new Error('رمز عبور باید حداقل ۸ کاراکتر باشد.');
@@ -157,32 +188,23 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
       if (!isEditing) {
         payload.append('password', formData.password);
       }
-
       if (signatureFile) {
         payload.append('signatureFile', signatureFile);
       } else if (signatureFileId) {
         payload.append('signatureFileId', signatureFileId);
       }
 
-      const url = isEditing
-        ? `${getBaseUrl()}/api/admin/users/${userData._id}`
-        : `${getBaseUrl()}/api/admin/users`;
-
-      const response = await fetch(url, {
-        method: isEditing ? 'PUT' : 'POST',
-        body: payload,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'عملیات با خطا مواجه شد.');
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      if (isEditing) {
+        await internalAxios.put(`/admin/users/${userData._id}`, payload, config);
+      } else {
+        await internalAxios.post('/admin/users', payload, config);
       }
 
       onSave();
       onClose();
-
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message || 'عملیات با خطا مواجه شد.');
     } finally {
       setIsLoading(false);
     }
@@ -190,196 +212,216 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px] max-h-[88vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? 'ویرایش کاربر' : 'ایجاد کاربر جدید'}</DialogTitle>
-          <DialogDescription>
-            {isEditing ? 'اطلاعات کاربر را در اینجا ویرایش کنید.' : 'اطلاعات کاربر جدید را وارد کنید.'}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-5 py-2">
-            <fieldset className="grid gap-3">
-              <legend className="mb-1 text-sm font-semibold text-emerald-800">اطلاعات فردی</legend>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="firstName">نام</Label>
-                  <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="lastName">نام خانوادگی</Label>
-                  <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="nationalId">کد ملی</Label>
-                  <Input dir="ltr" id="nationalId" name="nationalId" value={formData.nationalId} onChange={handleChange} required />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="personnelNumber">شماره پرسنلی</Label>
-                  <Input dir="ltr" id="personnelNumber" name="personnelNumber" value={formData.personnelNumber} onChange={handleChange} required />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>جنسیت</Label>
-                <RadioGroup
-                  name="gender"
-                  value={formData.gender}
-                  onValueChange={(v) => setFormData((p) => ({ ...p, gender: v }))}
-                  className="flex gap-6"
-                  required
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl rounded-3xl">
+          <DialogIconHeader
+            icon={UserSquare}
+            title={isEditing ? 'ویرایش کاربر' : 'ایجاد کاربر جدید'}
+            description={isEditing ? 'اطلاعات کاربر را در دو مرحله ویرایش کنید.' : 'در دو مرحله کاربر جدید بسازید.'}
+          >
+            <Stepper
+              steps={STEPS}
+              current={currentStep - 1}
+              onStepClick={(i) => i < currentStep - 1 && setCurrentStep(i + 1)}
+              className="mt-4"
+            />
+          </DialogIconHeader>
+
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
                 >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="Male" id="Male" />
-                    <Label htmlFor="Male" className="font-normal">آقا</Label>
+                  <div role="alert" className="mb-3 flex items-center gap-2 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    <AlertTriangle className="size-4 shrink-0" /> {error}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value="Female" id="Female" />
-                    <Label htmlFor="Female" className="font-normal">خانم</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-            </fieldset>
-
-            <fieldset className="grid gap-3">
-              <legend className="mb-1 text-sm font-semibold text-emerald-800">اطلاعات تماس و سازمانی</legend>
-              <div className="space-y-1.5">
-                <Label htmlFor="email">ایمیل</Label>
-                <Input dir="ltr" id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="position">سمت</Label>
-                  <Input id="position" name="position" value={formData.position} onChange={handleChange} />
-                </div>
-                <div className="flex items-end gap-2 pb-2">
-                  <Checkbox
-                    id="isProfessor"
-                    checked={formData.isProfessor}
-                    onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isProfessor: checked }))}
-                  />
-                  <Label htmlFor="isProfessor" className="font-normal">عضو هیات علمی</Label>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="deputy">معاونت</Label>
-                <Select
-                  value={formData.deputy || "none"}
-                  onValueChange={(v) => setFormData((prev) => ({ ...prev, deputy: v === "none" ? "" : v }))}
-                >
-                  <SelectTrigger id="deputy">
-                    <SelectValue placeholder="انتخاب معاونت" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">بدون معاونت</SelectItem>
-                    {deputies.map((d) => (
-                      <SelectItem key={d._id} value={d._id}>
-                        {d.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </fieldset>
-
-            <fieldset className="grid gap-3">
-              <legend className="mb-1 text-sm font-semibold text-emerald-800">دسترسی و احراز هویت</legend>
-              <div className="space-y-1.5">
-                <Label htmlFor="role">نقش</Label>
-                <Select onValueChange={handleRoleChange} value={formData.role} disabled={!canChangeRole}>
-                  <SelectTrigger id="role">
-                    <SelectValue placeholder="انتخاب نقش" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roleOptions.map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {ROLE_LABELS_FA[role]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {!canChangeRole && (
-                  <p className="text-xs text-muted-foreground">امکان تغییر نقش این کاربر را ندارید.</p>
-                )}
-              </div>
-              {!isEditing && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="password">رمز عبور</Label>
-                  <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required minLength={8} />
-                  <p className="text-xs text-muted-foreground">حداقل ۸ کاراکتر.</p>
-                </div>
+                </motion.div>
               )}
-              {formData.role === "DEPUTY_HEAD" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="headedDeputy">معاونت تحت سرپرستی</Label>
-                  <Select
-                    value={formData.headedDeputy || "none"}
-                    onValueChange={(v) => setFormData((prev) => ({ ...prev, headedDeputy: v === "none" ? "" : v }))}
-                  >
-                    <SelectTrigger id="headedDeputy">
-                      <SelectValue placeholder="انتخاب معاونت" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">بدون معاونت</SelectItem>
-                      {deputies.map((d) => (
-                        <SelectItem key={d._id} value={d._id}>
-                          {d.number} — {d.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </fieldset>
+            </AnimatePresence>
 
-            <fieldset className="grid gap-2">
-              <legend className="mb-1 text-sm font-semibold text-emerald-800">امضای کاربر</legend>
-              {signaturePreview ? (
-                <div className="flex justify-center rounded-md border bg-gray-50 p-2">
-                  <img src={signaturePreview} alt="Signature preview" width={150} className="object-contain" />
-                </div>
-              ) : null}
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="cursor-pointer"
-                  onClick={() => setPickerOpen(true)}
+            <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-1" style={{ maxHeight: '60vh' }}>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={currentStep}
+                  initial={reduced ? false : { opacity: 0, x: -24 }}
+                  animate={reduced ? false : { opacity: 1, x: 0 }}
+                  exit={reduced ? false : { opacity: 0, x: 24 }}
+                  transition={spring}
                 >
-                  انتخاب از کتابخانه
-                </Button>
-                <Input
-                  ref={signatureInputRef}
-                  id="signatureFile"
-                  name="signatureFile"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handleSignatureChange}
-                  onClick={(e) => (e.target.value = null)}
-                  className="flex-1"
-                />
-              </div>
-            </fieldset>
+                  {currentStep === 1 ? (
+                    <motion.div {...staggerProps} className="space-y-4">
+                      <FormSection icon={User} title="اطلاعات فردی">
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <Field label="نام">
+                              <Input name="firstName" value={formData.firstName} onChange={handleChange} required />
+                            </Field>
+                            <Field label="نام خانوادگی">
+                              <Input name="lastName" value={formData.lastName} onChange={handleChange} required />
+                            </Field>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <Field label="کد ملی">
+                              <Input dir="ltr" name="nationalId" value={formData.nationalId} onChange={handleChange} required />
+                            </Field>
+                            <Field label="شماره پرسنلی">
+                              <Input dir="ltr" name="personnelNumber" value={formData.personnelNumber} onChange={handleChange} required />
+                            </Field>
+                          </div>
+                          <Field label="جنسیت">
+                            <RadioGroup
+                              name="gender"
+                              value={formData.gender}
+                              onValueChange={(v) => setFormData((p) => ({ ...p, gender: v }))}
+                              className="flex gap-6"
+                              required
+                            >
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="Male" id="Male" />
+                                <Label htmlFor="Male" className="font-normal">آقا</Label>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem value="Female" id="Female" />
+                                <Label htmlFor="Female" className="font-normal">خانم</Label>
+                              </div>
+                            </RadioGroup>
+                          </Field>
+                        </div>
+                      </FormSection>
 
-            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>انصراف</Button>
-            <Button type="submit" disabled={isLoading} className="cursor-pointer">
-              {isLoading ? 'در حال ذخیره...' : 'ذخیره'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-    <MediaPickerDialog
-      open={pickerOpen}
-      onOpenChange={setPickerOpen}
-      onSelect={handlePickSignature}
-    />
+                      <FormSection icon={Building2} title="تماس و سازمانی">
+                        <div className="space-y-3">
+                          <Field label="ایمیل">
+                            <Input dir="ltr" name="email" type="email" value={formData.email} onChange={handleChange} required />
+                          </Field>
+                          <div className="grid grid-cols-2 gap-3">
+                            <Field label="سمت">
+                              <Input name="position" value={formData.position} onChange={handleChange} />
+                            </Field>
+                            <div className="flex items-end gap-2 pb-2">
+                              <Checkbox
+                                id="isProfessor"
+                                checked={formData.isProfessor}
+                                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isProfessor: checked }))}
+                              />
+                              <Label htmlFor="isProfessor" className="font-normal">عضو هیات علمی</Label>
+                            </div>
+                          </div>
+                          <Field label="معاونت">
+                            <Select
+                              value={formData.deputy || 'none'}
+                              onValueChange={(v) => setFormData((prev) => ({ ...prev, deputy: v === 'none' ? '' : v }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="انتخاب معاونت" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">بدون معاونت</SelectItem>
+                                {deputies.map((d) => (
+                                  <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                        </div>
+                      </FormSection>
+                    </motion.div>
+                  ) : (
+                    <motion.div {...staggerProps} className="space-y-4">
+                      <FormSection icon={ShieldCheck} title="دسترسی و احراز هویت">
+                        <div className="space-y-3">
+                          <Field
+                            label="نقش"
+                            hint={!canChangeRole ? 'امکان تغییر نقش این کاربر را ندارید.' : undefined}
+                          >
+                            <Select onValueChange={handleRoleChange} value={formData.role} disabled={!canChangeRole}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="انتخاب نقش" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {roleOptions.map((role) => (
+                                  <SelectItem key={role} value={role}>{ROLE_LABELS_FA[role]}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </Field>
+                          {!isEditing && (
+                            <Field label="رمز عبور" hint="حداقل ۸ کاراکتر.">
+                              <Input name="password" type="password" value={formData.password} onChange={handleChange} required minLength={8} />
+                            </Field>
+                          )}
+                          {formData.role === 'DEPUTY_HEAD' && (
+                            <Field label="معاونت تحت سرپرستی">
+                              <Select
+                                value={formData.headedDeputy || 'none'}
+                                onValueChange={(v) => setFormData((prev) => ({ ...prev, headedDeputy: v === 'none' ? '' : v }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="انتخاب معاونت" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">بدون معاونت</SelectItem>
+                                  {deputies.map((d) => (
+                                    <SelectItem key={d._id} value={d._id}>{d.number} — {d.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </Field>
+                          )}
+                        </div>
+                      </FormSection>
+
+                      <FormSection icon={Pen} title="امضای کاربر">
+                        <ImagePickerTile
+                          preview={signaturePreview}
+                          inputRef={signatureInputRef}
+                          onFileChange={handleSignatureChange}
+                          onOpenPicker={() => setPickerOpen(true)}
+                          onClear={clearSignature}
+                          label="امضای کاربر"
+                          placeholder="تصویر امضا را انتخاب یا بارگذاری کنید"
+                        />
+                      </FormSection>
+                    </motion.div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            <DialogFooter className="mt-4 sm:justify-between">
+              {currentStep === 1 ? (
+                <>
+                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={onClose}>انصراف</Button>
+                  <Button type="submit" className="cursor-pointer" disabled={isLoading}>
+                    ادامه
+                    <ArrowLeft className="size-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => setCurrentStep(1)} disabled={isLoading}>
+                    <ArrowRight className="size-4" /> بازگشت
+                  </Button>
+                  <Button type="submit" className="cursor-pointer" disabled={isLoading}>
+                    {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                    {isEditing ? 'ذخیره تغییرات' : 'ایجاد کاربر'}
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <MediaPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={handlePickSignature}
+      />
     </>
   );
 }

@@ -4,11 +4,9 @@ import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { DialogIconHeader } from "@/components/shared/form-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/password-input";
@@ -67,19 +65,11 @@ export default function TempPasswordDialog({ user, open, onOpenChange, onDone })
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/30">
-              <KeyRound className="size-6" aria-hidden />
-            </span>
-            <div className="text-right">
-              <DialogTitle>تنظیم رمز عبور موقت</DialogTitle>
-              <DialogDescription>
-                {user ? `برای «${user.firstName} ${user.lastName}»` : ""}
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
+        <DialogIconHeader
+          icon={KeyRound}
+          title="تنظیم رمز عبور موقت"
+          description={user ? `برای «${user.firstName} ${user.lastName}»` : ""}
+        />
 
         {result ? (
           <div className="space-y-3 py-1">

@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, Fragment } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -19,7 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
+import { Stepper } from "@/components/ui/stepper";
+import {
+  Field,
+  FormSection,
+  DialogIconHeader,
+  ImagePickerTile,
+} from "@/components/shared/form-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,8 +46,7 @@ import { joinUnits } from "@/lib/organizingUnits";
 import OrganizingUnitsPicker from "@/components/OrganizingUnitsPicker";
 import { motion, AnimatePresence } from "motion/react";
 import { spring, fadeUp, staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
-import { clsx } from "clsx";
-import { GraduationCap, Information as Info, Users, ImagePlus, Upload, X, Check, ArrowLeft, ArrowRight, Save, Loader as Loader2, AlertTriangle } from "reicon-react";
+import { GraduationCap, Information as Info, Users, X, Check, ArrowLeft, ArrowRight, Save, Loader as Loader2, AlertTriangle } from "reicon-react";
 
 function formatPersian(dateLike) {
   if (!dateLike) return "—";
@@ -53,81 +55,6 @@ function formatPersian(dateLike) {
   } catch {
     return "—";
   }
-}
-
-function Field({ label, hint, className, children }) {
-  return (
-    <div className={clsx("space-y-1.5", className)}>
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
-      {children}
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function FormSection({ icon: Icon, title, description, children }) {
-  return (
-    <motion.section
-      variants={fadeUp}
-      className="rounded-3xl border border-black/5 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm"
-    >
-      <header className="mb-4 flex items-center gap-3">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
-          <Icon className="size-5" />
-        </span>
-        <div>
-          <h4 className="font-semibold">{title}</h4>
-          {description && <p className="text-xs text-muted-foreground">{description}</p>}
-        </div>
-      </header>
-      {children}
-    </motion.section>
-  );
-}
-
-function Stepper({ currentStep }) {
-  const steps = ["اطلاعات دوره", "امضاها و مهرها"];
-  return (
-    <div className="mt-4 space-y-3">
-      <div className="flex items-center gap-2">
-        {steps.map((label, i) => {
-          const n = i + 1;
-          const active = currentStep === n;
-          const done = currentStep > n;
-          return (
-            <Fragment key={n}>
-              <div className="relative flex items-center gap-2 rounded-full px-3 py-1.5">
-                {active && (
-                  <motion.span
-                    layoutId="courseStepPill"
-                    className="absolute inset-0 rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/30"
-                    transition={spring}
-                  />
-                )}
-                <span
-                  className={clsx(
-                    "relative z-10 flex size-6 items-center justify-center rounded-full text-xs font-bold",
-                    active
-                      ? "bg-emerald-500 text-white"
-                      : done
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-black/5 text-muted-foreground"
-                  )}
-                >
-                  {done ? <Check className="size-3.5" /> : n}
-                </span>
-                <span className={clsx("relative z-10 text-sm font-medium", active ? "text-emerald-700" : "text-muted-foreground")}>
-                  {label}
-                </span>
-              </div>
-              {i < steps.length - 1 && <div className="h-px w-6 bg-black/10" />}
-            </Fragment>
-          );
-        })}
-      </div>
-      <Progress value={(currentStep / steps.length) * 100} className="h-1.5" />
-    </div>
-  );
 }
 
 function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
@@ -307,50 +234,6 @@ function StepSummary({ formData, onEdit, deputies = [] }) {
   );
 }
 
-function StampPickerTile({ preview, inputRef, onFileChange, onOpenPicker, onClear, label }) {
-  return (
-    <div className="space-y-2">
-      <Input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        onChange={onFileChange}
-        onClick={(e) => (e.target.value = null)}
-        className="hidden"
-      />
-      {preview ? (
-        <div className="group relative flex h-28 items-center justify-center overflow-hidden rounded-2xl border border-black/5 bg-stone-50">
-          <img src={preview} alt={label} className="max-h-full object-contain" />
-          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/45 group-hover:opacity-100 group-focus-within:bg-black/45 group-focus-within:opacity-100 [@media(hover:none)]:bg-black/45 [@media(hover:none)]:opacity-100">
-            <button type="button" onClick={onOpenPicker} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-white">
-              کتابخانه
-            </button>
-            <button type="button" onClick={() => inputRef.current?.click()} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-white">
-              تغییر
-            </button>
-            <button type="button" onClick={onClear} className="cursor-pointer rounded-lg bg-red-500/90 p-1.5 text-white hover:bg-red-500" aria-label="حذف">
-              <X className="size-3.5" />
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-black/10 p-4 text-center transition-colors hover:border-emerald-400/50">
-          <ImagePlus className="size-6 text-emerald-600" />
-          <p className="text-xs text-muted-foreground">تصویر مهر را انتخاب یا بارگذاری کنید</p>
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant="outline" className="cursor-pointer" onClick={onOpenPicker}>
-              <ImagePlus className="size-4" /> کتابخانه
-            </Button>
-            <Button type="button" size="sm" variant="outline" className="cursor-pointer" onClick={() => inputRef.current?.click()}>
-              <Upload className="size-4" /> بارگذاری
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function SignatoryCard({ title, description, selectedUser, onSelectUser, preview, inputRef, onFileChange, onOpenPicker, onClear }) {
   return (
     <FormSection icon={Users} title={title} description={description}>
@@ -359,13 +242,14 @@ function SignatoryCard({ title, description, selectedUser, onSelectUser, preview
           <UserSearchCombobox selectedUser={selectedUser} onSelectUser={onSelectUser} />
         </Field>
         <Field label="تصویر مهر">
-          <StampPickerTile
+          <ImagePickerTile
             preview={preview}
             inputRef={inputRef}
             onFileChange={onFileChange}
             onOpenPicker={onOpenPicker}
             onClear={onClear}
             label={title}
+            placeholder="تصویر مهر را انتخاب یا بارگذاری کنید"
           />
         </Field>
       </div>
@@ -637,20 +521,20 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
     <>
       <Dialog open={isOpen} onOpenChange={requestClose}>
         <DialogContent className="max-w-4xl rounded-3xl">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/30">
-                <GraduationCap className="size-6" />
-              </span>
-              <div className="text-right">
-                <DialogTitle>{isEditing ? "ویرایش دوره" : "ایجاد دوره جدید"}</DialogTitle>
-                <DialogDescription>
-                  {isEditing ? "اطلاعات دوره را به‌روزرسانی کنید." : "در دو مرحله دوره آموزشی را بسازید."}
-                </DialogDescription>
-              </div>
-            </div>
-            {!isEditing && <Stepper currentStep={currentStep} />}
-          </DialogHeader>
+          <DialogIconHeader
+            icon={GraduationCap}
+            title={isEditing ? "ویرایش دوره" : "ایجاد دوره جدید"}
+            description={isEditing ? "اطلاعات دوره را به‌روزرسانی کنید." : "در دو مرحله دوره آموزشی را بسازید."}
+          >
+            {!isEditing && (
+              <Stepper
+                steps={["اطلاعات دوره", "امضاها و مهرها"]}
+                current={currentStep - 1}
+                onStepClick={(i) => i < currentStep - 1 && setCurrentStep(i + 1)}
+                className="mt-4"
+              />
+            )}
+          </DialogIconHeader>
 
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
             <AnimatePresence>
