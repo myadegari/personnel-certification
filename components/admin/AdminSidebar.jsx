@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Logout as LogOut, Users, Grid as LayoutDashboard, Layers, ImagePlus, Scroll as ScrollText, Building2 } from "reicon-react";
 import { useSession, signOut } from 'next-auth/react';
+import { useQuery } from '@tanstack/react-query';
+import { internalAxios } from '@/lib/axios';
 import Image from "next/image";
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -27,6 +29,14 @@ export function AdminSidebar() {
   const collapsed = state === "collapsed";
   const reduced = usePrefersReducedMotion();
 
+  // Pending offline password-reset requests -> badge on the users nav item.
+  const { data: resetCounts } = useQuery({
+    queryKey: ["adminResetRequests"],
+    queryFn: async () => (await internalAxios.get("/admin/users/reset-requests")).data,
+    refetchInterval: 60000,
+    refetchOnWindowFocus: true,
+  });
+
   const getUserSubtitle = () => {
     if (!session?.user) return '';
     if (session.user.position) return session.user.position;
@@ -37,7 +47,7 @@ export function AdminSidebar() {
     { href: "/admin", label: "داشبورد", icon: LayoutDashboard },
     { href: "/admin/courses", label: "مدیریت دوره‌ها", icon: Layers },
     { href: "/admin/deputies", label: "معاونت‌ها", icon: Building2 },
-    { href: "/admin/users", label: "مدیریت کاربران", icon: Users },
+    { href: "/admin/users", label: "مدیریت کاربران", icon: Users, badge: resetCounts?.requested || 0 },
     { href: "/admin/media", label: "کتابخانه رسانه", icon: ImagePlus },
   ];
   if (isSuperAdmin(session?.user?.role)) {
@@ -90,6 +100,7 @@ export function AdminSidebar() {
                 icon={item.icon}
                 active={isActivePath(pathname, item.href, "/admin")}
                 collapsed={collapsed}
+                badge={item.badge}
               >
                 {item.label}
               </SidebarNavLink>

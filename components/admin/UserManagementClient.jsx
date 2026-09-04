@@ -38,9 +38,9 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { USER_STATUS_META, FALLBACK_STATUS_META } from "@/lib/statusLabels";
+import { USER_STATUS_META, FALLBACK_STATUS_META, BADGE_TONES } from "@/lib/statusLabels";
 import { clsx } from "clsx";
-import { Search, Refresh as RefreshCw, Download, Upload, More as MoreVertical, Eye, Edit as Pencil, Check, X, Trash as Trash2, Login as LogIn, SortDownUp as ArrowUpDown, ArrowUp, ArrowDown, UserAdd as UserPlus } from "reicon-react";
+import { Search, Refresh as RefreshCw, Download, Upload, More as MoreVertical, Eye, Edit as Pencil, Check, X, Trash as Trash2, Login as LogIn, SortDownUp as ArrowUpDown, ArrowUp, ArrowDown, UserAdd as UserPlus, Key as KeyRound } from "reicon-react";
 import { ROLE_LABELS_FA, ASSIGNABLE_ROLES, isSuperAdmin, canManageUser, canImpersonate } from "@/lib/roles";
 import { toPersianDigits } from "@/lib/persian-date";
 import { motion, AnimatePresence } from "motion/react";
@@ -48,6 +48,7 @@ import { fadeUp } from "@/lib/motion";
 import UserFormModal from "./UserFormModal";
 import UserDetailSheet from "./UserDetailSheet";
 import UserImportDialog from "./UserImportDialog";
+import TempPasswordDialog from "./TempPasswordDialog";
 import ConfirmDialog from "./ConfirmDialog";
 import PageHeader from "./ui/PageHeader";
 import DataTableShell from "./ui/DataTableShell";
@@ -83,12 +84,13 @@ export default function UserManagementClient({ initialData }) {
   const [rowSelection, setRowSelection] = useState({});
 
   const [qInput, setQInput] = useState("");
-  const [filters, setFilters] = useState({ q: "", role: "", status: "" });
+  const [filters, setFilters] = useState({ q: "", role: "", status: "", passwordState: "" });
   const [sort, setSort] = useState({ field: "createdAt", order: "desc" });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [detailUser, setDetailUser] = useState(null);
+  const [tempUser, setTempUser] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
   const [confirm, setConfirm] = useState(null); // { type, user }
 
@@ -108,6 +110,7 @@ export default function UserManagementClient({ initialData }) {
       q: filters.q || undefined,
       role: filters.role || undefined,
       status: filters.status || undefined,
+      passwordState: filters.passwordState || undefined,
       sort: sort.field,
       order: sort.order,
     }),
@@ -119,6 +122,7 @@ export default function UserManagementClient({ initialData }) {
     !filters.q &&
     !filters.role &&
     !filters.status &&
+    !filters.passwordState &&
     sort.field === "createdAt" &&
     sort.order === "desc";
 
@@ -265,6 +269,16 @@ export default function UserManagementClient({ initialData }) {
               <div className="flex flex-col leading-tight">
                 <span className="font-medium">{u.firstName} {u.lastName}</span>
                 <span className="text-xs text-muted-foreground" dir="ltr">{u.email}</span>
+                {(u.passwordResetRequested || u.mustChangePassword) && (
+                  <span className="mt-1 flex flex-wrap gap-1">
+                    {u.passwordResetRequested && (
+                      <Badge className={BADGE_TONES.amber}>درخواست بازنشانی رمز</Badge>
+                    )}
+                    {u.mustChangePassword && (
+                      <Badge className={BADGE_TONES.blue}>رمز موقت فعال</Badge>
+                    )}
+                  </span>
+                )}
               </div>
             </div>
           );
@@ -319,6 +333,14 @@ export default function UserManagementClient({ initialData }) {
                       onClick={() => { setEditingUser(u); setIsModalOpen(true); }}
                     >
                       <Pencil className="h-4 w-4" /> ویرایش
+                    </DropdownMenuItem>
+                  )}
+                  {manageable && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => setTempUser(u)}
+                    >
+                      <KeyRound className="h-4 w-4 text-amber-600" /> تنظیم رمز عبور موقت
                     </DropdownMenuItem>
                   )}
                   {manageable && pending && (
@@ -495,6 +517,17 @@ export default function UserManagementClient({ initialData }) {
             {Object.entries(USER_STATUS_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select
+          value={filters.passwordState || "all"}
+          onValueChange={(v) => { setFilters((f) => ({ ...f, passwordState: v === "all" ? "" : v })); setPagination((p) => ({ ...p, pageIndex: 0 })); }}
+        >
+          <SelectTrigger className="w-44"><SelectValue placeholder="وضعیت رمز عبور" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">همه رمزها</SelectItem>
+            <SelectItem value="requested">درخواست بازنشانی</SelectItem>
+            <SelectItem value="temp">رمز موقت فعال</SelectItem>
+          </SelectContent>
+        </Select>
         <Button variant="ghost" size="icon" className="cursor-pointer" aria-label="نوسازی فهرست" onClick={() => refetch()} disabled={isFetching}>
           <RefreshCw className={clsx("h-4 w-4", isFetching && "animate-spin")} />
         </Button>
@@ -618,6 +651,15 @@ export default function UserManagementClient({ initialData }) {
       />
       <UserDetailSheet user={detailUser} open={!!detailUser} onOpenChange={(o) => !o && setDetailUser(null)} />
       <UserImportDialog open={importOpen} onOpenChange={setImportOpen} />
+      <TempPasswordDialog
+        user={tempUser}
+        open={!!tempUser}
+        onOpenChange={(o) => !o && setTempUser(null)}
+        onDone={() => {
+          queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+          queryClient.invalidateQueries({ queryKey: ["adminResetRequests"] });
+        }}
+      />
       <ConfirmDialog
         open={!!confirm}
         onOpenChange={(o) => !o && setConfirm(null)}

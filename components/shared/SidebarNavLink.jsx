@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { fadeUp } from "@/lib/motion";
+import { toPersianDigits } from "@/lib/persian-date";
 
 /** Initials (max 2 letters) for avatar fallbacks. */
 export function initialsOf(name) {
@@ -32,6 +33,7 @@ export default function SidebarNavLink({
   children,
   active,
   collapsed,
+  badge = 0,
 }) {
   return (
     <motion.div variants={fadeUp} className="relative">
@@ -54,7 +56,14 @@ export default function SidebarNavLink({
                 active ? "text-white" : "text-muted-foreground group-hover/nav:text-foreground"
               }`}
             >
-              <Icon size={20} className="shrink-0" />
+              <span className="relative shrink-0">
+                <Icon size={20} />
+                {badge > 0 && (
+                  <span className="absolute -end-1.5 -top-1.5 flex min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
+                    {toPersianDigits(String(badge > 99 ? "99+" : String(badge)))}
+                  </span>
+                )}
+              </span>
               <span className="truncate group-data-[collapsible=icon]:hidden">{children}</span>
             </span>
           </Link>

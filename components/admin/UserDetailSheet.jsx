@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { ROLE_LABELS_FA } from "@/lib/roles";
-import { USER_STATUS_META, FALLBACK_STATUS_META } from "@/lib/statusLabels";
+import { USER_STATUS_META, FALLBACK_STATUS_META, BADGE_TONES } from "@/lib/statusLabels";
 import { formatDate } from "@/lib/persian-date";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { initialsOf } from "@/components/shared/SidebarNavLink";
@@ -59,6 +59,12 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
                       <BadgeCheck className="me-1 size-3" />
                       {status.label}
                     </Badge>
+                    {user.passwordResetRequested && (
+                      <Badge className={BADGE_TONES.amber}>درخواست بازنشانی رمز</Badge>
+                    )}
+                    {user.mustChangePassword && (
+                      <Badge className={BADGE_TONES.blue}>رمز موقت فعال</Badge>
+                    )}
                   </div>
                 </div>
                 {user.personnelNumber && (
