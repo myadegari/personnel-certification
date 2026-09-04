@@ -18,7 +18,12 @@ const SheetDirContext = React.createContext({ dir: "ltr", setDir: () => {} })
 function Sheet({
   ...props
 }) {
-  const [dir, setDir] = React.useState("ltr")
+  const [dir, setDir] = React.useState(() =>
+    typeof document !== "undefined" &&
+    getComputedStyle(document.documentElement).direction === "rtl"
+      ? "rtl"
+      : "ltr"
+  )
   const contextValue = React.useMemo(() => ({ dir, setDir }), [dir])
 
   return (

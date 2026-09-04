@@ -58,6 +58,18 @@ const loadingIndicatorSizeBySize = {
   "icon-lg": "size-4",
 }
 
+/**
+ * Whether a `render` element ultimately produces a native <button>. Base UI's
+ * `nativeButton` must match the real DOM tag, or it warns in dev. Literal
+ * elements are checked by tag; components (Next <Link>, <a>) are treated as
+ * non-buttons when they carry an `href`, otherwise assumed to render a button
+ * (e.g. Base UI primitives like AlertDialog.Cancel).
+ */
+function renderIsNativeButton(element) {
+  if (typeof element?.type === "string") return element.type === "button";
+  return !element?.props?.href;
+}
+
 function Button({
   className,
   variant = "default",
@@ -65,6 +77,7 @@ function Button({
   loading = false,
   disabled,
   asChild,
+  nativeButton,
   children,
   render,
   ...props
@@ -76,6 +89,7 @@ function Button({
   // `asChild` from leaking onto the DOM node.
   const resolvedRender =
     render ?? (asChild && React.isValidElement(children) ? children : undefined);
+  const usesRender = resolvedRender !== undefined;
 
   return (
     <ButtonPrimitive
@@ -84,8 +98,13 @@ function Button({
       disabled={disabled || loading}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-      {...(resolvedRender !== undefined ? { render: resolvedRender } : {})}>
-      {resolvedRender !== undefined ? undefined : (
+      {...(usesRender
+        ? {
+            render: resolvedRender,
+            nativeButton: nativeButton ?? renderIsNativeButton(resolvedRender),
+          }
+        : {})}>
+      {usesRender ? undefined : (
         <>
           {loading && (
             <Spinner
