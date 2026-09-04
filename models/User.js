@@ -60,6 +60,13 @@ const UserSchema = new mongoose.Schema(
     // --- ADD THESE TWO FIELDS ---
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
+    // Offline password-reset workflow (no email OTP): a user can flag that they
+    // forgot their password (passwordResetRequested), an admin then issues a
+    // temporary password which sets mustChangePassword; the user is forced to
+    // choose a new password on next login before anything else works.
+    passwordResetRequested: { type: Boolean, default: false },
+    passwordResetRequestedAt: { type: Date },
+    mustChangePassword: { type: Boolean, default: false },
     isProfessor : { type: Boolean },
   },
   { timestamps: true }
@@ -75,6 +82,9 @@ UserSchema.index(
 );
 // Password-reset lookups happen on a public endpoint; keep them indexed.
 UserSchema.index({ resetPasswordToken: 1 }, { sparse: true });
+// Admin badge counts + filtering for the offline reset workflow.
+UserSchema.index({ passwordResetRequested: 1 }, { sparse: true });
+UserSchema.index({ mustChangePassword: 1 }, { sparse: true });
 // UserSchema.index(
 //   { createdAt: 1 },
 //   {

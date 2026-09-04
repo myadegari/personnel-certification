@@ -89,6 +89,15 @@ function buildUserFilter(session, searchParams) {
     }
   }
 
+  // Offline password-reset workflow: narrow to accounts awaiting a reset
+  // (user requested) or currently holding a temporary password.
+  const passwordState = searchParams.get('passwordState');
+  if (passwordState === 'requested') {
+    filter.passwordResetRequested = true;
+  } else if (passwordState === 'temp') {
+    filter.mustChangePassword = true;
+  }
+
   return filter;
 }
 

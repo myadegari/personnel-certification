@@ -68,6 +68,7 @@ export const authOptions = {
           role: user.role || "USER",
           position: user.position,
           status: user.status,
+          mustChangePassword: !!user.mustChangePassword,
         };
       },
     }),
@@ -160,11 +161,20 @@ export const authOptions = {
         token.role = user.role;
         token.status = user.status;
         token.position = user.position;
+        token.mustChangePassword = !!user.mustChangePassword;
         if (user.impersonatedBy) {
           token.impersonatedBy = user.impersonatedBy;
         } else {
           delete token.impersonatedBy;
         }
+        return token;
+      }
+      // Live-clear the forced-change flag once the user has set a new password,
+      // without requiring a re-login. Only pays a DB read while still flagged.
+      if (token.mustChangePassword) {
+        await dbConnect();
+        const fresh = await User.findById(token.id).select("mustChangePassword").lean();
+        token.mustChangePassword = !!fresh?.mustChangePassword;
       }
       return token;
     },
@@ -176,6 +186,7 @@ export const authOptions = {
         session.user.status = token.status;
         session.user.position = token.position;
         session.user.impersonatedBy = token.impersonatedBy;
+        session.user.mustChangePassword = token.mustChangePassword;
       }
       return session;
     },

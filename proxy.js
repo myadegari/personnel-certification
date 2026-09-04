@@ -9,6 +9,18 @@ export default withAuth(
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
 
+    // Forced password change (offline admin temp-password reset): a user who
+    // logged in with a temporary password may ONLY reach the set-password page
+    // until they choose a new one.
+    if (token.mustChangePassword) {
+      if (pathname !== "/authentication/set-password") {
+        return NextResponse.redirect(
+          new URL("/authentication/set-password", req.url)
+        );
+      }
+      return NextResponse.next();
+    }
+
     // If the user's account is pending admin verification
     if (token.status === "NEED_TO_VERIFY") {
       // Allow access ONLY to the dashboard page where they will see a message.

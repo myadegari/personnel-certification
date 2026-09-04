@@ -1,81 +1,46 @@
 'use client';
-// File: app/forgot-password/page.jsx
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { gooeyToast } from 'goey-toast';
-import PasswordInput from "@/components/password-input"
 
 export default function ForgotPasswordPage() {
-  const [step, setStep] = useState(1); // 1: Enter email, 2: Enter token and new password
-  const [email, setEmail] = useState('');
-  const [token, setToken] = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [submitted, setSubmitted] = useState(false);
 
-  // The reset email links here with ?token=… so the CTA button drops the
-  // user straight into step 2 with the token prefilled.
-  useEffect(() => {
-    const urlToken = new URLSearchParams(window.location.search).get('token');
-    if (urlToken) {
-      setToken(urlToken);
-      setStep(2);
-    }
-  }, []);
-
-  const handleEmailSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setMessage('');
+    const value = identifier.trim();
+    if (!value) return;
 
+    setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const isEmail = value.includes('@');
+      const res = await fetch('/api/auth/request-password-reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(isEmail ? { email: value } : { personnelNumber: value }),
       });
       const data = await res.json();
-      gooeyToast.success(data.message);
-      // setMessage(data.message);
-      setStep(2); // Move to the next step regardless of whether email exists
-    } catch (err) {
-      gooeyToast.error('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
-      // setError('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResetSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    setMessage('');
-
-    try {
-      const res = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
-      });
-      const data = await res.json();
-      
       if (!res.ok) {
-        throw new Error(data.message || 'خطا در بازنشانی رمز عبور.');
+        gooeyToast.error(data.message || 'خطا در ثبت درخواست.');
+        return;
       }
-
+      setSubmitted(true);
       gooeyToast.success(data.message);
-      setTimeout(() => router.push('/authentication/login'), 3000);
-    } catch (err) {
-      gooeyToast.error(err.message);
+    } catch {
+      gooeyToast.error('خطایی در ارتباط با سرور رخ داد.');
     } finally {
       setIsLoading(false);
     }
@@ -85,45 +50,44 @@ export default function ForgotPasswordPage() {
     <div className="flex items-center justify-center py-20">
       <Card className="w-full max-w-md drop-shadow-amber-800/20">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">بازیابی رمز عبور</CardTitle>
+          <CardTitle className="text-center">فراموشی رمز عبور</CardTitle>
           <CardDescription className="text-center">
-            {step === 1 ? 'ایمیل خود را برای دریافت کد بازیابی وارد کنید.' : 'کد دریافتی و رمز عبور جدید را وارد کنید.'}
+            با توجه به اینکه سامانه به اینترنت متصل نیست، بازیابی رمز عبور از طریق
+            مدیر سامانه انجام می‌شود.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && <p className="mb-4 text-center text-sm text-red-600 bg-red-100 p-2 rounded-md">{error}</p>}
-          {message && <p className="mb-4 text-center text-sm text-green-600 bg-green-100 p-2 rounded-md">{message}</p>}
-
-          {step === 1 && (
-            <form onSubmit={handleEmailSubmit} className="space-y-4">
+          {submitted ? (
+            <div className="space-y-3 rounded-2xl bg-emerald-50 p-4 text-center text-sm text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+              <p className="font-semibold">درخواست شما ثبت شد.</p>
+              <p>
+                برای دریافت رمز عبور موقت، با مدیر سامانه به‌صورت حضوری یا تلفنی
+                تماس بگیرید. پس از دریافت رمز موقت، هنگام ورود باید رمز جدیدی
+                تعیین کنید.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="email">ایمیل</Label>
-                <Input dir="ltr" id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Label htmlFor="identifier">شماره پرسنلی یا ایمیل</Label>
+                <Input
+                  id="identifier"
+                  dir="ltr"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="مثلاً ۱۲۳۴۵۶"
+                  autoComplete="username"
+                  required
+                />
               </div>
-              <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
-                {isLoading ? 'در حال ارسال...' : 'ارسال کد بازیابی'}
-              </Button>
-            </form>
-          )}
-
-          {step === 2 && (
-            <form onSubmit={handleResetSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="token">کد بازیابی (Token)</Label>
-                <Input dir="ltr" id="token" value={token} onChange={(e) => setToken(e.target.value)} required  />
-              </div>
-              <div>
-                <Label htmlFor="password">رمز عبور جدید</Label>
-                <PasswordInput id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={true} />
-              </div>
-              <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
-                {isLoading ? 'در حال بررسی...' : 'تغییر رمز عبور'}
+              <Button type="submit" className="w-full cursor-pointer" loading={isLoading}>
+                {isLoading ? 'در حال ثبت درخواست...' : 'ثبت درخواست بازنشانی'}
               </Button>
             </form>
           )}
         </CardContent>
         <CardFooter className="flex justify-center">
-          <Link href="/authentication/login" className="text-sm text-blue-600 hover:underline">
+          <Link href="/authentication/login" className="text-sm text-primary hover:underline">
             بازگشت به صفحه ورود
           </Link>
         </CardFooter>
