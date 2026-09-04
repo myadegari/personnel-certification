@@ -74,9 +74,9 @@ export async function PUT(request, { params }) {
       enrollment.issuedAt = certificateData.issuedAt;
       enrollment.certificateUniqueId = certificateData.certificateUniqueId;
       enrollment.certificateUrl = certificateData.certificateUrl;
-      // Seed the lifecycle status; the worker's webhook (or the MongoDB
-      // job_statuses fallback) advances it to processing/completed/failed.
-      enrollment.certificateStatus = "pending";
+      // The render-data snapshot is stored on issuance, so the certificate is
+      // immediately available (the PDF is generated on demand at view time).
+      enrollment.certificateStatus = "completed";
     }
 
     enrollment.status = status;

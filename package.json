@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "bun scripts/copy-pdf-worker.mjs && next dev",
+    "dev:host": "bun scripts/copy-pdf-worker.mjs && next dev -H 0.0.0.0",
     "build": "bun scripts/copy-pdf-worker.mjs && next build",
     "start": "bun run seed:superadmin; next start",
     "lint": "eslint",
     "seed:superadmin": "bun scripts/seed-superadmin.js",
+    "cert:cleanup": "bun scripts/remove-generated-certificates.js",
     "assign:course-codes": "bun scripts/assign-course-codes.js",
     "cleanup:profile-images": "bun scripts/cleanup-profile-images.js"
   },

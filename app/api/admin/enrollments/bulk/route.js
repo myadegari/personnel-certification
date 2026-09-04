@@ -89,7 +89,8 @@ export async function POST(request) {
         enrollment.issuedAt = certificateData.issuedAt;
         enrollment.certificateUniqueId = certificateData.certificateUniqueId;
         enrollment.certificateUrl = certificateData.certificateUrl;
-        enrollment.certificateStatus = "pending";
+        // Snapshot stored on issuance -> immediately available (rendered on demand).
+        enrollment.certificateStatus = "completed";
       }
 
       enrollment.status = status;

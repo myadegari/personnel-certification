@@ -121,7 +121,8 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId,
               {result.certificateNumber}
             </p>
             <p className="text-xs text-muted-foreground">
-              لینک عمومی: /verify/{result.guestId || "…"} — پس از پردازش، PDF از طریق همین لینک قابل مشاهده است.
+              لینک عمومی: /verify/{result.guestId || "…"} — گواهی از طریق همین لینک
+              قابل مشاهده و دانلود است.
             </p>
             <DialogFooter className="justify-center gap-2">
               <Button variant="outline" className="cursor-pointer" onClick={() => setResult(null)}>

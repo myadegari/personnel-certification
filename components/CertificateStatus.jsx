@@ -30,7 +30,8 @@ export default function CertificateStatus({ enrollment }) {
     },
   });
 
-  const status = data?.status ?? (hasJob ? 'loading' : 'not_started');
+  const status =
+    data?.status ?? enrollment?.certificateStatus ?? (hasJob ? 'loading' : 'not_started');
 
   const viewCertificate = () => {
     if (enrollment.certificateUrl) {

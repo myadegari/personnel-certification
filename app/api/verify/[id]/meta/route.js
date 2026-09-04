@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { isValidObjectId } from "mongoose";
 import dbConnect from "@/lib/dbConnect";
-import File from "@/models/File";
+import Certificate from "@/models/Certificate";
 import Enrollment from "@/models/Enrollment";
 import GuestCertificate from "@/models/GuestCertificate";
 import { rateLimit } from "@/lib/rateLimit";
 
 /**
  * GET /api/verify/[id]/meta
- * Public JSON companion to the PDF streaming route: resolves a
- * certification id to the human-readable facts a third party needs to
- * authenticate a certificate (holder, course, issue date, number).
- * Applies the same File-existence gate as the PDF route so "valid" metadata
- * is never returned for a certificate whose PDF cannot be served.
+ * Public JSON companion to the PDF route: resolves a certification id to the
+ * human-readable facts a third party needs to authenticate a certificate
+ * (holder, course, issue date, number). Applies the same gate as the PDF route
+ * — a stored render-data snapshot must exist — so "valid" metadata is never
+ * returned for a certificate that cannot be served.
  */
 export async function GET(request, { params }) {
   if (!rateLimit(request, { key: "verify-meta", limit: 30, windowMs: 60 * 1000 })) {
@@ -30,12 +30,9 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Same gate as the PDF route: a File record must exist for this job.
-    const fileExists = await File.exists({
-      "metadata.job_id": certificationId,
-      bucket: "certificate",
-    });
-    if (!fileExists) {
+    // Same gate as the PDF route: a render-data snapshot must exist.
+    const certExists = await Certificate.exists({ certificationId });
+    if (!certExists) {
       return NextResponse.json(
         { error: "گواهینامه‌ای با این شناسه یافت نشد." },
         { status: 404 }
