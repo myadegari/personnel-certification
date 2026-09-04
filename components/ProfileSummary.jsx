@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { CheckCircle as BadgeCheck, Briefcase, Calendar, GraduationCap, Hashtag as Hash, Mailbox as Mail, PenLine, ShieldCheck, User } from "reicon-react";
+import { CheckCircle as BadgeCheck, Calendar, Hashtag as Hash, Mailbox as Mail, PenLine, ShieldCheck, User } from "reicon-react";
 import SectionCard from "@/components/admin/ui/SectionCard";
 import { Badge } from "@/components/ui/badge";
 // import { Skeleton } from "@/components/ui/skeleton";
@@ -52,11 +52,6 @@ export default function ProfileSummary({ user }) {
             </div>
           </div>
           <div className="flex w-full flex-col gap-1.5 text-sm text-muted-foreground sm:w-auto">
-            {user?.position && (
-              <span className="flex items-center gap-1.5">
-                <Briefcase className="size-3.5" /> {user.position}
-              </span>
-            )}
             {user?.createdAt && (
               <span className="flex items-center gap-1.5">
                 <Calendar className="size-3.5" /> عضو از{" "}
@@ -100,12 +95,6 @@ export default function ProfileSummary({ user }) {
             icon={Mail}
             label="ایمیل"
             value={user?.email ? <span dir="ltr">{user.email}</span> : null}
-          />
-          <InfoField icon={Briefcase} label="سمت" value={user?.position} />
-          <InfoField
-            icon={GraduationCap}
-            label="عضو هیات علمی"
-            value={user?.isProfessor ? "بله" : "خیر"}
           />
         </div>
       </SectionCard>

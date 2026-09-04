@@ -1,4 +1,4 @@
-﻿personnelNumber,firstName,lastName,nationalId,email,gender,position,isProfessor,role,status,password
-99001,مریم,کریمی,0012300001,maryam.karimi.test@example.com,Female,کارشناس امور اداری,false,USER,VERIFIED,Test@Pass123
-99002,حسین,مرادی,0012300002,hossein.moradi.test@example.com,Male,کارشناس فنی,true,USER,VERIFIED,
-99003,سارا,احمدی,0012300003,sara.ahmadi.test@example.com,Female,مدیر گروه,true,ADMIN,VERIFIED,Admin@Pass456
+﻿personnelNumber,firstName,lastName,nationalId,email,gender,role,status,password
+99001,مریم,کریمی,0012300001,maryam.karimi.test@example.com,Female,USER,VERIFIED,Test@Pass123
+99002,حسین,مرادی,0012300002,hossein.moradi.test@example.com,Male,USER,VERIFIED,
+99003,سارا,احمدی,0012300003,sara.ahmadi.test@example.com,Female,ADMIN,VERIFIED,Admin@Pass456

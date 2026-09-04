@@ -35,7 +35,6 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: [true, "رمز عبور الزامی است."],
     },
-    position: { type: String },
     signatureImage: { type: mongoose.Schema.Types.ObjectId, ref: "File" },
     // Organizational deputy (معاونت) this user belongs to.
     deputy: { type: mongoose.Schema.Types.ObjectId, ref: "Deputy" },
@@ -67,7 +66,6 @@ const UserSchema = new mongoose.Schema(
     passwordResetRequested: { type: Boolean, default: false },
     passwordResetRequestedAt: { type: Date },
     mustChangePassword: { type: Boolean, default: false },
-    isProfessor : { type: Boolean },
   },
   { timestamps: true }
 );

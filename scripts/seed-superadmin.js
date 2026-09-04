@@ -7,14 +7,6 @@ function required(name) {
   return value || null;
 }
 
-function optional(name, fallback = "") {
-  return process.env[name]?.trim() || fallback;
-}
-
-function parseBoolean(value) {
-  return ["1", "true", "yes", "y", "on"].includes(String(value).toLowerCase());
-}
-
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function connectWithRetry(url, { attempts = 10, delayMs = 3000 } = {}) {
@@ -44,8 +36,6 @@ async function main() {
   const nationalId = required("SUPERADMIN_NATIONAL_ID");
   const gender = required("SUPERADMIN_GENDER");
   const password = required("SUPERADMIN_PASSWORD");
-  const position = optional("SUPERADMIN_POSITION");
-  const isProfessor = parseBoolean(optional("SUPERADMIN_IS_PROFESSOR", "false"));
 
   if (!personnelNumber || !firstName || !lastName || !email || !nationalId || !gender || !password) {
     console.warn(
@@ -77,8 +67,6 @@ async function main() {
     existing.email = email;
     existing.nationalId = nationalId;
     existing.gender = gender;
-    existing.position = position;
-    existing.isProfessor = isProfessor;
     existing.role = "SUPERADMIN";
     existing.status = "VERIFIED";
     existing.password = hashedPassword;
@@ -94,8 +82,6 @@ async function main() {
     email,
     nationalId,
     gender,
-    position,
-    isProfessor,
     password: hashedPassword,
     role: "SUPERADMIN",
     status: "VERIFIED",

@@ -94,8 +94,6 @@ export async function POST(request) {
             nationalId: data.nationalId,
             email: data.email,
             gender: data.gender,
-            position: data.position,
-            isProfessor: data.isProfessor,
             role: data.role,
             status: data.status,
           });

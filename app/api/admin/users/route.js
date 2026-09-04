@@ -17,10 +17,6 @@ async function parseUserPayload(request) {
       const entry = data.get(key);
       return entry === null ? undefined : entry;
     };
-    const optionalValue = (key) => {
-      const entry = data.get(key);
-      return entry === null ? undefined : entry;
-    };
 
     return {
       fields: {
@@ -32,8 +28,6 @@ async function parseUserPayload(request) {
         email: value('email'),
         role: value('role'),
         gender: value('gender'),
-        position: optionalValue('position'),
-        isProfessor: value('isProfessor') === 'true',
       },
       signatureFile: data.get('signatureFile') || undefined,
       signatureFileId: data.get('signatureFileId') || undefined,
@@ -150,7 +144,7 @@ export async function POST(request) {
 
   try {
     const { fields, signatureFile, signatureFileId } = await parseUserPayload(request);
-    const { personnelNumber, password, firstName, lastName, nationalId, email, role, gender, position, isProfessor } = fields;
+    const { personnelNumber, password, firstName, lastName, nationalId, email, role, gender } = fields;
 
     if (!personnelNumber || !password || !firstName || !lastName || !nationalId || !email || !gender) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -176,8 +170,6 @@ export async function POST(request) {
       nationalId,
       email,
       gender,
-      position,
-      isProfessor,
       role,
       status: 'VERIFIED',
     });

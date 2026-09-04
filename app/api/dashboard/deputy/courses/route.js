@@ -29,8 +29,8 @@ export async function GET(request, { params }) {
       deputy: access.deputy._id,
       visibility: "DEPUTY",
     })
-      .populate("signatory", "firstName lastName position")
-      .populate("signatory2", "firstName lastName position")
+      .populate("signatory", "firstName lastName")
+      .populate("signatory2", "firstName lastName")
       .sort({ date: -1 })
       .lean();
 

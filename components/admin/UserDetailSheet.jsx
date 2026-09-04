@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { CheckCircle as BadgeCheck, Briefcase, Calendar, GraduationCap, Hashtag as Hash, Mailbox as Mail, PenLine, ShieldCheck, User as UserRound } from "reicon-react";
+import { CheckCircle as BadgeCheck, Calendar, Hashtag as Hash, Mailbox as Mail, PenLine, ShieldCheck, User as UserRound } from "reicon-react";
 import {
   Sheet,
   SheetContent,
@@ -101,12 +101,6 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
                 value={
                   user.gender === "Male" ? "آقا" : user.gender === "Female" ? "خانم" : ""
                 }
-              />
-              <InfoField icon={Briefcase} label="سمت" value={user.position} />
-              <InfoField
-                icon={GraduationCap}
-                label="عضو هیات علمی"
-                value={user.isProfessor ? "بله" : "خیر"}
               />
               <InfoField
                 icon={Calendar}

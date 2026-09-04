@@ -24,7 +24,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
@@ -57,8 +56,6 @@ const emptyForm = {
   nationalId: '',
   email: '',
   gender: '',
-  position: '',
-  isProfessor: false,
   deputy: '',
   headedDeputy: '',
 };
@@ -104,8 +101,6 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
         role: userData.role || 'USER',
         nationalId: userData.nationalId || '',
         gender: userData.gender || '',
-        position: userData.position || '',
-        isProfessor: userData.isProfessor || false,
         deputy: userData.deputy?._id || userData.deputy || '',
         headedDeputy: userData.headedDeputy?._id || userData.headedDeputy || '',
         password: '',
@@ -180,8 +175,6 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
       payload.append('email', formData.email);
       payload.append('role', formData.role);
       payload.append('gender', formData.gender);
-      payload.append('position', formData.position || '');
-      payload.append('isProfessor', String(Boolean(formData.isProfessor)));
       payload.append('deputy', formData.deputy || '');
       payload.append('headedDeputy', formData.headedDeputy || '');
 
@@ -298,19 +291,6 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                           <Field label="ایمیل">
                             <Input dir="ltr" name="email" type="email" value={formData.email} onChange={handleChange} required />
                           </Field>
-                          <div className="grid grid-cols-2 gap-3">
-                            <Field label="سمت">
-                              <Input name="position" value={formData.position} onChange={handleChange} />
-                            </Field>
-                            <div className="flex items-end gap-2 pb-2">
-                              <Checkbox
-                                id="isProfessor"
-                                checked={formData.isProfessor}
-                                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, isProfessor: checked }))}
-                              />
-                              <Label htmlFor="isProfessor" className="font-normal">عضو هیات علمی</Label>
-                            </div>
-                          </div>
                           <Field label="معاونت">
                             <Select
                               value={formData.deputy || 'none'}

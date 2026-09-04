@@ -31,10 +31,8 @@ export async function GET(request) {
       lastName: u.lastName ?? "",
       nationalId: u.nationalId ?? "",
       email: u.email ?? "",
-      gender: u.gender ?? "",
-      position: u.position ?? "",
-      isProfessor: u.isProfessor ? "true" : "false",
-      role: u.role ?? "",
+        gender: u.gender ?? "",
+        role: u.role ?? "",
       status: u.status ?? "",
       createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : "",
     }));

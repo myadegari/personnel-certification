@@ -39,7 +39,6 @@ export function AdminSidebar() {
 
   const getUserSubtitle = () => {
     if (!session?.user) return '';
-    if (session.user.position) return session.user.position;
     return ROLE_LABELS_FA[session.user.role] || 'کاربر';
   };
 

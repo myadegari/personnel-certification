@@ -34,7 +34,6 @@ export function UserSidebar() {
 
   const getUserSubtitle = () => {
     if (!userData) return "";
-    if (userData.position) return userData.position;
     return ROLE_LABELS_FA[userData.role] || "کاربر";
   };
 

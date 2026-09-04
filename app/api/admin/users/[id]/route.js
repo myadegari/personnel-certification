@@ -7,7 +7,7 @@ import { uploadUserSignature } from '@/lib/signatureUpload';
 import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
 
-const ALLOWED_FIELDS = ['firstName', 'lastName', 'email', 'role', 'personnelNumber', 'nationalId', 'gender', 'position', 'isProfessor', 'deputy', 'headedDeputy'];
+const ALLOWED_FIELDS = ['firstName', 'lastName', 'email', 'role', 'personnelNumber', 'nationalId', 'gender', 'deputy', 'headedDeputy'];
 
 async function parseUserPayload(request) {
   const contentType = request.headers.get('content-type') || '';
@@ -28,8 +28,6 @@ async function parseUserPayload(request) {
         email: value('email'),
         role: value('role'),
         gender: value('gender'),
-        position: value('position'),
-        isProfessor: value('isProfessor') === 'true',
         deputy: value('deputy'),
         headedDeputy: value('headedDeputy'),
       },

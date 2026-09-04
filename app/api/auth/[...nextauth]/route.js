@@ -66,7 +66,6 @@ export const authOptions = {
           name: `${user.firstName} ${user.lastName}`,
           email: user.email,
           role: user.role || "USER",
-          position: user.position,
           status: user.status,
           mustChangePassword: !!user.mustChangePassword,
         };
@@ -107,7 +106,6 @@ export const authOptions = {
           name: `${target.firstName} ${target.lastName}`,
           email: target.email,
           role: target.role || "USER",
-          position: target.position,
           status: target.status,
           impersonatedBy: {
             id: current.user.id,
@@ -147,7 +145,6 @@ export const authOptions = {
           name: `${admin.firstName} ${admin.lastName}`,
           email: admin.email,
           role: admin.role,
-          position: admin.position,
           status: admin.status,
         };
       },
@@ -160,7 +157,6 @@ export const authOptions = {
         token.id = user.id;
         token.role = user.role;
         token.status = user.status;
-        token.position = user.position;
         token.mustChangePassword = !!user.mustChangePassword;
         if (user.impersonatedBy) {
           token.impersonatedBy = user.impersonatedBy;
@@ -184,7 +180,6 @@ export const authOptions = {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.status = token.status;
-        session.user.position = token.position;
         session.user.impersonatedBy = token.impersonatedBy;
         session.user.mustChangePassword = token.mustChangePassword;
       }

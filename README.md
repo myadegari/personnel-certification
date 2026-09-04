@@ -5,8 +5,8 @@ accounts, course enrollment, admin approval workflow, PDF certificate generation
 FastAPI microservice, and public certificate verification.
 
 Public signup is disabled. Superadmins create and manage admin accounts; admins
-create regular user accounts and set user fields such as position, professor
-status, and signature. Regular users can log in, view/enroll in courses,
+create regular user accounts and set user fields such as role, deputy, and
+signature. Regular users can log in, view/enroll in courses,
 download certificates, and change their own password.
 
 ## Stack
