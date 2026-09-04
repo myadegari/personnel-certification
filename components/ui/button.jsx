@@ -1,3 +1,4 @@
+import * as React from "react"
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva } from "class-variance-authority";
 
@@ -63,10 +64,18 @@ function Button({
   size = "default",
   loading = false,
   disabled,
+  asChild,
   children,
+  render,
   ...props
 }) {
   const loadingIndicatorSize = loadingIndicatorSizeBySize[size ?? "default"]
+
+  // Radix-style `asChild` compatibility: Base UI swaps the rendered element via
+  // `render` instead, so forward the single child element there and keep
+  // `asChild` from leaking onto the DOM node.
+  const resolvedRender =
+    render ?? (asChild && React.isValidElement(children) ? children : undefined);
 
   return (
     <ButtonPrimitive
@@ -74,14 +83,19 @@ function Button({
       data-loading={loading ? "" : undefined}
       disabled={disabled || loading}
       className={cn(buttonVariants({ variant, size, className }))}
-      {...props}>
-      {loading && (
-        <Spinner
-          data-slot="button-loading-indicator"
-          data-icon="inline-start"
-          className={loadingIndicatorSize} />
+      {...props}
+      {...(resolvedRender !== undefined ? { render: resolvedRender } : {})}>
+      {resolvedRender !== undefined ? undefined : (
+        <>
+          {loading && (
+            <Spinner
+              data-slot="button-loading-indicator"
+              data-icon="inline-start"
+              className={loadingIndicatorSize} />
+          )}
+          {children}
+        </>
       )}
-      {children}
     </ButtonPrimitive>
   );
 }

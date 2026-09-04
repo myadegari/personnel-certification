@@ -42,6 +42,9 @@ function Tooltip({
 }
 
 function TooltipTrigger({
+  asChild,
+  children,
+  render,
   ...props
 }) {
   const ref = React.useRef(null)
@@ -65,7 +68,21 @@ function TooltipTrigger({
     return () => observer.disconnect();
   }, [setDir])
 
-  return (<TooltipPrimitive.Trigger ref={ref} data-slot="tooltip-trigger" {...props} />);
+  // Radix-style `asChild` compatibility: Base UI swaps the trigger's own
+  // element via `render` instead, so forward the single child element there
+  // and keep `asChild` from leaking onto the DOM node.
+  const resolvedRender =
+    render ?? (asChild && React.isValidElement(children) ? children : undefined);
+
+  return (
+    <TooltipPrimitive.Trigger
+      ref={ref}
+      data-slot="tooltip-trigger"
+      {...props}
+      {...(resolvedRender !== undefined ? { render: resolvedRender } : {})}>
+      {resolvedRender !== undefined ? undefined : children}
+    </TooltipPrimitive.Trigger>
+  );
 }
 
 function TooltipContent({

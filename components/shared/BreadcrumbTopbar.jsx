@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -48,17 +49,19 @@ export default function BreadcrumbTopbar({ root, labels }) {
           {crumbs.map((c, i) => {
             const last = i === crumbs.length - 1;
             return (
-              <BreadcrumbItem key={c.href} className="flex items-center gap-1.5">
-                {c.root && <Home className="size-3.5 text-muted-foreground" />}
-                {last || !c.href ? (
-                  <BreadcrumbPage>{c.label}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild>
-                    <Link href={c.href}>{c.label}</Link>
-                  </BreadcrumbLink>
-                )}
+              <Fragment key={`${c.href ?? "crumb"}-${i}`}>
+                <BreadcrumbItem className="flex items-center gap-1.5">
+                  {c.root && <Home className="size-3.5 text-muted-foreground" />}
+                  {last || !c.href ? (
+                    <BreadcrumbPage>{c.label}</BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink asChild>
+                      <Link href={c.href}>{c.label}</Link>
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
                 {!last && <BreadcrumbSeparator />}
-              </BreadcrumbItem>
+              </Fragment>
             );
           })}
         </BreadcrumbList>

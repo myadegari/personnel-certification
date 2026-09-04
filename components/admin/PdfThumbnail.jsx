@@ -70,7 +70,19 @@ export default function PdfThumbnail({ fileId, name, width = 320, className }) {
     (async () => {
       try {
         const pdfjs = await loadPdfjs();
-        const loadingTask = pdfjs.getDocument(`/api/file/${fileId}?raw=1`);
+        // Fetch the bytes ourselves (same-origin, session cookie) instead of
+        // letting pdf.js stream the URL: its streaming fetch can surface a
+        // transient/empty response (e.g. a 204 while the dev server compiles
+        // this route) as an opaque error. no-store avoids caching a bad body.
+        const res = await fetch(`/api/file/${fileId}?raw=1`, {
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} while retrieving PDF`);
+        }
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        const loadingTask = pdfjs.getDocument({ data: bytes });
         const pdf = await loadingTask.promise;
         if (cancelled) {
           loadingTask.destroy();
