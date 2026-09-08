@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/authGuard";
-import { buildTemplateCsv } from "@/lib/csv";
+import { buildTemplateWorkbook, XLSX_MIME } from "@/lib/xlsx";
 
 export async function GET() {
   const { error } = await requireAdmin();
   if (error) return error;
 
-  const csv = buildTemplateCsv();
-  return new NextResponse("" + csv, {
+  const buf = Buffer.from(await buildTemplateWorkbook());
+  return new NextResponse(buf, {
     status: 200,
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="users-import-template.csv"`,
+      "Content-Type": XLSX_MIME,
+      "Content-Disposition": `attachment; filename="users-import-template.xlsx"`,
     },
   });
 }

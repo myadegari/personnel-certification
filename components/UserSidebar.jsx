@@ -9,7 +9,7 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Logout as LogOut, Grid as LayoutDashboard, GraduationCap, Settings, Building2, FileCheck as FileCheck2 } from "reicon-react";
+import { Logout as LogOut, Grid as LayoutDashboard, GraduationCap, Settings, Building2, PenWriting, FileCheck as FileCheck2 } from "reicon-react";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -49,10 +49,24 @@ export function UserSidebar() {
   if (userData?.role === ROLES.DEPUTY_HEAD) {
     items.push({
       href: "/dashboard/deputy",
-      label: "معاونت من",
+      label: "دوره های معاونت ",
       icon: Building2,
       children: [
         { href: "/dashboard/deputy/certificates", label: "گواهی‌های صادر شده", icon: FileCheck2 },
+      ],
+    });
+  }
+  // Any user designated as a signatory (first or second) on one or more
+  // courses gets a read-only view of those courses and their certificates.
+  // Deputy heads are excluded: their signed courses are folded into the
+  // merged "معاونت من" panel instead.
+  if (userData?.signatoryCourseCount > 0 && userData?.role !== ROLES.DEPUTY_HEAD) {
+    items.push({
+      href: "/dashboard/signatory",
+      label: "دوره‌های با امضا",
+      icon: PenWriting,
+      children: [
+        { href: "/dashboard/signatory/certificates", label: "گواهی‌های صادرشده", icon: FileCheck2 },
       ],
     });
   }

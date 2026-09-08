@@ -7,14 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { glassShell, GlassPanel, GlassHeader, PRIMARY_BTN } from "@/components/shared/glass-dialog";
 import { Add as Plus, Edit as Pencil, Trash as Trash2, Building2 } from "reicon-react";
 import { motion } from "motion/react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
@@ -24,6 +18,7 @@ import ChipInput from "@/components/admin/ui/ChipInput";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 import { gooeyToast } from "goey-toast";
 import { toPersianDigits } from "@/lib/persian-date";
+import { cn } from "@/lib/utils";
 
 const MAX_UNITS = 30;
 
@@ -223,24 +218,15 @@ export default function DeputiesClient() {
       </DataTableShell>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              {/* <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/30">
-                <Building2 className="size-6" aria-hidden />
-              </span> */}
-              <div className="text-right">
-                <DialogTitle>
-                  {editingDeputy ? "ویرایش معاونت" : "ایجاد معاونت جدید"}
-                </DialogTitle>
-                <DialogDescription className="mt-3">
-                  {editingDeputy
-                    ? "نام معاونت و واحدهای زیرمجموعه را به‌روزرسانی کنید."
-                    : "نام معاونت را وارد کنید و در صورت نیاز واحدهای زیرمجموعه را بیفزایید."}
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
+        <DialogContent className={cn(glassShell("md"),'p-6')}>
+          <GlassPanel>
+            <GlassHeader
+              icon={Building2}
+              title={editingDeputy ? "ویرایش معاونت" : "ایجاد معاونت جدید"}
+              description={editingDeputy
+                ? "نام معاونت و واحدهای زیرمجموعه را به‌روزرسانی کنید."
+                : "نام معاونت را وارد کنید و در صورت نیاز واحدهای زیرمجموعه را بیفزایید."}
+            />
 
           <div className="space-y-4 py-2">
             {nameError && (
@@ -292,10 +278,11 @@ export default function DeputiesClient() {
             >
               انصراف
             </Button>
-            <Button className="cursor-pointer" onClick={handleSave} loading={isPending}>
+            <Button className={PRIMARY_BTN} onClick={handleSave} loading={isPending}>
               {editingDeputy ? "ذخیره" : "ایجاد"}
             </Button>
           </DialogFooter>
+          </GlassPanel>
         </DialogContent>
       </Dialog>
 

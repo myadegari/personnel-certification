@@ -1,19 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Papa from "papaparse";
 import { gooeyToast } from "goey-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { internalAxios } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { glassShell, GlassPanel, GlassHeader, PRIMARY_BTN } from "@/components/shared/glass-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Stepper } from "@/components/ui/stepper";
 import {
   Table,
@@ -27,12 +21,12 @@ import { Badge } from "@/components/ui/badge";
 import { BADGE_TONES } from "@/lib/statusLabels";
 import { Download, CloudUpload as UploadCloud, FileText as FileSpreadsheet } from "reicon-react";
 import { clsx } from "clsx";
+import { cn } from "@/lib/utils";
 
 const STEPS = ["upload", "preview", "results"];
 const STEP_LABELS = { upload: "انتخاب فایل", preview: "پیش‌نمایش و اعتبارسنجی", results: "نتیجه" };
 
-function downloadTextFile(filename, text, type = "text/csv;charset=utf-8") {
-  const blob = new Blob(["" + text], { type });
+function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -64,15 +58,17 @@ export default function UserImportDialog({ open, onOpenChange }) {
     onOpenChange(next);
   };
 
-  // CSV is validated by extension or MIME: the accept attr only filters the
+  // XLSX is validated by extension or MIME: the accept attr only filters the
   // file picker, so drag-and-drop must be checked separately.
-  const isCsvFile = (f) =>
-    Boolean(f) && (/\.csv$/i.test(f.name || "") || f.type === "text/csv");
+  const isExcelFile = (f) =>
+    Boolean(f) &&
+    (/\.xlsx$/i.test(f.name || "") ||
+      f.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   const acceptFile = (candidate) => {
     if (!candidate) return false;
-    if (!isCsvFile(candidate)) {
-      gooeyToast.error("فقط فایل CSV پذیرفته می‌شود.");
+    if (!isExcelFile(candidate)) {
+      gooeyToast.error("فقط فایل اکسل (xlsx) پذیرفته می‌شود.");
       return false;
     }
     setFile(candidate);
@@ -85,7 +81,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
 
   const runImport = async (mode) => {
     if (!file) {
-      gooeyToast.error("ابتدا یک فایل CSV انتخاب کنید.");
+      gooeyToast.error("ابتدا یک فایل اکسل انتخاب کنید.");
       return;
     }
     setLoading(true);
@@ -112,7 +108,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
     }
   };
 
-  const downloadErrors = (data) => {
+  const downloadErrors = async (data) => {
     const errorRows = (data.results || [])
       .filter((r) => r.status === "error")
       .map((r) => ({ line: r.line, personnelNumber: r.personnelNumber || "", errors: (r.errors || []).join(" | ") }));
@@ -120,10 +116,15 @@ export default function UserImportDialog({ open, onOpenChange }) {
       gooeyToast("خطایی برای دانلود وجود ندارد.");
       return;
     }
-    downloadTextFile("import-errors.csv", Papa.unparse(errorRows));
+    const { buildWorkbook, XLSX_MIME } = await import("@/lib/xlsx");
+    const buf = await buildWorkbook({
+      columns: ["line", "personnelNumber", "errors"],
+      rows: errorRows,
+    });
+    downloadBlob("import-errors.xlsx", new Blob([buf], { type: XLSX_MIME }));
   };
 
-  const downloadPasswords = (data) => {
+  const downloadPasswords = async (data) => {
     const rows = (data.results || [])
       .filter((r) => r.generatedPassword)
       .map((r) => ({ personnelNumber: r.personnelNumber, password: r.generatedPassword }));
@@ -131,32 +132,39 @@ export default function UserImportDialog({ open, onOpenChange }) {
       gooeyToast("رمز عبور تولیدشده‌ای وجود ندارد.");
       return;
     }
-    downloadTextFile("generated-passwords.csv", Papa.unparse(rows));
+    const { buildWorkbook, XLSX_MIME } = await import("@/lib/xlsx");
+    const buf = await buildWorkbook({
+      columns: ["personnelNumber", "password"],
+      rows,
+    });
+    downloadBlob("generated-passwords.xlsx", new Blob([buf], { type: XLSX_MIME }));
   };
 
   const stepIndex = STEPS.indexOf(step);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>وارد کردن دسته‌جمعی کاربران</DialogTitle>
-          <DialogDescription>{STEP_LABELS[step]}</DialogDescription>
-        </DialogHeader>
-
-        <Stepper
-          steps={STEPS.map((s) => STEP_LABELS[s])}
-          current={stepIndex}
-          onStepClick={(i) => i < stepIndex && setStep(STEPS[i])}
-          className="mb-2"
-        />
+      <DialogContent className={cn(glassShell("lg"),'p-6')}>
+        <GlassPanel>
+          <GlassHeader
+            icon={UploadCloud}
+            title="وارد کردن دسته‌جمعی کاربران"
+            description={STEP_LABELS[step]}
+          >
+            <Stepper
+              steps={STEPS.map((s) => STEP_LABELS[s])}
+              current={stepIndex}
+              onStepClick={(i) => i < stepIndex && setStep(STEPS[i])}
+              className="mt-4"
+            />
+          </GlassHeader>
 
         {step === "upload" && (
           <div className="space-y-4 py-2">
             <div
               role="button"
               tabIndex={0}
-              aria-label="انتخاب فایل CSV"
+              aria-label="انتخاب فایل اکسل"
               onClick={() => fileInputRef.current?.click()}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -179,14 +187,14 @@ export default function UserImportDialog({ open, onOpenChange }) {
                 <span className="text-sm font-medium">{file.name}</span>
               ) : (
                 <>
-                  <span className="text-sm font-medium">فایل CSV را بکشید یا کلیک کنید</span>
+                  <span className="text-sm font-medium">فایل اکسل را بکشید یا کلیک کنید</span>
                   <span className="text-xs text-muted-foreground">ستون‌ها مطابق فایل الگو</span>
                 </>
               )}
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,text/csv"
+                accept=".xlsx"
                 className="sr-only"
                 tabIndex={-1}
                 aria-hidden="true"
@@ -207,7 +215,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
         {step === "preview" && preview && (
           <div className="space-y-3 py-2">
             <SummaryBar summary={preview.summary} />
-            <div className="max-h-72 overflow-auto rounded-md border">
+            <ScrollArea className="max-h-72 rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -240,7 +248,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
                   )}
                 </TableBody>
               </Table>
-            </div>
+            </ScrollArea>
           </div>
         )}
 
@@ -263,7 +271,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
             <>
               <Button variant="outline" className="cursor-pointer" onClick={() => handleOpenChange(false)}>انصراف</Button>
               <Button
-                className="cursor-pointer"
+                className={PRIMARY_BTN}
                 disabled={!file}
                 loading={loading}
                 onClick={() => runImport("dry-run")}
@@ -277,7 +285,7 @@ export default function UserImportDialog({ open, onOpenChange }) {
               <Button variant="outline" className="cursor-pointer" onClick={() => setStep("upload")} disabled={loading}>
                 بازگشت
               </Button>
-              <Button className="cursor-pointer" loading={loading} onClick={() => runImport("commit")}>
+              <Button className={PRIMARY_BTN} loading={loading} onClick={() => runImport("commit")}>
                 تایید و اجرای ایمپورت
               </Button>
             </>
@@ -285,10 +293,11 @@ export default function UserImportDialog({ open, onOpenChange }) {
           {step === "results" && (
             <>
               <Button variant="outline" className="cursor-pointer" onClick={reset}>افزودن فایل دیگر</Button>
-              <Button className="cursor-pointer" onClick={() => handleOpenChange(false)}>پایان</Button>
+              <Button className={PRIMARY_BTN} onClick={() => handleOpenChange(false)}>پایان</Button>
             </>
           )}
         </DialogFooter>
+        </GlassPanel>
       </DialogContent>
     </Dialog>
   );

@@ -17,9 +17,9 @@ import {
 
 /**
  * Shared sticky topbar: mobile sidebar trigger + breadcrumb trail built from
- * the current pathname. `labels` maps path segments to Persian titles;
- * unknown segments render as plain text (they often have no matching route,
- * e.g. an id segment) rather than links to nowhere.
+ * the current pathname. `labels` maps path segments to Persian titles; segments
+ * with no label (dynamic ids such as a course _id, which have no matching
+ * route) are omitted from the trail entirely.
  */
 export default function BreadcrumbTopbar({ root, labels }) {
   const pathname = usePathname();
@@ -30,10 +30,11 @@ export default function BreadcrumbTopbar({ root, labels }) {
   let path = "";
   for (const seg of rest) {
     path += `/${seg}`;
-    crumbs.push({
-      label: labels[seg] || "نامشخص",
-      href: labels[seg] ? `${root.href}${path}` : null,
-    });
+    const label = labels[seg];
+    // Dynamic id segments (e.g. a course _id) have no label and no real route;
+    // omit them from the trail rather than showing a "نامشخص" placeholder.
+    if (!label) continue;
+    crumbs.push({ label, href: `${root.href}${path}` });
   }
 
   return (

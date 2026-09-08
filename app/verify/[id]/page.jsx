@@ -206,12 +206,12 @@ export default function VerifyCertificatePage({ params }) {
             </dl>
           )}
 
-          <div className="mt-3 min-h-96 flex-1 overflow-hidden rounded-2xl border border-border bg-muted">
+          <div className="mt-3 flex-1 overflow-hidden h-full rounded-2xl border border-border bg-muted">
             <embed
               src={pdfUrl}
               type="application/pdf"
               title={`گواهینامه ${id}`}
-              className="h-full w-full"
+              className="w-full h-[758px]"
             />
           </div>
         </>

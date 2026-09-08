@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
 
-// A certificate issued to a person with no account in the system (bulk CSV
+// A certificate issued to a person with no account in the system (bulk Excel
 // issuance by a deputy head). Its `_id` doubles as the certificate
 // `certificationId`/`jobId` sent to the microservice, so:
 //   - the File record stores metadata.job_id = this._id (24-hex ObjectId) and
 //   - the public /verify/<id> route resolves it with no special-casing.
 const GuestCertificateSchema = new mongoose.Schema(
   {
-    // 10-digit certificate number [year3][deputy2][course2][issue3].
+    // 11-digit certificate number [year3][deputy2][course2][issue4].
     // Set after the microservice returns the number (the guest record is
     // created first so its _id can serve as the certificationId/jobId).
     certificateNumber: {

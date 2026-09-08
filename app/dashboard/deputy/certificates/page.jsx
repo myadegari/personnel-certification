@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { internalAxios } from "@/lib/axios";
@@ -23,8 +24,9 @@ import { AlertTriangle, Link as ExternalLink, Search, ArrowRight, ChevronRight, 
 import Link from "next/link";
 import { toShamsi, toPersianDigits } from "@/lib/persian-date";
 
-export default function DeputyCertificatesPage() {
-  const [courseFilter, setCourseFilter] = useState("all");
+function DeputyCertificatesView() {
+  const searchParams = useSearchParams();
+  const [courseFilter, setCourseFilter] = useState(searchParams.get("course") || "all");
   const [yearFilter, setYearFilter] = useState("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -39,12 +41,25 @@ export default function DeputyCertificatesPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // Course/year filter options come from the dashboard payload (cached).
+  // Course/year filter options = union of manageable deputy courses + courses
+  // this head signs, matching the certificates API's scope (so a ?course=
+  // deep-link to a signed-only course resolves to a real option, not a raw id).
   const { data: dashboard } = useQuery({
     queryKey: ["deputyDashboard"],
     queryFn: async () => (await internalAxios.get("/dashboard/deputy")).data,
   });
-  const courses = dashboard?.courses || [];
+  const { data: signatoryData } = useQuery({
+    queryKey: ["signatoryCourses"],
+    queryFn: async () => (await internalAxios.get("/dashboard/signatory")).data,
+  });
+  const courses = (() => {
+    const map = new Map();
+    for (const c of dashboard?.courses || []) map.set(String(c._id), { _id: c._id, name: c.name, date: c.date });
+    for (const c of signatoryData?.courses || []) {
+      if (!map.has(String(c._id))) map.set(String(c._id), { _id: c._id, name: c.name, date: c.date });
+    }
+    return [...map.values()];
+  })();
   const yearOptions = [...new Set(courses.map((c) => toShamsi(new Date(c.date * 1000)).year))]
     .sort((a, b) => b - a);
 
@@ -84,7 +99,7 @@ export default function DeputyCertificatesPage() {
     <div className="space-y-6">
       <PageHeader
         title="گواهی‌های صادر شده"
-        description="گواهی‌های صادر شده برای دوره‌های خصوصی معاونت شما"
+        description="گواهی‌های صادر شده برای دوره‌هایی که مدیریت یا امضا می‌کنید"
         actions={
           <Button asChild variant="outline" className="cursor-pointer">
             <Link href="/dashboard/deputy">
@@ -150,6 +165,7 @@ export default function DeputyCertificatesPage() {
         ) : (
           <>
             <motion.div
+              key={certificates.map((c) => String(c.enrollmentId || c.guestId)).join("|")}
               variants={staggerContainer(0.04)}
               initial="hidden"
               animate="show"
@@ -180,9 +196,9 @@ export default function DeputyCertificatesPage() {
                             <Badge className={`${BADGE_TONES.blue} ms-2`} aria-label="گواهی مهمان">مهمان</Badge>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-sm font-mono" dir="ltr">{cert.nationalId || "—"}</td>
+                        <td className="px-3 py-2 text-sm font-mono text-right" dir="ltr">{cert.nationalId || "—"}</td>
                         <td className="px-3 py-2 text-sm">{cert.courseName || "—"}</td>
-                        <td className="px-3 py-2 text-sm font-mono" dir="ltr">{cert.certificateUniqueId || "—"}</td>
+                        <td className="px-3 py-2 text-sm font-mono text-right" dir="ltr">{cert.certificateUniqueId || "—"}</td>
                         <td className="px-3 py-2 text-sm">{cert.issuedAt || "—"}</td>
                         <td className="px-3 py-2 text-center">
                           <Button asChild variant="ghost" size="icon" className="h-8 w-8 cursor-pointer">
@@ -231,5 +247,20 @@ export default function DeputyCertificatesPage() {
         )}
       </SectionCard>
     </div>
+  );
+}
+
+export default function DeputyCertificatesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-4">
+          <PageHeader title="گواهی‌های صادر شده" description="در حال بارگذاری..." />
+          <Skeleton className="h-40 rounded-2xl" />
+        </div>
+      }
+    >
+      <DeputyCertificatesView />
+    </Suspense>
   );
 }

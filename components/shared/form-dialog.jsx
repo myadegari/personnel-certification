@@ -14,13 +14,15 @@ import { Label } from "@/components/ui/label";
 import { fadeUp, staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
-/** Labeled form control with optional hint text. */
-export function Field({ label, hint, className, children }) {
+/** Labeled form control with optional hint text and required marker. */
+export function Field({ label, hint, required, className, children }) {
   return (
     <div className={cn("space-y-1.5", className)}>
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-semibold text-muted-foreground">
+        {label} {required && <span className="text-rose-500">*</span>}
+      </Label>
       {children}
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-[11px] leading-5 text-muted-foreground/80">{hint}</p>}
     </div>
   );
 }
@@ -90,6 +92,7 @@ export function ImagePickerTile({
       />
       {preview ? (
         <div className="group relative flex h-28 items-center justify-center overflow-hidden rounded-2xl border border-black/5 bg-stone-50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={preview} alt={label} className="max-h-full object-contain" />
           <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/45 group-hover:opacity-100 group-focus-within:bg-black/45 group-focus-within:opacity-100 [@media(hover:none)]:bg-black/45 [@media(hover:none)]:opacity-100">
             <button type="button" onClick={onOpenPicker} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-white">

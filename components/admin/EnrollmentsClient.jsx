@@ -26,7 +26,7 @@ import GuestCertificateActions from "@/components/admin/GuestCertificateActions"
 import { gooeyToast } from "goey-toast";
 import { motion, AnimatePresence } from "motion/react";
 import { fadeUp } from "@/lib/motion";
-import { Check, X, Lock, Users, Clock, CheckCircle as BadgeCheck, Ban, FileCheck as FileCheck2 } from "reicon-react";
+import { Check, X, Lock, Users, Clock, CheckCircle as BadgeCheck, Ban, FileCheck as FileCheck2, AlertTriangle } from "reicon-react";
 import DataTableShell from "./ui/DataTableShell";
 import TablePager from "@/components/shared/TablePager";
 import { toPersianDigits } from "@/lib/persian-date";
@@ -37,9 +37,15 @@ import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  glassSurface,
+  GlassPanel,
+  GlassBadge,
+  GLASS_TITLE,
+  GLASS_DESC,
+} from "@/components/shared/glass-dialog";
 import {
   ENROLLMENT_STATUS,
   ENROLLMENT_STATUS_FILTERS,
@@ -470,6 +476,7 @@ export default function EnrollmentsClient({ initialData, courseId }) {
     },
   ];
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: enrollmentsData,
     columns,
@@ -573,23 +580,28 @@ export default function EnrollmentsClient({ initialData, courseId }) {
       />
 
       <AlertDialog open={bulkRejectOpen} onOpenChange={setBulkRejectOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>رد گروهی ثبت‌نام‌ها</AlertDialogTitle>
-            <AlertDialogDescription>
-              آیا از رد کردن {toPersianDigits(String(selected.size))} ثبت‌نام انتخاب‌شده اطمینان دارید؟ این وضعیت نهایی
-              و غیرقابل تغییر خواهد بود.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-rose-600 hover:bg-rose-700"
-              onClick={confirmBulkReject}
-            >
-              رد کردن
-            </AlertDialogAction>
-          </AlertDialogFooter>
+        <AlertDialogContent className={glassSurface()}>
+          <GlassPanel>
+            <div className="flex items-center gap-4">
+              <GlassBadge icon={AlertTriangle} className="from-rose-500 to-red-600 shadow-rose-500/30" />
+              <div className="min-w-0 text-right">
+                <AlertDialogTitle className={GLASS_TITLE}>رد گروهی ثبت‌نام‌ها</AlertDialogTitle>
+                <AlertDialogDescription className={GLASS_DESC}>
+                  آیا از رد کردن {toPersianDigits(String(selected.size))} ثبت‌نام انتخاب‌شده اطمینان دارید؟ این وضعیت نهایی
+                  و غیرقابل تغییر خواهد بود.
+                </AlertDialogDescription>
+              </div>
+            </div>
+            <AlertDialogFooter className="mt-6">
+              <AlertDialogCancel>انصراف</AlertDialogCancel>
+              <AlertDialogAction
+                className="cursor-pointer bg-rose-600 text-white hover:bg-rose-700"
+                onClick={confirmBulkReject}
+              >
+                رد کردن
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </GlassPanel>
         </AlertDialogContent>
       </AlertDialog>
 
@@ -597,26 +609,31 @@ export default function EnrollmentsClient({ initialData, courseId }) {
         open={!!singleRejectTarget}
         onOpenChange={(open) => !open && setSingleRejectTarget(null)}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>رد ثبت‌نام</AlertDialogTitle>
-            <AlertDialogDescription>
-              آیا از رد کردن ثبت‌نام{" "}
-              {singleRejectTarget?.user?.firstName
-                ? `${singleRejectTarget.user.firstName} ${singleRejectTarget.user.lastName || ""}`
-                : ""}{" "}
-              اطمینان دارید؟ این وضعیت نهایی و غیرقابل تغییر خواهد بود.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>انصراف</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-rose-600 hover:bg-rose-700"
-              onClick={confirmSingleReject}
-            >
-              رد کردن
-            </AlertDialogAction>
-          </AlertDialogFooter>
+        <AlertDialogContent className={glassSurface()}>
+          <GlassPanel>
+            <div className="flex items-center gap-4">
+              <GlassBadge icon={AlertTriangle} className="from-rose-500 to-red-600 shadow-rose-500/30" />
+              <div className="min-w-0 text-right">
+                <AlertDialogTitle className={GLASS_TITLE}>رد ثبت‌نام</AlertDialogTitle>
+                <AlertDialogDescription className={GLASS_DESC}>
+                  آیا از رد کردن ثبت‌نام{" "}
+                  {singleRejectTarget?.user?.firstName
+                    ? `${singleRejectTarget.user.firstName} ${singleRejectTarget.user.lastName || ""}`
+                    : ""}{" "}
+                  اطمینان دارید؟ این وضعیت نهایی و غیرقابل تغییر خواهد بود.
+                </AlertDialogDescription>
+              </div>
+            </div>
+            <AlertDialogFooter className="mt-6">
+              <AlertDialogCancel>انصراف</AlertDialogCancel>
+              <AlertDialogAction
+                className="cursor-pointer bg-rose-600 text-white hover:bg-rose-700"
+                onClick={confirmSingleReject}
+              >
+                رد کردن
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </GlassPanel>
         </AlertDialogContent>
       </AlertDialog>
     </div>

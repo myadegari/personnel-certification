@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { gooeyToast } from "goey-toast";
 import { motion } from "motion/react";
@@ -33,24 +34,43 @@ function DeputyCourseCard({ course, onEdit, onDelete, onIssue, canManage }) {
 
   return (
     <motion.div variants={fadeUp} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
-      <p className="min-w-0 flex-1 truncate text-sm font-semibold">{course.name}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold" title={course.name}>{course.name}</p>
+        {(course.isManaged || course.isSignatory) && (
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            {course.isManaged && <Badge className={BADGE_TONES.gray}>قابل مدیریت</Badge>}
+            {course.isSignatory && (
+              <Badge className={BADGE_TONES.green}>
+                {course.signRole === "secondary" ? "امضاکننده دوم" : "امضاکننده اول"}
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
       <Badge className={`${BADGE_TONES.blue} shrink-0`} aria-label="تعداد گواهی صادر شده">
         {stats.issued} گواهی
       </Badge>
       <Badge className={`${BADGE_TONES.green} shrink-0`}>{course.duration} ساعت</Badge>
-      {canManage && (
-        <div className="flex shrink-0 items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-emerald-700" aria-label={`صدور گواهی برای ${course.name}`} title="صدور گواهی" onClick={() => onIssue?.(course)}>
-            <UserPlus className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" aria-label={`ویرایش ${course.name}`} title="ویرایش دوره" onClick={() => onEdit?.(course)}>
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-red-600" aria-label={`حذف ${course.name}`} title="حذف دوره" onClick={() => onDelete?.(course)}>
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      )}
+      <div className="flex shrink-0 items-center gap-1">
+        <Button asChild variant="ghost" size="sm" className="cursor-pointer text-emerald-700">
+          <Link href={`/dashboard/deputy/certificates?course=${course._id}`}>
+            <FileCheck2 className="size-4" /> گواهی‌ها
+          </Link>
+        </Button>
+        {canManage && (
+          <>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-emerald-700" aria-label={`صدور گواهی برای ${course.name}`} title="صدور گواهی" onClick={() => onIssue?.(course)}>
+              <UserPlus className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer" aria-label={`ویرایش ${course.name}`} title="ویرایش دوره" onClick={() => onEdit?.(course)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 cursor-pointer text-red-600" aria-label={`حذف ${course.name}`} title="حذف دوره" onClick={() => onDelete?.(course)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </>
+        )}
+      </div>
     </motion.div>
   );
 }
@@ -70,6 +90,13 @@ export default function DeputyDashboardPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["deputyDashboard"],
     queryFn: async () => (await internalAxios.get("/dashboard/deputy")).data,
+  });
+
+  // Courses this deputy head signs (first/second, any visibility) — folded into
+  // the unified list below so "معاونت من" shows both manageable and signed courses.
+  const { data: signatoryData } = useQuery({
+    queryKey: ["signatoryCourses"],
+    queryFn: async () => (await internalAxios.get("/dashboard/signatory")).data,
   });
 
   // Debounce the course search box so typing doesn't re-filter every keystroke.
@@ -117,17 +144,40 @@ export default function DeputyDashboardPage() {
   }
 
   const { deputy, courses = [] } = data || {};
-  const totalCourses = courses.length;
+  const signedCourses = signatoryData?.courses || [];
+
+  // Unified list: manageable deputy courses ∪ courses this head signs, deduped
+  // by id and flagged. A course the head both manages and signs keeps its
+  // management actions and also gets the "امضا" badge.
+  const mergedCourses = (() => {
+    const map = new Map();
+    for (const c of courses) {
+      map.set(String(c._id), { ...c, isManaged: true, isSignatory: false, signRole: null });
+    }
+    for (const c of signedCourses) {
+      const key = String(c._id);
+      const existing = map.get(key);
+      if (existing) {
+        existing.isSignatory = true;
+        existing.signRole = c.role;
+      } else {
+        map.set(key, { ...c, isManaged: false, isSignatory: true });
+      }
+    }
+    return [...map.values()].sort((a, b) => (b.date || 0) - (a.date || 0));
+  })();
+
+  const totalCourses = mergedCourses.length;
   // Issued totals come from the per-course counters (unbounded). The full
   // filterable list lives on /dashboard/deputy/certificates.
-  const totalIssued = courses.reduce((s, c) => s + (c.stats?.issued || 0), 0);
+  const totalIssued = mergedCourses.reduce((s, c) => s + (c.stats?.issued || 0), 0);
 
   // Client-side course filtering/pagination — the dashboard payload already
   // carries every course (and is shared with the issue dialogs).
   const COURSES_PER_PAGE = 6;
   const courseYearOf = (c) => toShamsi(new Date(c.date * 1000)).year;
-  const courseYearOptions = [...new Set(courses.map(courseYearOf))].sort((a, b) => b - a);
-  const filteredCourses = courses.filter((c) => {
+  const courseYearOptions = [...new Set(mergedCourses.map(courseYearOf))].sort((a, b) => b - a);
+  const filteredCourses = mergedCourses.filter((c) => {
     if (courseYearFilter !== "all" && courseYearOf(c) !== Number(courseYearFilter)) return false;
     if (courseSearch && !c.name?.toLowerCase().includes(courseSearch.toLowerCase())) return false;
     return true;
@@ -171,8 +221,8 @@ export default function DeputyDashboardPage() {
         <StatCard title="گواهی‌های صادر شده" value={totalIssued} icon={FileCheck2} accent="rose" />
       </motion.div>
 
-      {courses.length > 0 && (
-        <SectionCard title="دوره‌های معاونت" description="دوره‌های تحت مدیریت شما">
+      {mergedCourses.length > 0 && (
+        <SectionCard title="دوره‌ها" description="دوره‌هایی که مدیریت می‌کنید یا امضا می‌کنید">
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <Select
               value={courseYearFilter}
@@ -204,6 +254,7 @@ export default function DeputyDashboardPage() {
             <p className="py-8 text-center text-sm text-muted-foreground">دوره‌ای با این فیلترها یافت نشد.</p>
           ) : (
             <motion.div
+              key={visibleCourses.map((c) => String(c._id)).join("|")}
               variants={staggerContainer(0.05)}
               initial="hidden"
               animate="show"
@@ -213,7 +264,7 @@ export default function DeputyDashboardPage() {
                 <DeputyCourseCard
                   key={course._id}
                   course={course}
-                  canManage={course.visibility === "DEPUTY"}
+                  canManage={course.isManaged}
                   onEdit={(c) => { setEditingCourse(c); setCourseDialogOpen(true); }}
                   onDelete={(c) => setDeleteConfirm(c)}
                   onIssue={(c) => { setSingleIssueCourse(c); setSingleDialogOpen(true); }}
@@ -254,10 +305,10 @@ export default function DeputyDashboardPage() {
         </SectionCard>
       )}
 
-      {!courses.length && (
+      {!mergedCourses.length && (
         <div className="flex flex-col items-center gap-3 py-16 text-center">
           <Building2 className="size-10 text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground">دوره‌ای برای این معاونت ثبت نشده است.</p>
+          <p className="text-sm text-muted-foreground">دوره‌ای برای مدیریت یا امضای شما ثبت نشده است.</p>
         </div>
       )}
     </div>

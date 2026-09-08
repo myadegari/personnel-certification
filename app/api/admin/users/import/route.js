@@ -4,7 +4,7 @@ import User from "@/models/User";
 import bcrypt from "bcrypt";
 import { requireAdmin } from "@/lib/authGuard";
 import { canManageUser } from "@/lib/roles";
-import { parseCsv, validateUserRow, generateTempPassword } from "@/lib/csv";
+import { parseWorkbook, validateUserRow, generateTempPassword } from "@/lib/xlsx";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
 
 const MAX_ROWS = 2000;
@@ -19,22 +19,22 @@ export async function POST(request) {
     const mode = formData.get("mode") === "commit" ? "commit" : "dry-run";
 
     if (!file || typeof file === "string") {
-      return NextResponse.json({ error: "فایل CSV ارسال نشده است." }, { status: 400 });
+      return NextResponse.json({ error: "فایل اکسل ارسال نشده است." }, { status: 400 });
     }
 
-    const text = await file.text();
+    const bytes = Buffer.from(await file.arrayBuffer());
     let rawRows;
     try {
-      rawRows = parseCsv(text);
+      rawRows = await parseWorkbook(bytes);
     } catch (parseError) {
       return NextResponse.json(
-        { error: "فایل CSV قابل خواندن نیست: " + parseError.message },
+        { error: "فایل اکسل قابل خواندن نیست: " + parseError.message },
         { status: 400 }
       );
     }
 
     if (!rawRows.length) {
-      return NextResponse.json({ error: "فایل CSV خالی است." }, { status: 400 });
+      return NextResponse.json({ error: "فایل اکسل خالی است." }, { status: 400 });
     }
     if (rawRows.length > MAX_ROWS) {
       return NextResponse.json(
@@ -50,7 +50,7 @@ export async function POST(request) {
     const summary = { total: rawRows.length, created: 0, updated: 0, skipped: 0, errors: 0 };
 
     for (let i = 0; i < rawRows.length; i += 1) {
-      const line = i + 2; // +1 for header, +1 for 1-based
+      const line = rawRows[i].__line; // true spreadsheet row number
       const validation = validateUserRow(rawRows[i], { actorRole });
 
       if (!validation.ok) {

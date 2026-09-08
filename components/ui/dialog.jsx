@@ -1,28 +1,72 @@
 "use client"
 
-import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
-import { X as XIcon } from "reicon-react"
+import { mergeProps } from "@base-ui/react/merge-props"
+import { useRender } from "@base-ui/react/use-render"
+import { XIcon } from "lucide-react"
+import * as React from "react"
 
 import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+
+/**
+ * DialogPopup renders through a Portal, so it doesn't inherit `dir` from a
+ * nearby wrapper (only from document.documentElement). DialogTrigger
+ * measures the ambient direction where it's actually rendered and pushes it
+ * here so DialogViewport can apply it explicitly to the portaled content —
+ * otherwise Persian text and logical spacing inside the dialog would render
+ * as if LTR whenever the dialog is opened from an RTL-only section of an
+ * otherwise-LTR page.
+ */
+const DialogDirContext = React.createContext({ dir: "ltr", setDir: () => {} })
 
 function Dialog({
   ...props
 }) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+  const [dir, setDir] = React.useState(() =>
+    typeof document !== "undefined" &&
+    getComputedStyle(document.documentElement).direction === "rtl"
+      ? "rtl"
+      : "ltr"
+  )
+  const contextValue = React.useMemo(() => ({ dir, setDir }), [dir])
+
+  return (
+    <DialogDirContext.Provider value={contextValue}>
+      <DialogPrimitive.Root data-slot="dialog" {...props} />
+    </DialogDirContext.Provider>
+  );
 }
+
+const DialogPortal = DialogPrimitive.Portal
 
 function DialogTrigger({
+  className,
   ...props
 }) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
-}
+  const ref = React.useRef(null)
+  const { setDir } = React.useContext(DialogDirContext)
 
-function DialogPortal({
-  ...props
-}) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
+  React.useEffect(() => {
+    function update() {
+      if (!ref.current) return
+      setDir(getComputedStyle(ref.current).direction === "rtl" ? "rtl" : "ltr")
+    }
+
+    update()
+
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["dir"],
+      subtree: true,
+    })
+
+    return () => observer.disconnect();
+  }, [setDir])
+
+  return (<DialogPrimitive.Trigger ref={ref} data-slot="dialog-trigger" className={className} {...props} />);
 }
 
 function DialogClose({
@@ -31,82 +75,113 @@ function DialogClose({
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
-function DialogOverlay({
+function DialogBackdrop({
   className,
   ...props
 }) {
   return (
     <DialogPrimitive.Backdrop
-      data-slot="dialog-overlay"
+      data-slot="dialog-backdrop"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50 transition-opacity duration-200 data-ending-style:opacity-0 data-starting-style:opacity-0",
+        "fixed inset-0 z-50 bg-black/45 backdrop-blur-md duration-200 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props} />
   );
 }
 
-function DialogContent({
+function DialogViewport({
+  className,
+  ...props
+}) {
+  const { dir } = React.useContext(DialogDirContext)
+
+  return (
+    <DialogPrimitive.Viewport
+      dir={dir}
+      data-slot="dialog-viewport"
+      className={cn(
+        "fixed inset-0 z-50 grid grid-rows-[1fr_auto_3fr] justify-items-center p-4",
+        className
+      )}
+      {...props} />
+  );
+}
+
+function DialogPopup({
   className,
   children,
   showCloseButton = true,
   ...props
 }) {
   return (
-    <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay />
-      <DialogPrimitive.Popup
-        data-slot="dialog-content"
-        className={cn(
-          // Centered via the `translate` property; the enter/exit animation
-          // animates the independent `opacity`/`scale` properties so the
-          // centering translation is never disturbed.
-          "bg-background fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-2xl border p-6 shadow-lg transition-[opacity,scale] duration-200 data-ending-style:opacity-0 data-ending-style:scale-95 data-starting-style:opacity-0 data-starting-style:scale-95 sm:max-w-lg",
-          className
-        )}
-        {...props}>
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                className="absolute top-4 left-4"
-              />
-            }>
-            <XIcon />
-            <span className="sr-only">بستن</span>
-          </DialogPrimitive.Close>
-        )}
-      </DialogPrimitive.Popup>
+    <DialogPortal>
+      <DialogBackdrop />
+      <DialogViewport>
+        <DialogPrimitive.Popup
+          data-slot="dialog-popup"
+          className={cn(
+            "relative row-start-2 flex max-h-[calc(100dvh-2rem)] min-h-0 w-full max-w-lg min-w-0 flex-col rounded-2xl border border-border bg-popover text-popover-foreground shadow-lg duration-150 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            className
+          )}
+          {...props}>
+          {children}
+          {showCloseButton && (
+            <DialogPrimitive.Close
+              aria-label="بستن"
+              className="absolute end-4 top-4 rounded-full"
+              render={<Button size="icon-sm" variant="ghost" />}>
+              <XIcon />
+            </DialogPrimitive.Close>
+          )}
+        </DialogPrimitive.Popup>
+      </DialogViewport>
     </DialogPortal>
   );
 }
 
 function DialogHeader({
   className,
+  render,
   ...props
 }) {
-  return (
-    <div
-      data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-right", className)}
-      {...props} />
-  );
+  const defaultProps = {
+    className: cn(
+      "flex flex-col gap-2 p-6 in-[[data-slot=dialog-popup]:has([data-slot=dialog-panel])]:pb-3",
+      className
+    ),
+    "data-slot": "dialog-header",
+  }
+
+  return useRender({
+    defaultTagName: "div",
+    props: mergeProps(defaultProps, props),
+    render,
+  });
 }
 
 function DialogFooter({
   className,
+  variant = "default",
+  render,
   ...props
 }) {
-  return (
-    <div
-      data-slot="dialog-footer"
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
-      {...props} />
-  );
+  const defaultProps = {
+    className: cn(
+      "flex flex-col-reverse gap-2 px-6 sm:flex-row sm:justify-end",
+      variant === "default" && " py-4",
+      variant === "bare" &&
+        "pt-4 pb-6 in-[[data-slot=dialog-popup]:has([data-slot=dialog-panel])]:pt-3",
+      className
+    ),
+    "data-slot": "dialog-footer",
+  }
+
+  return useRender({
+    defaultTagName: "div",
+    props: mergeProps(defaultProps, props),
+    render,
+  });
 }
 
 function DialogTitle({
@@ -116,7 +191,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-lg leading-none font-semibold", className)}
+      className={cn("font-heading text-xl leading-none font-semibold", className)}
       {...props} />
   );
 }
@@ -128,20 +203,48 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-sm text-muted-foreground", className)}
       {...props} />
+  );
+}
+
+function DialogPanel({
+  className,
+  render,
+  ...props
+}) {
+  const defaultProps = {
+    className: cn(
+      "px-6 pb-6 in-[[data-slot=dialog-popup]:has([data-slot=dialog-header])]:pt-1",
+      className
+    ),
+    "data-slot": "dialog-panel",
+  }
+
+  return (
+    <ScrollArea className="flex-1">
+      {useRender({
+        defaultTagName: "div",
+        props: mergeProps(defaultProps, props),
+        render,
+      })}
+    </ScrollArea>
   );
 }
 
 export {
   Dialog,
+  DialogBackdrop,
+  DialogBackdrop as DialogOverlay,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogOverlay,
+  DialogPanel,
+  DialogPopup,
+  DialogPopup as DialogContent,
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  DialogViewport,
 }

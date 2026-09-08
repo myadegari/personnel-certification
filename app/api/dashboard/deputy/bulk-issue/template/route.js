@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buildCertificateTemplateCsv } from "@/lib/csv";
+import { buildCertificateTemplateWorkbook, XLSX_MIME } from "@/lib/xlsx";
 import { requireVerified } from "@/lib/authGuard";
 import { isStaffRole } from "@/lib/roles";
 import { ROLES } from "@/lib/roles";
@@ -11,12 +11,12 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const csv = buildCertificateTemplateCsv();
-  return new NextResponse(csv, {
+  const buf = Buffer.from(await buildCertificateTemplateWorkbook());
+  return new NextResponse(buf, {
     status: 200,
     headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="certificate-import-template.csv"',
+      "Content-Type": XLSX_MIME,
+      "Content-Disposition": 'attachment; filename="certificate-import-template.xlsx"',
     },
   });
 }

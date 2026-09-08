@@ -5,10 +5,12 @@ import { CheckCircle as BadgeCheck, Calendar, Hashtag as Hash, Mailbox as Mail, 
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { GlassBadge } from "@/components/shared/glass-dialog";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { ROLE_LABELS_FA } from "@/lib/roles";
@@ -25,18 +27,29 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="end" className="w-full overflow-y-auto sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>{fullName}</SheetTitle>
-          <SheetDescription>جزئیات کاربر</SheetDescription>
-        </SheetHeader>
+      <SheetContent
+        side="end"
+        className="w-full overflow-hidden border-white/50 bg-white/70 shadow-[0_40px_120px_-30px_rgba(2,44,34,0.45)] backdrop-blur-2xl sm:max-w-md"
+      >
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-24 -right-16 size-72 rounded-full bg-emerald-400/30 blur-3xl" />
+          <div className="absolute bottom-10 -left-24 size-72 rounded-full bg-teal-300/25 blur-3xl" />
+        </div>
+        <div className="flex items-center gap-3 px-4 pt-4">
+          <GlassBadge icon={UserRound} />
+          <div className="min-w-0 text-right">
+            <SheetTitle className="text-lg font-bold">{fullName}</SheetTitle>
+            <SheetDescription className="text-sm text-muted-foreground">جزئیات کاربر</SheetDescription>
+          </div>
+        </div>
 
+        <ScrollArea className="min-h-0 flex-1">
         {user && (
           <motion.div
             variants={staggerContainer(0.06)}
             initial="hidden"
             animate="show"
-            className="space-y-5 px-1 pb-6"
+            className="space-y-5 px-4 pb-6"
           >
             {/* Hero */}
             <motion.div
@@ -140,6 +153,7 @@ export default function UserDetailSheet({ user, open, onOpenChange }) {
             </motion.div>
           </motion.div>
         )}
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

@@ -54,7 +54,7 @@ const CourseSchema = new mongoose.Schema({
     ref: 'Deputy',
   },
   // Per-deputy course sequence (2-digit) embedded in certificate numbers as
-  // [year3][deputy2][course2][issue3]. Assigned once on first certificate
+  // [year3][deputy2][course2][issue4]. Assigned once on first certificate
   // issue and stable afterwards; courseSeqDeputy records which deputy the
   // sequence belongs to (re-allocated only if the course's deputy changes).
   courseSeq: { type: Number, min: 1, max: 99 },
@@ -88,5 +88,9 @@ const CourseSchema = new mongoose.Schema({
 // The course catalog and admin list sort by date/creation recency.
 CourseSchema.index({ date: -1 });
 CourseSchema.index({ createdAt: -1 });
+// Signatory-scoped lookups (the user-panel "courses I sign" view queries
+// { $or: [{ signatory: me }, { signatory2: me }] }).
+CourseSchema.index({ signatory: 1 });
+CourseSchema.index({ signatory2: 1 });
 
 export default mongoose.models.Course || mongoose.model('Course', CourseSchema);

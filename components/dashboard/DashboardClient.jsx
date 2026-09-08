@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
-import { GraduationCap, Clock, FileCheck as FileCheck2, BookOpen as BookOpenCheck, X } from "reicon-react";
+import { GraduationCap, Clock, FileCheck as FileCheck2, BookOpen as BookOpenCheck, PenWriting, X } from "reicon-react";
 import { staggerContainer } from "@/lib/motion";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatCard from "@/components/admin/ui/StatCard";
@@ -37,7 +38,7 @@ function VerifyOverlay() {
   );
 }
 
-export default function DashboardClient({ stats, initialCoursesData, user }) {
+export default function DashboardClient({ stats, initialCoursesData, signatory, signatoryHref, user }) {
   const notVerified = user?.status !== "VERIFIED";
   // Shared Jalali year: null = "همه سال‌ها" (table unfiltered; the hours card
   // falls back to the current year for its own stat).
@@ -118,6 +119,35 @@ export default function DashboardClient({ stats, initialCoursesData, user }) {
         >
           <UserCoursesTable initialData={initialCoursesData} year={selectedYear} />
         </SectionCard>
+
+        {signatory?.courses > 0 && (
+          <SectionCard
+            title="دوره‌هایی که امضا می‌کنید"
+            description="دوره‌هایی که به‌عنوان امضاکننده در آن‌ها انتخاب شده‌اید"
+            action={
+              <Button asChild size="sm" variant="outline" className="cursor-pointer">
+                <Link href={signatoryHref || "/dashboard/signatory"}>
+                  <PenWriting className="size-4" /> مشاهده دوره‌ها
+                </Link>
+              </Button>
+            }
+          >
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-black/5 bg-white/70 p-4">
+                <p className="text-sm text-muted-foreground">دوره‌ها</p>
+                <p className="mt-1 text-2xl font-bold text-foreground">
+                  {toPersianDigits(String(signatory.courses))}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-black/5 bg-white/70 p-4">
+                <p className="text-sm text-muted-foreground">گواهی‌های صادرشده</p>
+                <p className="mt-1 text-2xl font-bold text-foreground">
+                  {toPersianDigits(String(signatory.certificates))}
+                </p>
+              </div>
+            </div>
+          </SectionCard>
+        )}
       </div>
     </div>
   );

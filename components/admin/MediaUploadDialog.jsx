@@ -7,13 +7,8 @@ import { gooeyToast } from "goey-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { glassShell, GlassPanel, GlassHeader, PRIMARY_BTN } from "@/components/shared/glass-dialog";
 import { CloudUpload as UploadCloud, Image as ImageIcon } from "reicon-react";
 import { motion } from "motion/react";
 import { fadeUp } from "@/lib/motion";
@@ -83,10 +78,9 @@ export default function MediaUploadDialog({ open, onOpenChange, onUploaded }) {
         onOpenChange(v);
       }}
     >
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>بارگذاری رسانه</DialogTitle>
-        </DialogHeader>
+      <DialogContent className={glassShell("md")}>
+        <GlassPanel>
+          <GlassHeader icon={UploadCloud} title="بارگذاری رسانه" />
 
         <motion.div variants={fadeUp} initial="hidden" animate="show" className="space-y-4">
           <div
@@ -109,6 +103,7 @@ export default function MediaUploadDialog({ open, onOpenChange, onUploaded }) {
               onChange={(e) => pickFile(e.target.files?.[0])}
             />
             {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={preview} alt="پیش‌نمایش" className="max-h-40 rounded-lg object-contain" />
             ) : (
               <>
@@ -135,7 +130,7 @@ export default function MediaUploadDialog({ open, onOpenChange, onUploaded }) {
           </Button>
           <Button
             type="button"
-            className="cursor-pointer"
+            className={PRIMARY_BTN}
             disabled={!file || mutation.isPending}
             onClick={() => mutation.mutate()}
           >
@@ -143,6 +138,7 @@ export default function MediaUploadDialog({ open, onOpenChange, onUploaded }) {
             {mutation.isPending ? "در حال بارگذاری..." : "بارگذاری"}
           </Button>
         </DialogFooter>
+        </GlassPanel>
       </DialogContent>
     </Dialog>
   );

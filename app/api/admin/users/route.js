@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
+import Deputy from '@/models/Deputy';
 import File from '@/models/File';
 import bcrypt from 'bcrypt';
 import { requireAdmin } from '@/lib/authGuard';
 import { uploadUserSignature } from '@/lib/signatureUpload';
 import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
+import { isValidNationalId, normalizeNationalIdValue } from '@/lib/national-id';
 
 async function parseUserPayload(request) {
   const contentType = request.headers.get('content-type') || '';
@@ -28,6 +31,8 @@ async function parseUserPayload(request) {
         email: value('email'),
         role: value('role'),
         gender: value('gender'),
+        deputy: value('deputy'),
+        headedDeputy: value('headedDeputy'),
       },
       signatureFile: data.get('signatureFile') || undefined,
       signatureFileId: data.get('signatureFileId') || undefined,
@@ -36,6 +41,24 @@ async function parseUserPayload(request) {
 
   const body = await request.json();
   return { fields: body, signatureFile: undefined, signatureFileId: undefined };
+}
+
+function normalizeObjectIdRef(value) {
+  const id = String(value ?? '').trim();
+  if (!id || id === 'none') return { value: null };
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return { error: 'معاونت انتخابی نامعتبر است.' };
+  }
+  return { value: id };
+}
+
+async function assertDeputyReferencesExist(ids) {
+  for (const id of new Set(ids.filter(Boolean))) {
+    if (!(await Deputy.exists({ _id: id }))) {
+      return NextResponse.json({ error: 'معاونت انتخابی یافت نشد.' }, { status: 400 });
+    }
+  }
+  return null;
 }
 
 // Escape user input so it is treated literally inside $regex
@@ -144,10 +167,14 @@ export async function POST(request) {
 
   try {
     const { fields, signatureFile, signatureFileId } = await parseUserPayload(request);
-    const { personnelNumber, password, firstName, lastName, nationalId, email, role, gender } = fields;
+    const { personnelNumber, password, firstName, lastName, email, role, gender } = fields;
+    const nationalId = normalizeNationalIdValue(fields.nationalId);
 
     if (!personnelNumber || !password || !firstName || !lastName || !nationalId || !email || !gender) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+    if (nationalId.length !== 10 || !isValidNationalId(nationalId)) {
+      return NextResponse.json({ error: 'کد ملی معتبر نیست.' }, { status: 400 });
     }
     if (typeof password !== 'string' || password.length < 8) {
       return NextResponse.json({ error: 'رمز عبور باید حداقل ۸ کاراکتر باشد.' }, { status: 400 });
@@ -159,7 +186,31 @@ export async function POST(request) {
       return NextResponse.json({ error: 'You cannot assign this role' }, { status: 403 });
     }
 
+    const deputyRef = normalizeObjectIdRef(fields.deputy);
+    if (deputyRef.error) {
+      return NextResponse.json({ error: deputyRef.error }, { status: 400 });
+    }
+    const headedDeputyRef = normalizeObjectIdRef(fields.headedDeputy);
+    if (headedDeputyRef.error) {
+      return NextResponse.json({ error: headedDeputyRef.error }, { status: 400 });
+    }
+
+    let deputy = deputyRef.value;
+    let headedDeputy = headedDeputyRef.value;
+
+    if (role === ROLES.DEPUTY_HEAD) {
+      if (!headedDeputy) {
+        return NextResponse.json({ error: 'انتخاب معاونت تحت سرپرستی الزامی است.' }, { status: 400 });
+      }
+      deputy = headedDeputy;
+    } else {
+      headedDeputy = null;
+    }
+
     await dbConnect();
+
+    const deputyError = await assertDeputyReferencesExist([deputy, headedDeputy]);
+    if (deputyError) return deputyError;
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({
@@ -171,6 +222,8 @@ export async function POST(request) {
       email,
       gender,
       role,
+      deputy,
+      headedDeputy,
       status: 'VERIFIED',
     });
 

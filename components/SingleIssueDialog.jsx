@@ -5,14 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { gooeyToast } from "goey-toast";
 import { internalAxios } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { glassShell, GlassPanel, GlassHeader, PRIMARY_BTN } from "@/components/shared/glass-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -23,8 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Link as ExternalLink } from "reicon-react";
+import { Link as ExternalLink, FileCheck } from "reicon-react";
+import { NationalIdInput } from "@/components/ui/national-id-input";
+import { isValidNationalId, normalizeNationalIdValue } from "@/lib/national-id";
 import { PersianDatePicker } from "@/components/admin/PersianDatePicker";
+import { cn } from "@/lib/utils";
 
 const emptyForm = { firstName: "", lastName: "", nationalId: "", gender: "" };
 
@@ -75,6 +72,11 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId,
       setError("انتخاب دوره الزامی است.");
       return;
     }
+    const nationalId = normalizeNationalIdValue(formData.nationalId);
+    if (nationalId.length !== 10 || !isValidNationalId(nationalId)) {
+      setError("کد ملی معتبر نیست.");
+      return;
+    }
     const issueDateSec = issueDate ? Math.floor(new Date(issueDate).getTime() / 1000) : null;
     if (issueDateSec && selectedCourse && Number.isFinite(selectedCourse.date) && issueDateSec < selectedCourse.date) {
       setError("تاریخ صدور نمی‌تواند قدیمی‌تر از تاریخ برگزاری دوره باشد.");
@@ -85,6 +87,7 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId,
       const { data } = await internalAxios.post("/dashboard/deputy/issue", {
         courseId,
         ...formData,
+        nationalId,
         issueDate: issueDateSec,
       });
       if (data.skipped) {
@@ -104,13 +107,13 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId,
 
   return (
     <Dialog open={open} onOpenChange={(v) => !loading && onOpenChange(v)}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>صدور تکی گواهی</DialogTitle>
-          <DialogDescription>
-            اگر فرد حساب کاربری داشته باشد (کد ملی یکتا)، ثبت‌نام و گواهی برای او صادر می‌شود؛ در غیر این صورت گواهی مهمان ثبت می‌گردد.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className={cn(glassShell("xl"),'p-6')}>
+        <GlassPanel>
+          <GlassHeader
+            icon={FileCheck}
+            title="صدور تکی گواهی"
+            description="اگر فرد حساب کاربری داشته باشد (کد ملی یکتا)، ثبت‌نام و گواهی برای او صادر می‌شود؛ در غیر این صورت گواهی مهمان ثبت می‌گردد."
+          />
 
         {result ? (
           <div className="space-y-4 py-2 text-center">
@@ -171,12 +174,12 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId,
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="singleNationalId">کد ملی</Label>
-              <Input
+              <NationalIdInput
                 id="singleNationalId"
-                dir="ltr"
-                value={formData.nationalId}
-                onChange={(e) => setFormData((p) => ({ ...p, nationalId: e.target.value }))}
+                className="h-9"
                 required
+                value={formData.nationalId}
+                onValueChange={(value) => setFormData((p) => ({ ...p, nationalId: value }))}
               />
             </div>
             <div className="space-y-1.5">
@@ -216,7 +219,7 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId,
               </Button>
               <Button
                 type="submit"
-                className="cursor-pointer"
+                className={PRIMARY_BTN}
                 disabled={!courseId}
                 loading={loading}
               >
@@ -226,6 +229,7 @@ export default function SingleIssueDialog({ open, onOpenChange, initialCourseId,
             </DialogFooter>
           </form>
         )}
+        </GlassPanel>
       </DialogContent>
     </Dialog>
   );

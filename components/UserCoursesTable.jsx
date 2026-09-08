@@ -82,6 +82,7 @@ export default function UserCoursesTable({ initialData, year = null }) {
     },
   ], []);
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: tableData,
     columns,

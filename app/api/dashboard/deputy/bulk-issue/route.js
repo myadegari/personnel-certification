@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import { requireVerified } from "@/lib/authGuard";
-import { parseCsv, validateCertificateRow } from "@/lib/csv";
+import { parseWorkbook, validateCertificateRow } from "@/lib/xlsx";
 import {
   authorizeIssue,
   findUserByNationalId,
@@ -13,7 +13,7 @@ import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/aud
 const MAX_ROWS = 500;
 
 // POST /api/dashboard/deputy/bulk-issue
-// Bulk-issue certificates for a course from a CSV (firstName,lastName,
+// Bulk-issue certificates for a course from an XLSX (firstName,lastName,
 // nationalId,gender). Existing users get an APPROVED enrollment + certificate;
 // persons without an account receive a guest certificate. dry-run validates
 // and previews; commit performs the issuance.
@@ -36,7 +36,7 @@ export async function POST(request) {
   const issueDate = Number(issueDateRaw) || null;
 
   if (!file || typeof file === "string") {
-    return NextResponse.json({ error: "فایل CSV ارسال نشده است." }, { status: 400 });
+    return NextResponse.json({ error: "فایل اکسل ارسال نشده است." }, { status: 400 });
   }
   if (!courseId) {
     return NextResponse.json({ error: "انتخاب دوره الزامی است." }, { status: 400 });
@@ -45,18 +45,18 @@ export async function POST(request) {
     return NextResponse.json({ error: "تاریخ صدور نامعتبر است." }, { status: 400 });
   }
 
-  const text = await file.text();
+  const bytes = Buffer.from(await file.arrayBuffer());
   let rawRows;
   try {
-    rawRows = parseCsv(text);
+    rawRows = await parseWorkbook(bytes);
   } catch (parseError) {
     return NextResponse.json(
-      { error: "فایل CSV قابل خواندن نیست: " + parseError.message },
+      { error: "فایل اکسل قابل خواندن نیست: " + parseError.message },
       { status: 400 }
     );
   }
   if (!rawRows.length) {
-    return NextResponse.json({ error: "فایل CSV خالی است." }, { status: 400 });
+    return NextResponse.json({ error: "فایل اکسل خالی است." }, { status: 400 });
   }
   if (rawRows.length > MAX_ROWS) {
     return NextResponse.json(
@@ -92,7 +92,7 @@ export async function POST(request) {
   const seenNationalIds = new Set();
 
   for (let i = 0; i < rawRows.length; i += 1) {
-    const line = i + 2;
+    const line = rawRows[i].__line; // true spreadsheet row number
     const validation = validateCertificateRow(rawRows[i]);
     if (!validation.ok) {
       summary.errors += 1;

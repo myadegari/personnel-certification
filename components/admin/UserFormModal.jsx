@@ -34,17 +34,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Stepper } from '@/components/ui/stepper';
+import { Field, ImagePickerTile, useStagger } from '@/components/shared/form-dialog';
 import {
-  Field,
-  FormSection,
-  DialogIconHeader,
-  ImagePickerTile,
-  useStagger,
-} from '@/components/shared/form-dialog';
+  glassShell,
+  GlassPanel,
+  GlassHeader,
+  GlassScroll,
+  GlassSection,
+  PRIMARY_BTN,
+} from '@/components/shared/glass-dialog';
 import { useFileUrl } from '@/hooks/useFileUrl';
 import { internalAxios } from '@/lib/axios';
 import { spring, usePrefersReducedMotion } from '@/lib/motion';
 import { ASSIGNABLE_ROLES, ROLES, ROLE_LABELS_FA, canAssignRole, isSuperAdmin } from '@/lib/roles';
+import { NationalIdInput } from '@/components/ui/national-id-input';
+import { isValidNationalId, normalizeNationalIdValue } from '@/lib/national-id';
 import MediaPickerDialog from './MediaPickerDialog';
 
 const emptyForm = {
@@ -88,21 +92,30 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
   const roleOptions = ASSIGNABLE_ROLES.filter((role) => canAssignRole(currentRole, role));
   const canChangeRole = !isSelf && (isSuperAdmin(currentRole) || !isEditing);
   const signatureFileQuery = useFileUrl(userData?.signatureImage);
+  const isDeputyHead = formData.role === ROLES.DEPUTY_HEAD;
+  const effectiveDeputyId = isDeputyHead ? formData.headedDeputy : formData.deputy;
+  const effectiveDeputyName = deputies.find((d) => String(d._id) === String(effectiveDeputyId))?.name || '';
 
   useEffect(() => {
     if (!isOpen) return;
     setCurrentStep(1);
     if (isEditing) {
+      const initialRole = userData.role || 'USER';
+      const initialDeputyId = userData.deputy?._id || userData.deputy || '';
+      const initialHeadedDeputyId = userData.headedDeputy?._id || userData.headedDeputy || '';
+
       setFormData({
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
         personnelNumber: userData.personnelNumber || '',
         email: userData.email || '',
-        role: userData.role || 'USER',
+        role: initialRole,
         nationalId: userData.nationalId || '',
         gender: userData.gender || '',
-        deputy: userData.deputy?._id || userData.deputy || '',
-        headedDeputy: userData.headedDeputy?._id || userData.headedDeputy || '',
+        deputy: initialRole === ROLES.DEPUTY_HEAD
+          ? initialHeadedDeputyId
+          : initialDeputyId,
+        headedDeputy: initialRole === ROLES.DEPUTY_HEAD ? initialHeadedDeputyId : '',
         password: '',
       });
     } else {
@@ -126,7 +139,24 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
   };
 
   const handleRoleChange = (value) => {
-    setFormData((prev) => ({ ...prev, role: value }));
+    setFormData((prev) => {
+      const willBeDeputyHead = value === ROLES.DEPUTY_HEAD;
+      return {
+        ...prev,
+        role: value,
+        headedDeputy: willBeDeputyHead ? prev.headedDeputy : '',
+        deputy: willBeDeputyHead ? (prev.headedDeputy || '') : prev.deputy,
+      };
+    });
+  };
+
+  const handleHeadedDeputyChange = (value) => {
+    const id = value === 'none' ? '' : value;
+    setFormData((prev) => ({
+      ...prev,
+      headedDeputy: id,
+      deputy: prev.role === ROLES.DEPUTY_HEAD ? id : prev.deputy,
+    }));
   };
 
   const handleSignatureChange = (e) => {
@@ -154,29 +184,55 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const nationalId = normalizeNationalIdValue(formData.nationalId);
+    const originalNationalId = isEditing
+      ? normalizeNationalIdValue(userData.nationalId || '')
+      : '';
+    const canKeepExistingInvalid =
+      isEditing && !!nationalId && nationalId === originalNationalId;
+
+    if (
+      !canKeepExistingInvalid &&
+      (nationalId.length !== 10 || !isValidNationalId(nationalId))
+    ) {
+      setError('کد ملی معتبر نیست.');
+      return;
+    }
+
+    setError('');
     if (currentStep === 1) {
-      setError('');
       setCurrentStep(2);
       return;
     }
 
+    if (formData.role === ROLES.DEPUTY_HEAD && !formData.headedDeputy) {
+      setError('انتخاب معاونت تحت سرپرستی الزامی است.');
+      return;
+    }
+
     setIsLoading(true);
-    setError('');
     try {
       if (!isEditing && formData.password.length < 8) {
         throw new Error('رمز عبور باید حداقل ۸ کاراکتر باشد.');
       }
 
       const payload = new FormData();
+      const deputyPayload = formData.role === ROLES.DEPUTY_HEAD
+        ? formData.headedDeputy
+        : formData.deputy;
+      const headedDeputyPayload = formData.role === ROLES.DEPUTY_HEAD
+        ? formData.headedDeputy
+        : '';
+
       payload.append('firstName', formData.firstName);
       payload.append('lastName', formData.lastName);
       payload.append('personnelNumber', formData.personnelNumber);
-      payload.append('nationalId', formData.nationalId);
+      payload.append('nationalId', nationalId);
       payload.append('email', formData.email);
       payload.append('role', formData.role);
       payload.append('gender', formData.gender);
-      payload.append('deputy', formData.deputy || '');
-      payload.append('headedDeputy', formData.headedDeputy || '');
+      payload.append('deputy', deputyPayload || '');
+      payload.append('headedDeputy', headedDeputyPayload || '');
 
       if (!isEditing) {
         payload.append('password', formData.password);
@@ -206,37 +262,39 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl rounded-3xl">
-          <DialogIconHeader
-            icon={UserSquare}
-            title={isEditing ? 'ویرایش کاربر' : 'ایجاد کاربر جدید'}
-            description={isEditing ? 'اطلاعات کاربر را در دو مرحله ویرایش کنید.' : 'در دو مرحله کاربر جدید بسازید.'}
-          >
-            <Stepper
-              steps={STEPS}
-              current={currentStep - 1}
-              onStepClick={(i) => i < currentStep - 1 && setCurrentStep(i + 1)}
-              className="mt-4"
-            />
-          </DialogIconHeader>
+        <DialogContent className={glassShell('xl')}>
+          <GlassPanel>
+            <GlassHeader
+              icon={UserSquare}
+              title={isEditing ? 'ویرایش کاربر' : 'ایجاد کاربر جدید'}
+              description={isEditing ? 'اطلاعات کاربر را در دو مرحله ویرایش کنید.' : 'در دو مرحله کاربر جدید بسازید.'}
+            >
+              <Stepper
+                steps={STEPS}
+                current={currentStep - 1}
+                onStepClick={(i) => i < currentStep - 1 && setCurrentStep(i + 1)}
+                className="mt-6"
+              />
+            </GlassHeader>
 
-          <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div role="alert" className="mb-3 flex items-center gap-2 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    <AlertTriangle className="size-4 shrink-0" /> {error}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <form onSubmit={handleSubmit} className="mt-6 flex min-h-0 flex-1 flex-col">
+              <AnimatePresence initial={false}>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div role="alert" className="mb-4 flex items-center gap-2 rounded-2xl border border-rose-200/60 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">
+                      <AlertTriangle className="size-4 shrink-0" /> {error}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-1" style={{ maxHeight: '60vh' }}>
+              <GlassScroll>
+                <div className="space-y-4">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={currentStep}
@@ -247,7 +305,7 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                 >
                   {currentStep === 1 ? (
                     <motion.div {...staggerProps} className="space-y-4">
-                      <FormSection icon={User} title="اطلاعات فردی">
+                      <GlassSection icon={User} title="اطلاعات فردی">
                         <div className="space-y-3">
                           <div className="grid grid-cols-2 gap-3">
                             <Field label="نام">
@@ -258,8 +316,14 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                             </Field>
                           </div>
                           <div className="grid grid-cols-2 gap-3">
-                            <Field label="کد ملی">
-                              <Input dir="ltr" name="nationalId" value={formData.nationalId} onChange={handleChange} required />
+                            <Field label="کد ملی" required>
+                              <NationalIdInput
+                                name="nationalId"
+                                className="h-9"
+                                value={formData.nationalId}
+                                onValueChange={(value) => setFormData((p) => ({ ...p, nationalId: value }))}
+                                required
+                              />
                             </Field>
                             <Field label="شماره پرسنلی">
                               <Input dir="ltr" name="personnelNumber" value={formData.personnelNumber} onChange={handleChange} required />
@@ -270,36 +334,40 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                               name="gender"
                               value={formData.gender}
                               onValueChange={(v) => setFormData((p) => ({ ...p, gender: v }))}
-                              className="flex gap-6"
+                              className="flex gap-6 "
                               required
                             >
                               <div className="flex items-center gap-2">
-                                <RadioGroupItem value="Male" id="Male" />
+                                <RadioGroupItem value="Male" id="Male" className="mb-2" />
                                 <Label htmlFor="Male" className="font-normal">آقا</Label>
                               </div>
                               <div className="flex items-center gap-2">
-                                <RadioGroupItem value="Female" id="Female" />
+                                <RadioGroupItem value="Female" id="Female" className="mb-2"/>
                                 <Label htmlFor="Female" className="font-normal">خانم</Label>
                               </div>
                             </RadioGroup>
                           </Field>
                         </div>
-                      </FormSection>
+                      </GlassSection>
 
-                      <FormSection icon={Building2} title="تماس و سازمانی">
+                      <GlassSection icon={Building2} title="تماس و سازمانی">
                         <div className="space-y-3">
                           <Field label="ایمیل">
                             <Input dir="ltr" name="email" type="email" value={formData.email} onChange={handleChange} required />
                           </Field>
-                          <Field label="معاونت">
-                            <Select
-                              value={formData.deputy || 'none'}
-                              onValueChange={(v) => setFormData((prev) => ({ ...prev, deputy: v === 'none' ? '' : v }))}
+                            <Field
+                              label="معاونت"
+                              hint={isDeputyHead ? 'برای معاون رئیس، این مقدار با معاونت تحت سرپرستی یکسان است.' : undefined}
                             >
+                              <Select
+                                value={effectiveDeputyId || 'none'}
+                                disabled={isDeputyHead}
+                                onValueChange={(v) => setFormData((prev) => ({ ...prev, deputy: v === 'none' ? '' : v }))}
+                              >
                               <SelectTrigger>
                                 <SelectValue placeholder="انتخاب معاونت" />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent >
                                 <SelectItem value="none">بدون معاونت</SelectItem>
                                 {deputies.map((d) => (
                                   <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
@@ -308,11 +376,11 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                             </Select>
                           </Field>
                         </div>
-                      </FormSection>
+                      </GlassSection>
                     </motion.div>
                   ) : (
                     <motion.div {...staggerProps} className="space-y-4">
-                      <FormSection icon={ShieldCheck} title="دسترسی و احراز هویت">
+                      <GlassSection icon={ShieldCheck} title="دسترسی و احراز هویت">
                         <div className="space-y-3">
                           <Field
                             label="نقش"
@@ -334,11 +402,11 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                               <Input name="password" type="password" value={formData.password} onChange={handleChange} required minLength={8} />
                             </Field>
                           )}
-                          {formData.role === 'DEPUTY_HEAD' && (
+                          {isDeputyHead && (
                             <Field label="معاونت تحت سرپرستی">
                               <Select
                                 value={formData.headedDeputy || 'none'}
-                                onValueChange={(v) => setFormData((prev) => ({ ...prev, headedDeputy: v === 'none' ? '' : v }))}
+                                onValueChange={handleHeadedDeputyChange}
                               >
                                 <SelectTrigger>
                                   <SelectValue placeholder="انتخاب معاونت" />
@@ -352,10 +420,18 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                               </Select>
                             </Field>
                           )}
+                          <Field
+                            label="معاونت کاربر"
+                            hint={isDeputyHead
+                              ? 'این مقدار با معاونت تحت سرپرستی یکسان است. برای تغییر، به مرحله قبل بازگردید.'
+                              : 'برای تغییر، به مرحله قبل بازگردید.'}
+                          >
+                            <Input readOnly value={effectiveDeputyName || 'بدون معاونت'} tabIndex={-1} />
+                          </Field>
                         </div>
-                      </FormSection>
+                      </GlassSection>
 
-                      <FormSection icon={Pen} title="امضای کاربر">
+                      <GlassSection icon={Pen} title="امضای کاربر">
                         <ImagePickerTile
                           preview={signaturePreview}
                           inputRef={signatureInputRef}
@@ -365,35 +441,36 @@ export default function UserFormModal({ isOpen, onClose, userData, onSave }) {
                           label="امضای کاربر"
                           placeholder="تصویر امضا را انتخاب یا بارگذاری کنید"
                         />
-                      </FormSection>
+                      </GlassSection>
                     </motion.div>
                   )}
                 </motion.div>
               </AnimatePresence>
-            </div>
+                </div>
+              </GlassScroll>
 
-            <DialogFooter className="mt-4 sm:justify-between">
-              {currentStep === 1 ? (
-                <>
-                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={onClose}>انصراف</Button>
-                  <Button type="submit" className="cursor-pointer" disabled={isLoading}>
-                    ادامه
-                    <ArrowLeft className="size-4" />
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => setCurrentStep(1)} disabled={isLoading}>
-                    <ArrowRight className="size-4" /> بازگشت
-                  </Button>
-                  <Button type="submit" className="cursor-pointer" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                    {isEditing ? 'ذخیره تغییرات' : 'ایجاد کاربر'}
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
-          </form>
+              <DialogFooter className="mt-6 sm:justify-between">
+                {currentStep === 1 ? (
+                  <>
+                    <Button type="button" variant="ghost" className="cursor-pointer" onClick={onClose}>انصراف</Button>
+                    <Button type="submit" disabled={isLoading} className={PRIMARY_BTN}>
+                      ادامه <ArrowLeft className="size-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => setCurrentStep(1)} disabled={isLoading}>
+                      <ArrowRight className="size-4" /> بازگشت
+                    </Button>
+                    <Button type="submit" disabled={isLoading} className={PRIMARY_BTN}>
+                      {isLoading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                      {isEditing ? 'ذخیره تغییرات' : 'ایجاد کاربر'}
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </form>
+          </GlassPanel>
         </DialogContent>
       </Dialog>
 

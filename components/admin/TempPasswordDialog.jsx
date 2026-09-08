@@ -6,13 +6,14 @@ import {
   DialogContent,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { DialogIconHeader } from "@/components/shared/form-dialog";
+import { glassShell, GlassPanel, GlassHeader, PRIMARY_BTN } from "@/components/shared/glass-dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import PasswordInput from "@/components/password-input";
 import { internalAxios } from "@/lib/axios";
 import { gooeyToast } from "goey-toast";
 import { Key as KeyRound, Copy, Refresh } from "reicon-react";
+import { cn } from "@/lib/utils";
 
 const MIN_LENGTH = 8;
 
@@ -64,12 +65,13 @@ export default function TempPasswordDialog({ user, open, onOpenChange, onDone })
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogIconHeader
-          icon={KeyRound}
-          title="تنظیم رمز عبور موقت"
-          description={user ? `برای «${user.firstName} ${user.lastName}»` : ""}
-        />
+      <DialogContent className={cn(glassShell("md"),'p-6')}>
+        <GlassPanel>
+          <GlassHeader
+            icon={KeyRound}
+            title="تنظیم رمز عبور موقت"
+            description={user ? `برای «${user.firstName} ${user.lastName}»` : ""}
+          />
 
         {result ? (
           <div className="space-y-3 py-1">
@@ -170,7 +172,7 @@ export default function TempPasswordDialog({ user, open, onOpenChange, onDone })
             </Button>
             <Button
               type="button"
-              className="cursor-pointer"
+              className={PRIMARY_BTN}
               onClick={generate}
               loading={loading}
               disabled={!canSave}
@@ -179,6 +181,7 @@ export default function TempPasswordDialog({ user, open, onOpenChange, onDone })
             </Button>
           </DialogFooter>
         )}
+        </GlassPanel>
       </DialogContent>
     </Dialog>
   );

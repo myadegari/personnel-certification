@@ -281,6 +281,7 @@ function MediaTile({ item, selected, onToggle, onOpen }) {
       >
         <button type="button" onClick={onOpen} className="flex h-full w-full cursor-pointer items-center justify-center">
           {item.kind === "image" && item.url ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={item.url} alt={item.alt || item.title} className="size-full object-cover" loading="lazy" />
           ) : isPdf(item) && item.url ? (
             <PdfThumbnail fileId={item.id} name={item.title || item.originalName} />

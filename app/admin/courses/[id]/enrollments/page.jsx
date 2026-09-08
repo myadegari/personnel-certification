@@ -1,6 +1,5 @@
 import EnrollmentsClient from "@/components/admin/EnrollmentsClient";
 import Link from 'next/link';
-import axios from "axios";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,18 @@ const getBaseUrl = () => {
 async function getEnrollmentData(courseId, page = 1) {
   const cookie = (await headers()).get("cookie");
   try {
-    const res = await axios.get(
+    const res = await fetch(
       `${getBaseUrl()}/api/admin/courses/${courseId}/enrollments?page=${page}`,
-      { headers: { Cookie: cookie } }
+      { headers: { Cookie: cookie }, cache: "no-store" }
     );
-    return { kind: "ok", data: res.data };
+    if (!res.ok) {
+      const err = new Error(`HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
+    }
+    return { kind: "ok", data: await res.json() };
   } catch (error) {
-    const status = error.response?.status;
+    const status = error.status;
     console.error("Failed to fetch enrollment data:", error.message);
     if (status === 401 || status === 403) return { kind: "unauthorized" };
     if (status === 404) return { kind: "notFound" };

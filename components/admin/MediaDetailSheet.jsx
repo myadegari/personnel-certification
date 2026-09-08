@@ -9,10 +9,11 @@ import { fadeUp, staggerContainer } from "@/lib/motion";
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { GlassBadge } from "@/components/shared/glass-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -229,14 +230,25 @@ function MediaDetailBody({ item, onRequestDelete }) {
 export default function MediaDetailSheet({ item, open, onOpenChange, onRequestDelete }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="end" className="w-full overflow-y-auto sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>جزئیات رسانه</SheetTitle>
-          <SheetDescription>{item?.originalName}</SheetDescription>
-        </SheetHeader>
-        {item && (
-          <MediaDetailBody key={item.id} item={item} onRequestDelete={onRequestDelete} />
-        )}
+      <SheetContent side="end" className="w-full overflow-hidden border-white/50 bg-white/70 shadow-[0_40px_120px_-30px_rgba(2,44,34,0.45)] backdrop-blur-2xl sm:max-w-md">
+        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute -top-24 -right-16 size-72 rounded-full bg-emerald-400/30 blur-3xl" />
+          <div className="absolute bottom-10 -left-24 size-72 rounded-full bg-teal-300/25 blur-3xl" />
+        </div>
+        <div className="flex items-center gap-3 px-4 pt-4">
+          <GlassBadge icon={FileText} />
+          <div className="min-w-0 text-right">
+            <SheetTitle className="text-lg font-bold">جزئیات رسانه</SheetTitle>
+            <SheetDescription className="truncate text-sm text-muted-foreground">{item?.originalName}</SheetDescription>
+          </div>
+        </div>
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="px-4 pb-6">
+            {item && (
+              <MediaDetailBody key={item.id} item={item} onRequestDelete={onRequestDelete} />
+            )}
+          </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

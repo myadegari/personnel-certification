@@ -1,13 +1,34 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
+import Deputy from '@/models/Deputy';
 import File from '@/models/File';
 import { requireAdmin } from '@/lib/authGuard';
 import { uploadUserSignature } from '@/lib/signatureUpload';
 import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
+import { isValidNationalId, normalizeNationalIdValue } from '@/lib/national-id';
 
 const ALLOWED_FIELDS = ['firstName', 'lastName', 'email', 'role', 'personnelNumber', 'nationalId', 'gender', 'deputy', 'headedDeputy'];
+
+function normalizeObjectIdRef(value) {
+  const id = String(value ?? '').trim();
+  if (!id || id === 'none') return { value: null };
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return { error: 'معاونت انتخابی نامعتبر است.' };
+  }
+  return { value: id };
+}
+
+async function assertDeputyReferencesExist(ids) {
+  for (const id of new Set(ids.filter(Boolean))) {
+    if (!(await Deputy.exists({ _id: id }))) {
+      return NextResponse.json({ error: 'معاونت انتخابی یافت نشد.' }, { status: 400 });
+    }
+  }
+  return null;
+}
 
 async function parseUserPayload(request) {
   const contentType = request.headers.get('content-type') || '';
@@ -64,6 +85,22 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'You cannot edit this user' }, { status: 403 });
     }
 
+    if ('nationalId' in fields) {
+      const incomingNationalId = normalizeNationalIdValue(fields.nationalId);
+      const originalNationalId = normalizeNationalIdValue(user.nationalId || '');
+      if (
+        incomingNationalId !== originalNationalId &&
+        (incomingNationalId.length !== 10 || !isValidNationalId(incomingNationalId))
+      ) {
+        return NextResponse.json({ error: 'کد ملی معتبر نیست.' }, { status: 400 });
+      }
+      fields.nationalId = incomingNationalId;
+    }
+
+    const roleProvided = Boolean(fields.role);
+    const deputyProvided = 'deputy' in fields;
+    const headedDeputyProvided = 'headedDeputy' in fields;
+
     if (fields.role && fields.role !== user.role) {
       if (!canAssignRole(session.user.role, fields.role)) {
         return NextResponse.json({ error: 'You cannot assign this role' }, { status: 403 });
@@ -81,15 +118,44 @@ export async function PUT(request, { params }) {
       }
     }
 
+    if (roleProvided || deputyProvided || headedDeputyProvided) {
+      let nextDeputy = user.deputy ? String(user.deputy) : null;
+      let nextHeadedDeputy = user.headedDeputy ? String(user.headedDeputy) : null;
+
+      if (deputyProvided) {
+        const deputyRef = normalizeObjectIdRef(fields.deputy);
+        if (deputyRef.error) {
+          return NextResponse.json({ error: deputyRef.error }, { status: 400 });
+        }
+        nextDeputy = deputyRef.value;
+      }
+
+      if (headedDeputyProvided) {
+        const headedDeputyRef = normalizeObjectIdRef(fields.headedDeputy);
+        if (headedDeputyRef.error) {
+          return NextResponse.json({ error: headedDeputyRef.error }, { status: 400 });
+        }
+        nextHeadedDeputy = headedDeputyRef.value;
+      }
+
+      const effectiveRole = fields.role || user.role;
+      if (effectiveRole === ROLES.DEPUTY_HEAD) {
+        if (!nextHeadedDeputy) {
+          return NextResponse.json({ error: 'انتخاب معاونت تحت سرپرستی الزامی است.' }, { status: 400 });
+        }
+        nextDeputy = nextHeadedDeputy;
+      } else {
+        nextHeadedDeputy = null;
+      }
+
+      const deputyError = await assertDeputyReferencesExist([nextDeputy, nextHeadedDeputy]);
+      if (deputyError) return deputyError;
+
+      fields.deputy = nextDeputy;
+      fields.headedDeputy = nextHeadedDeputy;
+    }
+
     let hasFieldUpdate = false;
-    // Empty deputy means "remove the assignment"; convert to null before the
-    // whitelist loop so Mongo stores null instead of an empty string.
-    if ("deputy" in fields && fields.deputy === "") {
-      fields.deputy = null;
-    }
-    if ("headedDeputy" in fields && fields.headedDeputy === "") {
-      fields.headedDeputy = null;
-    }
     for (const field of ALLOWED_FIELDS) {
       if (field in fields) {
         user[field] = fields[field];

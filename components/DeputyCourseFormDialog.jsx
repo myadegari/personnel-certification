@@ -2,81 +2,73 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "motion/react";
 import { gooeyToast } from "goey-toast";
 import { internalAxios } from "@/lib/axios";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useFileUrl } from "@/hooks/useFileUrl";
 import { useUser } from "@/hooks/useUser";
 import { joinUnits } from "@/lib/organizingUnits";
-import OrganizingUnitsPicker from "@/components/OrganizingUnitsPicker";
+import { spring, fadeUp, staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Stepper } from "@/components/ui/stepper";
+import { Field } from "@/components/shared/form-dialog";
 import { PersianDatePicker } from "@/components/admin/PersianDatePicker";
-import UserSearchCombobox from "@/components/admin/UserSearchCombobox";
 import MediaPickerDialog from "@/components/admin/MediaPickerDialog";
-import { ImagePlus, Loader as Loader2, Save, X } from "reicon-react";
+import {
+  glassShell,
+  GlassPanel,
+  GlassHeader,
+  GlassScroll,
+  GlassSection,
+  SignatoryCard,
+  PRIMARY_BTN,
+} from "@/components/shared/glass-dialog";
+import {
+  GraduationCap,
+  Information as Info,
+  Users,
+  UserSquare,
+  Calendar,
+  Clock,
+  Check,
+  ArrowLeft,
+  ArrowRight,
+  Save,
+  Loader as Loader2,
+  AlertTriangle,
+} from "reicon-react";
 
-function Field({ label, hint, required, children }) {
+/** Compact recap of step 1 shown atop step 2, with a jump-back edit action. */
+function StepSummary({ formData, onEdit }) {
+  const dateLabel = formData.date ? new Date(formData.date).toLocaleDateString("fa-IR") : "—";
+  const rows = [
+    { icon: Info, label: "نام دوره", value: formData.name || "—" },
+    { icon: Calendar, label: "تاریخ", value: dateLabel },
+    { icon: Clock, label: "مدت", value: formData.duration ? `${formData.duration} ساعت` : "—" },
+  ];
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">
-        {label} {required && <span className="text-red-500">*</span>}
-      </Label>
-      {children}
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function StampTile({ preview, inputRef, onFileChange, onOpenPicker, onClear, label }) {
-  return (
-    <div className="space-y-2">
-      <Input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        onChange={onFileChange}
-        onClick={(e) => (e.target.value = null)}
-        className="hidden"
-      />
-      {preview ? (
-        <div className="group relative flex h-24 items-center justify-center overflow-hidden rounded-2xl border border-border/60 bg-muted/50">
-          <img src={preview} alt={label} className="max-h-full object-contain" />
-          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-300 group-hover:bg-black/45 group-hover:opacity-100 group-focus-within:bg-black/45 group-focus-within:opacity-100 [@media(hover:none)]:bg-black/45 [@media(hover:none)]:opacity-100">
-            <button type="button" onClick={onOpenPicker} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-white">
-              کتابخانه
-            </button>
-            <button type="button" onClick={() => inputRef.current?.click()} className="cursor-pointer rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-foreground hover:bg-white">
-              تغییر
-            </button>
-            <button type="button" onClick={onClear} className="cursor-pointer rounded-lg bg-red-500/90 p-1.5 text-white hover:bg-red-500" aria-label="حذف">
-              <X className="size-3.5" />
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-border p-3 text-center transition-colors hover:border-emerald-400/50">
-          <ImagePlus className="size-5 text-emerald-600" />
-          <div className="flex gap-2">
-            <Button type="button" size="sm" variant="outline" className="cursor-pointer" onClick={onOpenPicker}>
-              <ImagePlus className="size-4" /> کتابخانه
-            </Button>
-            <Button type="button" size="sm" variant="outline" className="cursor-pointer" onClick={() => inputRef.current?.click()}>
-              بارگذاری
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+    <motion.div
+      variants={fadeUp}
+      className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-3xl border border-white/60 bg-white/50 px-5 py-3 text-sm shadow-[0_16px_40px_-28px_rgba(2,44,34,0.4)] backdrop-blur-xl"
+    >
+      {rows.map((r) => (
+        <span key={r.label} className="flex items-center gap-2 text-muted-foreground">
+          <r.icon className="size-4 text-emerald-600" />
+          <span className="font-semibold text-foreground">{r.value}</span>
+          <span className="text-xs">({r.label})</span>
+        </span>
+      ))}
+      <button
+        type="button"
+        onClick={onEdit}
+        className="ms-auto cursor-pointer rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-500/20"
+      >
+        ویرایش
+      </button>
+    </motion.div>
   );
 }
 
@@ -119,6 +111,11 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
   const [pickerTarget, setPickerTarget] = useState(null);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const reduced = usePrefersReducedMotion();
+  const staggerProps = reduced
+    ? {}
+    : { variants: staggerContainer(0.08), initial: "hidden", animate: "show" };
   const refStampFile1 = useRef(null);
   const refStampFile2 = useRef(null);
 
@@ -127,6 +124,7 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
 
   useEffect(() => {
     if (open) {
+      setCurrentStep(1);
       if (isEditing) {
         setFormData({
           name: courseData.name || "",
@@ -176,18 +174,6 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
   // Signatory 1's units are scoped to the head's own deputy (the course's
   // deputy, which the server validates against). Signatory 2's units come from
   // that user's own deputy (auto-derived from the chosen person).
-  const buildUnitOptions = (deputy, selected) => {
-    if (!deputy) return [];
-    const opts = [];
-    if (deputy.name) opts.push({ value: deputy.name, label: deputy.name });
-    for (const u of deputy.units || []) {
-      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
-    }
-    for (const u of selected || []) {
-      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
-    }
-    return opts;
-  };
   const s1Deputy = deputyName ? { name: deputyName, units: deputyUnits } : null;
   const s2Deputy = selectedSignatory2?.deputy?.name ? selectedSignatory2.deputy : null;
 
@@ -249,6 +235,16 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    // Step 1 of the create wizard only advances (no request); Enter/submit on
+    // step 1 must never create the course prematurely.
+    if (!isEditing && currentStep === 1) {
+      if (!formData.name.trim() || !formData.date || !formData.duration) {
+        setError("نام، تاریخ و مدت زمان دوره الزامی است.");
+        return;
+      }
+      setCurrentStep(2);
+      return;
+    }
     if (!formData.name.trim() || !formData.date || !formData.duration) {
       setError("نام، تاریخ و مدت زمان دوره الزامی است.");
       return;
@@ -313,133 +309,183 @@ export default function DeputyCourseFormDialog({ open, onOpenChange, courseData 
     }
   };
 
+  const courseInfo = (
+    <GlassSection icon={Info} title="اطلاعات دوره" description="نام، تاریخ و مدت زمان برگزاری">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="نام دوره" required className="sm:col-span-2">
+          <Input
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="نام دوره"
+            required
+          />
+        </Field>
+        <Field label="تاریخ برگزاری" required>
+          <PersianDatePicker
+            value={formData.date}
+            onChange={(d) => setFormData({ ...formData, date: d })}
+            placeholder="تاریخ برگزاری"
+          />
+        </Field>
+        <Field label="مدت زمان (ساعت)" required>
+          <Input
+            type="number"
+            value={formData.duration}
+            onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+            required
+          />
+        </Field>
+      </div>
+    </GlassSection>
+  );
+
+  const signatories = (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <SignatoryCard
+        icon={UserSquare}
+        title="امضاکننده اول"
+        subtitle="الزامی"
+        selectedUser={selectedSignatory1}
+        onSelectUser={(user) => {
+          setSelectedSignatory1(user);
+          setFormData((p) => ({ ...p, signatory: user?._id || null }));
+        }}
+        deputy={s1Deputy}
+        units={formData.organizingUnits}
+        onUnitsChange={handleUnits1Change}
+        preview={stampPreview1}
+        inputRef={refStampFile1}
+        onFileChange={handleFile1Change}
+        onOpenPicker={() => setPickerTarget("stamp1")}
+        onClearStamp={clearStamp1}
+        stampLabel="مهر اول"
+      />
+      <SignatoryCard
+        icon={Users}
+        title="امضاکننده دوم"
+        subtitle="اختیاری"
+        optional
+        selectedUser={selectedSignatory2}
+        onSelectUser={(user) => {
+          setSelectedSignatory2(user);
+          setFormData((p) => ({ ...p, signatory2: user?._id || null, organizingUnits2: [], organizingUnit2: "" }));
+        }}
+        onClear={() => {
+          setSelectedSignatory2(null);
+          setFormData((p) => ({ ...p, signatory2: null, organizingUnits2: [], organizingUnit2: "" }));
+          clearStamp2();
+        }}
+        deputy={s2Deputy}
+        units={formData.organizingUnits2}
+        onUnitsChange={handleUnits2Change}
+        preview={stampPreview2}
+        inputRef={refStampFile2}
+        onFileChange={handleFile2Change}
+        onOpenPicker={() => setPickerTarget("stamp2")}
+        onClearStamp={clearStamp2}
+        stampLabel="مهر دوم"
+      />
+    </div>
+  );
+
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => !isSubmitting && onOpenChange(v)}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? "ویرایش دوره" : "ایجاد دوره جدید"}</DialogTitle>
-            <DialogDescription>
-              این دوره به معاونت شما اختصاص می‌یابد و در فهرست عمومی دوره‌ها نمایش داده نمی‌شود.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div className="rounded-2xl bg-red-500/10 px-4 py-3 text-sm text-red-600">{error}</div>
-            )}
-            <div className="grid max-h-[55vh] grid-cols-1 gap-4 overflow-y-auto px-1 sm:grid-cols-2">
-              <Field label="نام دوره" required className="sm:col-span-2">
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="نام دوره"
-                  required
+        <DialogContent className={glassShell("xl")}>
+          <GlassPanel>
+            <GlassHeader
+              icon={GraduationCap}
+              title={isEditing ? "ویرایش دوره" : "ایجاد دورهٔ جدید"}
+              description="این دوره به معاونت شما اختصاص می‌یابد و در فهرست عمومی دوره‌ها نمایش داده نمی‌شود."
+            >
+              {!isEditing && (
+                <Stepper
+                  steps={["اطلاعات دوره", "امضاها و مهرها"]}
+                  current={currentStep - 1}
+                  onStepClick={(i) => i < currentStep - 1 && setCurrentStep(i + 1)}
+                  className="mt-6"
                 />
-              </Field>
-              <Field label="تاریخ برگزاری" required>
-                <PersianDatePicker
-                  value={formData.date}
-                  onChange={(d) => setFormData({ ...formData, date: d })}
-                  placeholder="تاریخ برگزاری"
-                />
-              </Field>
-              <Field label="مدت زمان (ساعت)" required>
-                <Input
-                  type="number"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                  required
-                />
-              </Field>
-              <Field label="امضاکننده اول" required>
-                <UserSearchCombobox
-                  selectedUser={selectedSignatory1}
-                  onSelectUser={(user) => {
-                    setSelectedSignatory1(user);
-                    setFormData((p) => ({ ...p, signatory: user?._id || null }));
-                  }}
-                />
-              </Field>
-              <Field
-                label="واحد(های) امضاکننده اول"
-                hint={s1Deputy ? "نام معاونت و/یا حداکثر دو واحد از واحدهای آن." : "معاونت در دسترس نیست؛ واحد را دستی وارد کنید."}
-              >
-                {s1Deputy ? (
-                  <OrganizingUnitsPicker
-                    options={buildUnitOptions(s1Deputy, formData.organizingUnits)}
-                    selected={formData.organizingUnits}
-                    onChange={handleUnits1Change}
-                    max={2}
-                  />
-                ) : (
-                  <Input
-                    placeholder="نام واحد"
-                    value={formData.organizingUnits?.[0] || ""}
-                    onChange={(e) => handleUnits1Change(e.target.value ? [e.target.value] : [])}
-                  />
+              )}
+            </GlassHeader>
+
+            <form onSubmit={handleSubmit} className="mt-6 flex min-h-0 flex-1 flex-col">
+              <AnimatePresence initial={false}>
+                {error && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div role="alert" className="mb-4 flex items-center gap-2 rounded-2xl border border-rose-200/60 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">
+                      <AlertTriangle className="size-4 shrink-0" /> {error}
+                    </div>
+                  </motion.div>
                 )}
-              </Field>
-              <Field label="امضاکننده دوم (اختیاری)">
-                <UserSearchCombobox
-                  selectedUser={selectedSignatory2}
-                  onSelectUser={(user) => {
-                    setSelectedSignatory2(user);
-                    setFormData((p) => ({ ...p, signatory2: user?._id || null, organizingUnits2: [], organizingUnit2: "" }));
-                  }}
-                />
-              </Field>
-              <Field
-                label="واحد(های) امضاکننده دوم"
-                hint={s2Deputy ? "نام معاونت و/یا حداکثر دو واحد از واحدهای او." : (selectedSignatory2 ? "این کاربر معاونت ندارد؛ واحد را دستی وارد کنید." : "ابتدا امضاکننده دوم را انتخاب کنید.")}
-              >
-                {s2Deputy ? (
-                  <OrganizingUnitsPicker
-                    options={buildUnitOptions(s2Deputy, formData.organizingUnits2)}
-                    selected={formData.organizingUnits2}
-                    onChange={handleUnits2Change}
-                    max={2}
-                    min={0}
-                  />
+              </AnimatePresence>
+
+              <GlassScroll>
+                {isEditing ? (
+                  <motion.div {...staggerProps} className="space-y-5">
+                    {courseInfo}
+                    {signatories}
+                  </motion.div>
                 ) : (
-                  <Input
-                    placeholder="نام واحد"
-                    value={formData.organizingUnits2?.[0] || ""}
-                    onChange={(e) => handleUnits2Change(e.target.value ? [e.target.value] : [])}
-                    disabled={!selectedSignatory2}
-                  />
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={currentStep}
+                      initial={reduced ? false : { opacity: 0, x: -24 }}
+                      animate={reduced ? false : { opacity: 1, x: 0 }}
+                      exit={reduced ? false : { opacity: 0, x: 24 }}
+                      transition={spring}
+                    >
+                      {currentStep === 1 ? (
+                        <motion.div {...staggerProps}>{courseInfo}</motion.div>
+                      ) : (
+                        <motion.div {...staggerProps} className="space-y-5">
+                          <StepSummary formData={formData} onEdit={() => setCurrentStep(1)} />
+                          {signatories}
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
                 )}
-              </Field>
-              <Field label="مهر اول (اختیاری)">
-                <StampTile
-                  preview={stampPreview1}
-                  inputRef={refStampFile1}
-                  onFileChange={handleFile1Change}
-                  onOpenPicker={() => setPickerTarget("stamp1")}
-                  onClear={clearStamp1}
-                  label="مهر اول"
-                />
-              </Field>
-              <Field label="مهر دوم (اختیاری)">
-                <StampTile
-                  preview={stampPreview2}
-                  inputRef={refStampFile2}
-                  onFileChange={handleFile2Change}
-                  onOpenPicker={() => setPickerTarget("stamp2")}
-                  onClear={clearStamp2}
-                  label="مهر دوم"
-                />
-              </Field>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                انصراف
-              </Button>
-              <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                {isEditing ? "ذخیره تغییرات" : "ایجاد دوره"}
-              </Button>
-            </DialogFooter>
-          </form>
+              </GlassScroll>
+
+              <DialogFooter className="mt-6 sm:justify-between">
+                {isEditing ? (
+                  <>
+                    <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                      انصراف
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting} className={PRIMARY_BTN}>
+                      {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                      ذخیره تغییرات
+                    </Button>
+                  </>
+                ) : currentStep === 1 ? (
+                  <>
+                    <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                      انصراف
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting} className={PRIMARY_BTN}>
+                      ادامه <ArrowLeft className="size-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => setCurrentStep(1)} disabled={isSubmitting}>
+                      <ArrowRight className="size-4" /> بازگشت
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting} className={PRIMARY_BTN}>
+                      {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                      ایجاد دوره
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </form>
+          </GlassPanel>
         </DialogContent>
       </Dialog>
 

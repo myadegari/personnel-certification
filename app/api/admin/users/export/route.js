@@ -3,7 +3,7 @@ import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
 import { requireAdmin } from "@/lib/authGuard";
 import { ROLES, isSuperAdmin } from "@/lib/roles";
-import { EXPORT_COLUMNS, stringifyCsv } from "@/lib/csv";
+import { EXPORT_COLUMNS, buildWorkbook, XLSX_MIME } from "@/lib/xlsx";
 
 export async function GET(request) {
   const { session, error } = await requireAdmin();
@@ -37,13 +37,13 @@ export async function GET(request) {
       createdAt: u.createdAt ? new Date(u.createdAt).toISOString() : "",
     }));
 
-    const csv = stringifyCsv(rows, EXPORT_COLUMNS);
-    const filename = `users-${new Date().toISOString().slice(0, 10)}.csv`;
+    const buf = Buffer.from(await buildWorkbook({ columns: EXPORT_COLUMNS, rows }));
+    const filename = `users-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-    return new NextResponse("" + csv, {
+    return new NextResponse(buf, {
       status: 200,
       headers: {
-        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Type": XLSX_MIME,
         "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });

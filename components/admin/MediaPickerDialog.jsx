@@ -8,13 +8,8 @@ import { motion } from "motion/react";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { glassShell, GlassPanel, GlassHeader, GlassScroll, PRIMARY_BTN } from "@/components/shared/glass-dialog";
 import { Search, Upload, Check, ImageMinus as ImageOff, Loader as Loader2 } from "reicon-react";
 import MediaUploadDialog from "./MediaUploadDialog";
 
@@ -76,10 +71,9 @@ export default function MediaPickerDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(v) : close())}>
-        <DialogContent className="sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>انتخاب از کتابخانه رسانه</DialogTitle>
-          </DialogHeader>
+        <DialogContent className={glassShell("xl")}>
+          <GlassPanel>
+            <GlassHeader icon={Search} title="انتخاب از کتابخانه رسانه" />
 
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -102,7 +96,8 @@ export default function MediaPickerDialog({
             </Button>
           </div>
 
-          <div className="mt-2 max-h-[50vh] overflow-y-auto rounded-2xl border border-black/5 bg-stone-50/60 p-3">
+          <GlassScroll maxHeight="50vh" className="mt-2 rounded-2xl border border-black/5 bg-stone-50/60">
+            <div className="p-3">
             {isLoading ? (
               <div className="flex items-center justify-center py-16 text-muted-foreground">
                 <Loader2 className="size-6 animate-spin" />
@@ -132,6 +127,7 @@ export default function MediaPickerDialog({
                     }`}
                   >
                     {item.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={item.url} alt={item.alt || item.title} className="size-full object-cover" loading="lazy" />
                     ) : (
                       <div className="flex size-full items-center justify-center text-muted-foreground">
@@ -147,7 +143,8 @@ export default function MediaPickerDialog({
                 ))}
               </motion.div>
             )}
-          </div>
+            </div>
+          </GlassScroll>
 
           <DialogFooter className="items-center sm:justify-between">
             <span className="text-sm text-muted-foreground">
@@ -157,11 +154,12 @@ export default function MediaPickerDialog({
               <Button type="button" variant="outline" className="cursor-pointer" onClick={close}>
                 انصراف
               </Button>
-              <Button type="button" className="cursor-pointer" onClick={confirm} disabled={!selected.length}>
+              <Button type="button" className={PRIMARY_BTN} onClick={confirm} disabled={!selected.length}>
                 انتخاب
               </Button>
             </div>
           </DialogFooter>
+          </GlassPanel>
         </DialogContent>
       </Dialog>
 

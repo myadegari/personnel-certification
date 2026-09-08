@@ -1,13 +1,13 @@
 import mongoose from 'mongoose';
 
 const IndicatorUsageSchema = new mongoose.Schema({
-  // A reference to the main indicator pattern (e.g., 'CERT-C<courseId>')
+  // A reference to the main indicator pattern (e.g., 'CERT-Y<year>-D<deputy>')
   indicator: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Indicator',
     required: true,
   },
-  // The specific number that was used (e.g., 101)
+  // The specific number that was used (e.g., 42)
   number: {
     type: Number,
     required: true,
@@ -25,7 +25,7 @@ const IndicatorUsageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'GuestCertificate',
   },
-  // The full, human-readable certificate ID (e.g., '4050102003')
+  // The full, human-readable certificate ID (e.g., '40501020042')
   fullCertificateId: {
     type: String,
     required: true,

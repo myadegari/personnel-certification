@@ -17,12 +17,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Stepper } from "@/components/ui/stepper";
+import { Field } from "@/components/shared/form-dialog";
 import {
-  Field,
-  FormSection,
-  DialogIconHeader,
-  ImagePickerTile,
-} from "@/components/shared/form-dialog";
+  glassShell,
+  glassSurface,
+  GlassPanel,
+  GlassHeader,
+  GlassScroll,
+  GlassSection,
+  GlassBadge,
+  GLASS_TITLE,
+  GLASS_DESC,
+  SignatoryCard,
+  PRIMARY_BTN,
+} from "@/components/shared/glass-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +38,6 @@ import {
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
-  AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useFileUrl } from "@/hooks/useFileUrl";
@@ -38,15 +45,13 @@ import { useCourseMutation } from "@/hooks/useCourseMutation";
 import { useUploadFile } from "@/hooks/useUploadFile";
 import { useQuery } from "@tanstack/react-query";
 import { internalAxios } from "@/lib/axios";
-import UserSearchCombobox from "./UserSearchCombobox";
 import MediaPickerDialog from "./MediaPickerDialog";
 import { PersianDatePicker } from "./PersianDatePicker";
 import { formatDate } from "@/lib/persian-date";
 import { joinUnits } from "@/lib/organizingUnits";
-import OrganizingUnitsPicker from "@/components/OrganizingUnitsPicker";
 import { motion, AnimatePresence } from "motion/react";
 import { spring, fadeUp, staggerContainer, usePrefersReducedMotion } from "@/lib/motion";
-import { GraduationCap, Information as Info, Users, X, Check, ArrowLeft, ArrowRight, Save, Loader as Loader2, AlertTriangle } from "reicon-react";
+import { GraduationCap, Information as Info, Users, UserSquare, Check, ArrowLeft, ArrowRight, Save, Loader as Loader2, AlertTriangle } from "reicon-react";
 
 function formatPersian(dateLike) {
   if (!dateLike) return "—";
@@ -63,7 +68,7 @@ function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
   };
 
   return (
-    <FormSection icon={Info} title="اطلاعات دوره">
+    <GlassSection icon={Info} title="اطلاعات دوره">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="نام دوره" className="sm:col-span-2">
           <Input
@@ -133,7 +138,7 @@ function CourseDetailsFields({ formData, setFormData, deputies = [] }) {
           />
         </Field>
       </div>
-    </FormSection>
+    </GlassSection>
   );
 }
 
@@ -149,7 +154,7 @@ function StepSummary({ formData, onEdit, deputies = [] }) {
     { label: "کد دوره", value: formData.courseCode },
   ];
   return (
-    <motion.div variants={fadeUp} className="rounded-3xl border border-black/5 bg-white/80 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-sm">
+    <motion.div variants={fadeUp} className="rounded-3xl border border-white/60 bg-white/60 p-5 shadow-[0_20px_50px_-24px_rgba(2,44,34,0.35)] backdrop-blur-xl">
       <div className="mb-3 flex items-center justify-between">
         <h4 className="font-semibold text-foreground">خلاصه اطلاعات دوره</h4>
         <Button type="button" size="sm" variant="ghost" className="cursor-pointer text-emerald-700 hover:bg-emerald-500/10" onClick={onEdit}>
@@ -165,65 +170,6 @@ function StepSummary({ formData, onEdit, deputies = [] }) {
         ))}
       </dl>
     </motion.div>
-  );
-}
-
-function SignatoryCard({ title, description, optional, selectedUser, onSelectUser, units, onUnitsChange, preview, inputRef, onFileChange, onOpenPicker, onClear }) {
-  const deputy = selectedUser?.deputy || null;
-  // Options = the signatory's own deputy name + its units; legacy snapshot
-  // values keep showing as chips when editing.
-  const unitOptions = (() => {
-    if (!deputy) return [];
-    const opts = [];
-    if (deputy.name) opts.push({ value: deputy.name, label: deputy.name });
-    for (const u of deputy.units || []) {
-      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
-    }
-    for (const u of units || []) {
-      if (!opts.some((o) => o.value === u)) opts.push({ value: u, label: u });
-    }
-    return opts;
-  })();
-
-  return (
-    <FormSection icon={Users} title={title} description={description}>
-      <div className="space-y-4">
-        <Field label="امضاکننده">
-          <UserSearchCombobox selectedUser={selectedUser} onSelectUser={onSelectUser} />
-        </Field>
-        <Field
-          label="واحد(های) امضا"
-          hint={deputy ? "نام معاونت و/یا حداکثر دو واحد از واحدهای او." : "این کاربر معاونت ندارد؛ واحد را دستی وارد کنید."}
-        >
-          {deputy ? (
-            <OrganizingUnitsPicker
-              options={unitOptions}
-              selected={units || []}
-              onChange={onUnitsChange}
-              max={2}
-              min={optional ? 0 : 1}
-            />
-          ) : (
-            <Input
-              placeholder="نام واحد"
-              value={units?.[0] || ""}
-              onChange={(e) => onUnitsChange(e.target.value ? [e.target.value] : [])}
-            />
-          )}
-        </Field>
-        <Field label="تصویر مهر">
-          <ImagePickerTile
-            preview={preview}
-            inputRef={inputRef}
-            onFileChange={onFileChange}
-            onOpenPicker={onOpenPicker}
-            onClear={onClear}
-            label={title}
-            placeholder="تصویر مهر را انتخاب یا بارگذاری کنید"
-          />
-        </Field>
-      </div>
-    </FormSection>
   );
 }
 
@@ -464,8 +410,9 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
   const signatoryCards = (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <SignatoryCard
+        icon={UserSquare}
         title="امضاکننده اول"
-        description="الزامی"
+        subtitle="الزامی"
         selectedUser={selectedManager1}
         onSelectUser={(user) => {
           setSelectedManager1(user);
@@ -477,6 +424,7 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             organizingUnit: joinUnits(units),
           });
         }}
+        deputy={selectedManager1?.deputy || null}
         units={formData.organizingUnits}
         onUnitsChange={(units) =>
           setFormData({
@@ -489,11 +437,13 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
         inputRef={refStampFile1}
         onFileChange={handleFile1Change}
         onOpenPicker={() => setPickerTarget("stamp1")}
-        onClear={clearStamp1}
+        onClearStamp={clearStamp1}
+        stampLabel="مهر اول"
       />
       <SignatoryCard
+        icon={Users}
         title="امضاکننده دوم"
-        description="اختیاری"
+        subtitle="اختیاری"
         optional
         selectedUser={selectedManager2}
         onSelectUser={(user) => {
@@ -505,6 +455,12 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
             organizingUnit2: "",
           });
         }}
+        onClear={() => {
+          setSelectedManager2(null);
+          setFormData({ ...formData, signatory2: null, organizingUnits2: [], organizingUnit2: "" });
+          clearStamp2();
+        }}
+        deputy={selectedManager2?.deputy || null}
         units={formData.organizingUnits2}
         onUnitsChange={(units) =>
           setFormData({
@@ -517,7 +473,8 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
         inputRef={refStampFile2}
         onFileChange={handleFile2Change}
         onOpenPicker={() => setPickerTarget("stamp2")}
-        onClear={clearStamp2}
+        onClearStamp={clearStamp2}
+        stampLabel="مهر دوم"
       />
     </div>
   );
@@ -525,98 +482,101 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={requestClose}>
-        <DialogContent className="max-w-4xl rounded-3xl">
-          <DialogIconHeader
-            icon={GraduationCap}
-            title={isEditing ? "ویرایش دوره" : "ایجاد دوره جدید"}
-            description={isEditing ? "اطلاعات دوره را به‌روزرسانی کنید." : "در دو مرحله دوره آموزشی را بسازید."}
-          >
-            {!isEditing && (
-              <Stepper
-                steps={["اطلاعات دوره", "امضاها و مهرها"]}
-                current={currentStep - 1}
-                onStepClick={(i) => i < currentStep - 1 && setCurrentStep(i + 1)}
-                className="mt-4"
-              />
-            )}
-          </DialogIconHeader>
-
-          <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div role="alert" className="mb-3 flex items-center gap-2 rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    <AlertTriangle className="size-4 shrink-0" /> {error}
-                  </div>
-                </motion.div>
+        <DialogContent className={glassShell("2xl")}>
+          <GlassPanel>
+            <GlassHeader
+              icon={GraduationCap}
+              title={isEditing ? "ویرایش دوره" : "ایجاد دوره جدید"}
+              description={isEditing ? "اطلاعات دوره را به‌روزرسانی کنید." : "در دو مرحله دوره آموزشی را بسازید."}
+            >
+              {!isEditing && (
+                <Stepper
+                  steps={["اطلاعات دوره", "امضاها و مهرها"]}
+                  current={currentStep - 1}
+                  onStepClick={(i) => i < currentStep - 1 && setCurrentStep(i + 1)}
+                  className="mt-6"
+                />
               )}
-            </AnimatePresence>
+            </GlassHeader>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1 pb-1" style={{ maxHeight: "60vh" }}>
-              {isEditing ? (
-                <motion.div {...staggerProps} className="space-y-4">
-                  <CourseDetailsFields formData={formData} setFormData={setFormData} deputies={deputies} />
-                  {signatoryCards}
-                </motion.div>
-              ) : (
-                <AnimatePresence mode="wait" initial={false}>
+            <form onSubmit={handleSubmit} className="mt-6 flex min-h-0 flex-1 flex-col">
+              <AnimatePresence initial={false}>
+                {error && (
                   <motion.div
-                    key={currentStep}
-                    initial={reduced ? false : { opacity: 0, x: -24 }}
-                    animate={reduced ? false : { opacity: 1, x: 0 }}
-                    exit={reduced ? false : { opacity: 0, x: 24 }}
-                    transition={spring}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
                   >
-                    {currentStep === 1 ? (
-                      <motion.div {...staggerProps} className="space-y-4">
-                        <CourseDetailsFields formData={formData} setFormData={setFormData} deputies={deputies} />
-                      </motion.div>
-                    ) : (
-                      <motion.div {...staggerProps} className="space-y-4">
-                        <StepSummary formData={formData} onEdit={() => setCurrentStep(1)} deputies={deputies} />
-                        {signatoryCards}
-                      </motion.div>
-                    )}
+                    <div role="alert" className="mb-4 flex items-center gap-2 rounded-2xl border border-rose-200/60 bg-rose-500/10 px-4 py-3 text-sm text-rose-600">
+                      <AlertTriangle className="size-4 shrink-0" /> {error}
+                    </div>
                   </motion.div>
-                </AnimatePresence>
-              )}
-            </div>
+                )}
+              </AnimatePresence>
 
-            <DialogFooter className="mt-4 sm:justify-between">
-              {isEditing ? (
-                <>
-                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={requestClose}>انصراف</Button>
-                  <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                    ذخیره تغییرات
-                  </Button>
-                </>
-              ) : currentStep === 1 ? (
-                <>
-                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={requestClose}>انصراف</Button>
-                  <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
-                    ادامه
-                    {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowLeft className="size-4" />}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => setCurrentStep(1)} disabled={isSubmitting}>
-                    <ArrowRight className="size-4" /> بازگشت
-                  </Button>
-                  <Button type="submit" className="cursor-pointer" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-                    اتمام و ذخیره
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
-          </form>
+              <GlassScroll>
+                <div className="space-y-4">
+                  {isEditing ? (
+                    <motion.div {...staggerProps} className="space-y-4">
+                      <CourseDetailsFields formData={formData} setFormData={setFormData} deputies={deputies} />
+                      {signatoryCards}
+                    </motion.div>
+                  ) : (
+                    <AnimatePresence mode="wait" initial={false}>
+                      <motion.div
+                        key={currentStep}
+                        initial={reduced ? false : { opacity: 0, x: -24 }}
+                        animate={reduced ? false : { opacity: 1, x: 0 }}
+                        exit={reduced ? false : { opacity: 0, x: 24 }}
+                        transition={spring}
+                      >
+                        {currentStep === 1 ? (
+                          <motion.div {...staggerProps} className="space-y-4">
+                            <CourseDetailsFields formData={formData} setFormData={setFormData} deputies={deputies} />
+                          </motion.div>
+                        ) : (
+                          <motion.div {...staggerProps} className="space-y-4">
+                            <StepSummary formData={formData} onEdit={() => setCurrentStep(1)} deputies={deputies} />
+                            {signatoryCards}
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
+                </div>
+              </GlassScroll>
+
+              <DialogFooter className="mt-6 sm:justify-between">
+                {isEditing ? (
+                  <>
+                    <Button type="button" variant="ghost" className="cursor-pointer" onClick={requestClose}>انصراف</Button>
+                    <Button type="submit" disabled={isSubmitting} className={PRIMARY_BTN}>
+                      {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                      ذخیره تغییرات
+                    </Button>
+                  </>
+                ) : currentStep === 1 ? (
+                  <>
+                    <Button type="button" variant="ghost" className="cursor-pointer" onClick={requestClose}>انصراف</Button>
+                    <Button type="submit" disabled={isSubmitting} className={PRIMARY_BTN}>
+                      ادامه {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowLeft className="size-4" />}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button type="button" variant="ghost" className="cursor-pointer" onClick={() => setCurrentStep(1)} disabled={isSubmitting}>
+                      <ArrowRight className="size-4" /> بازگشت
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting} className={PRIMARY_BTN}>
+                      {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                      اتمام و ذخیره
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
+            </form>
+          </GlassPanel>
         </DialogContent>
       </Dialog>
 
@@ -627,26 +587,32 @@ export default function CourseFormModal({ isOpen, onClose, courseData }) {
       />
 
       <AlertDialog open={confirmClose} onOpenChange={setConfirmClose}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>بستن ویرایشگر دوره</AlertDialogTitle>
-            <AlertDialogDescription>
-              دوره با موفقیت ایجاد شده است. اگر اکنون خارج شوید، دوره بدون
-              امضاکننده باقی می‌ماند و می‌توانید بعداً از فهرست دوره‌ها آن را
-              ویرایش کنید.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>ادامه ویرایش</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmClose(false);
-                onClose();
-              }}
-            >
-              خروج
-            </AlertDialogAction>
-          </AlertDialogFooter>
+        <AlertDialogContent className={glassSurface()}>
+          <GlassPanel>
+            <div className="flex items-center gap-4">
+              <GlassBadge icon={AlertTriangle} />
+              <div className="min-w-0 text-right">
+                <AlertDialogTitle className={GLASS_TITLE}>بستن ویرایشگر دوره</AlertDialogTitle>
+                <AlertDialogDescription className={GLASS_DESC}>
+                  دوره با موفقیت ایجاد شده است. اگر اکنون خارج شوید، دوره بدون
+                  امضاکننده باقی می‌ماند و می‌توانید بعداً از فهرست دوره‌ها آن را
+                  ویرایش کنید.
+                </AlertDialogDescription>
+              </div>
+            </div>
+            <AlertDialogFooter className="mt-6">
+              <AlertDialogCancel>ادامه ویرایش</AlertDialogCancel>
+              <AlertDialogAction
+                className={PRIMARY_BTN}
+                onClick={() => {
+                  setConfirmClose(false);
+                  onClose();
+                }}
+              >
+                خروج
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </GlassPanel>
         </AlertDialogContent>
       </AlertDialog>
     </>

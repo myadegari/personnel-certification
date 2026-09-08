@@ -1,6 +1,4 @@
 import UserManagementClient from "@/components/admin/UserManagementClient";
-// import {internalAxios} from '@/lib/axios';
-import axios from "axios";
 import { headers } from "next/headers";
 
 // Helper function to fetch data on the server
@@ -17,10 +15,12 @@ async function getUsers(page = 1, limit = 10) {
   const cookie_h = await headers();
   const cookie = cookie_h.get('cookie')
   try {
-    const { data } = await axios.get(`${getBaseUrl()}/api/admin/users?page=${page}&limit=${limit}`, {
-        headers: { 'Cookie': cookie }
-    });
-    return data;
+    const res = await fetch(
+      `${getBaseUrl()}/api/admin/users?page=${page}&limit=${limit}`,
+      { headers: { Cookie: cookie }, cache: "no-store" }
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
   } catch (error) {
     console.error("Failed to fetch users:", error);
     return { users: [], pagination: {} };

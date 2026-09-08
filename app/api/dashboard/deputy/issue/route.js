@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/dbConnect";
 import { requireVerified } from "@/lib/authGuard";
-import { validateCertificateRow } from "@/lib/csv";
+import { validateCertificateRow } from "@/lib/xlsx";
+import { isValidNationalId } from "@/lib/national-id";
 import {
   authorizeIssue,
   findUserByNationalId,
@@ -46,6 +47,9 @@ export async function POST(request) {
     return NextResponse.json({ error: validation.errors.join(" ") }, { status: 400 });
   }
   const data = validation.data;
+  if (!isValidNationalId(data.nationalId)) {
+    return NextResponse.json({ error: "کد ملی معتبر نیست." }, { status: 400 });
+  }
 
   await dbConnect();
 

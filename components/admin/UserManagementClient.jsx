@@ -192,10 +192,14 @@ export default function UserManagementClient({ initialData }) {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
   };
 
-  const downloadCsv = async (url, filename) => {
+  const downloadWorkbook = async (url, filename) => {
     try {
       const res = await internalAxios.get(url, { responseType: "blob" });
-      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
+      const blobUrl = URL.createObjectURL(
+        new Blob([res.data], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        })
+      );
       const a = document.createElement("a");
       a.href = blobUrl;
       a.download = filename;
@@ -211,13 +215,13 @@ export default function UserManagementClient({ initialData }) {
     if (filters.q) params.set("q", filters.q);
     if (filters.role) params.set("role", filters.role);
     if (filters.status) params.set("status", filters.status);
-    downloadCsv(`/admin/users/export?${params.toString()}`, `users-${Date.now()}.csv`);
+    downloadWorkbook(`/admin/users/export?${params.toString()}`, `users-${Date.now()}.xlsx`);
   };
 
   const handleExportSelected = () => {
     const ids = table.getSelectedRowModel().rows.map((r) => r.original._id);
     if (!ids.length) return;
-    downloadCsv(`/admin/users/export?ids=${ids.join(",")}`, `users-selected-${Date.now()}.csv`);
+    downloadWorkbook(`/admin/users/export?ids=${ids.join(",")}`, `users-selected-${Date.now()}.xlsx`);
   };
 
   const handleBulkDelete = () => {
@@ -399,6 +403,7 @@ export default function UserManagementClient({ initialData }) {
     [pagination]
   );
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: tableData?.users ?? [],
     columns,
@@ -471,10 +476,10 @@ export default function UserManagementClient({ initialData }) {
         actions={
           <>
             <Button variant="outline" size="sm" className="cursor-pointer" onClick={() => setImportOpen(true)}>
-              <Upload className="h-4 w-4" /> وارد کردن (CSV)
+              <Upload className="h-4 w-4" /> وارد کردن (Excel)
             </Button>
             <Button variant="outline" size="sm" className="cursor-pointer" onClick={handleExportAll}>
-              <Download className="h-4 w-4" /> خروجی (CSV)
+              <Download className="h-4 w-4" /> خروجی (Excel)
             </Button>
             <Button size="sm" className="cursor-pointer" onClick={() => { setEditingUser(null); setIsModalOpen(true); }}>
               <UserPlus className="h-4 w-4" /> ایجاد کاربر جدید

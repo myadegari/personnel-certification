@@ -30,7 +30,7 @@ export async function GET(request, { params }) {
     }
 
     // Pagination is applied after merging with guest rows, so both sources
-    // are fetched in full (per-course volumes are bounded by the 999-number
+    // are fetched in full (per-course volumes are bounded by the 9999-number
     // certificate capacity).
     const enrollments = await Enrollment.find(query)
       .populate('user', 'firstName lastName personnelNumber')
