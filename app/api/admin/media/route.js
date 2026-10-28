@@ -3,16 +3,13 @@ import { v4 as uuidv4 } from "uuid";
 import dbConnect from "@/lib/dbConnect";
 import File from "@/models/File";
 import { requireStaffOrDeputyHead } from "@/lib/authGuard";
-import { readValidatedImage } from "@/lib/uploadValidation";
 import { ensureBucket, putBuffer, getPresignedUrl } from "@/lib/storage";
+import { uploadValidatedFile } from "@/lib/uploadService";
 import { classifyKind, referencedFileIds, PROTECTED_BUCKETS } from "@/lib/media";
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from "@/lib/audit";
+import { escapeRegex } from "@/lib/utils";
 
 const VALID_BUCKETS = ["media", "stamp", "signature", "certificate"];
-
-function escapeRegex(str) {
-  return String(str).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 // GET: list media across buckets with filtering + pagination
 // (staff + deputy heads — deputies need the library for stamp picking)
@@ -110,33 +107,13 @@ export async function POST(request) {
 
     await dbConnect();
 
-    const validated = await readValidatedImage(file);
-    if (validated.error) {
-      return NextResponse.json({ error: validated.error }, { status: validated.status });
-    }
-
-    const { buffer, mimeType, extension } = validated;
-    const bucket = "media";
-    const objectName = `${uuidv4()}${extension}`;
-
-    await ensureBucket(bucket);
-    await putBuffer({ bucket, objectName, buffer, contentType: mimeType });
-
-    const expirySeconds = 7 * 24 * 60 * 60;
-    const presignedUrl = await getPresignedUrl({ bucket, objectName, expiresInSeconds: expirySeconds });
-    const expiresAt = new Date(Date.now() + expirySeconds * 1000);
-
-    const created = await File.create({
+    const { fileRecord: created, mimeType } = await uploadValidatedFile({
+      file,
+      bucket: "media",
+      objectNameBase: uuidv4(),
       userId: session.user.id,
-      bucket,
-      objectName,
-      originalName: file.name,
-      title: title || file.name,
-      alt,
-      mimeType,
-      size: buffer.length,
-      presignedUrl,
-      expiresAt,
+      extra: { title: title || file.name, alt },
+      upsert: false, // UUID keys never collide; always a new library asset
     });
 
     await recordAuditEvent({
@@ -145,7 +122,7 @@ export async function POST(request) {
       action: AUDIT_ACTIONS.MEDIA_UPLOAD,
       resourceType: AUDIT_RESOURCE_TYPES.MEDIA,
       resourceId: created._id,
-      metadata: { title: created.title, mimeType, size: buffer.length },
+      metadata: { title: created.title, mimeType, size: created.size },
     });
 
     return NextResponse.json({ file: created, url: created._id }, { status: 201 });

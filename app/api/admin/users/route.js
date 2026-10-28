@@ -1,70 +1,11 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
-import Deputy from '@/models/Deputy';
-import File from '@/models/File';
-import bcrypt from 'bcrypt';
 import { requireAdmin } from '@/lib/authGuard';
-import { uploadUserSignature } from '@/lib/signatureUpload';
-import { ROLES, canAssignRole, canManageUser, isSuperAdmin, isValidRole } from '@/lib/roles';
+import { ROLES, isSuperAdmin, isValidRole } from '@/lib/roles';
 import { recordAuditEvent, AUDIT_ACTIONS, AUDIT_RESOURCE_TYPES } from '@/lib/audit';
-import { isValidNationalId, normalizeNationalIdValue } from '@/lib/national-id';
-
-async function parseUserPayload(request) {
-  const contentType = request.headers.get('content-type') || '';
-
-  if (contentType.includes('multipart/form-data')) {
-    const data = await request.formData();
-    const value = (key) => {
-      const entry = data.get(key);
-      return entry === null ? undefined : entry;
-    };
-
-    return {
-      fields: {
-        personnelNumber: value('personnelNumber'),
-        password: value('password'),
-        firstName: value('firstName'),
-        lastName: value('lastName'),
-        nationalId: value('nationalId'),
-        email: value('email'),
-        role: value('role'),
-        gender: value('gender'),
-        deputy: value('deputy'),
-        headedDeputy: value('headedDeputy'),
-      },
-      signatureFile: data.get('signatureFile') || undefined,
-      signatureFileId: data.get('signatureFileId') || undefined,
-    };
-  }
-
-  const body = await request.json();
-  return { fields: body, signatureFile: undefined, signatureFileId: undefined };
-}
-
-function normalizeObjectIdRef(value) {
-  const id = String(value ?? '').trim();
-  if (!id || id === 'none') return { value: null };
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return { error: 'معاونت انتخابی نامعتبر است.' };
-  }
-  return { value: id };
-}
-
-async function assertDeputyReferencesExist(ids) {
-  for (const id of new Set(ids.filter(Boolean))) {
-    if (!(await Deputy.exists({ _id: id }))) {
-      return NextResponse.json({ error: 'معاونت انتخابی یافت نشد.' }, { status: 400 });
-    }
-  }
-  return null;
-}
-
-// Escape user input so it is treated literally inside $regex
-function escapeRegex(str) {
-  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+import { escapeRegex } from '@/lib/utils';
+import { createUser, deleteUsers, parseUserPayload, UserServiceError } from '@/lib/userService';
 
 const SORTABLE_FIELDS = [
   'personnelNumber',
@@ -167,102 +108,33 @@ export async function POST(request) {
 
   try {
     const { fields, signatureFile, signatureFileId } = await parseUserPayload(request);
-    const { personnelNumber, password, firstName, lastName, email, role, gender } = fields;
-    const nationalId = normalizeNationalIdValue(fields.nationalId);
-
-    if (!personnelNumber || !password || !firstName || !lastName || !nationalId || !email || !gender) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-    if (nationalId.length !== 10 || !isValidNationalId(nationalId)) {
-      return NextResponse.json({ error: 'کد ملی معتبر نیست.' }, { status: 400 });
-    }
-    if (typeof password !== 'string' || password.length < 8) {
-      return NextResponse.json({ error: 'رمز عبور باید حداقل ۸ کاراکتر باشد.' }, { status: 400 });
-    }
-    if (!isValidRole(role)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
-    }
-    if (!canAssignRole(session.user.role, role)) {
-      return NextResponse.json({ error: 'You cannot assign this role' }, { status: 403 });
-    }
-
-    const deputyRef = normalizeObjectIdRef(fields.deputy);
-    if (deputyRef.error) {
-      return NextResponse.json({ error: deputyRef.error }, { status: 400 });
-    }
-    const headedDeputyRef = normalizeObjectIdRef(fields.headedDeputy);
-    if (headedDeputyRef.error) {
-      return NextResponse.json({ error: headedDeputyRef.error }, { status: 400 });
-    }
-
-    let deputy = deputyRef.value;
-    let headedDeputy = headedDeputyRef.value;
-
-    if (role === ROLES.DEPUTY_HEAD) {
-      if (!headedDeputy) {
-        return NextResponse.json({ error: 'انتخاب معاونت تحت سرپرستی الزامی است.' }, { status: 400 });
-      }
-      deputy = headedDeputy;
-    } else {
-      headedDeputy = null;
-    }
 
     await dbConnect();
 
-    const deputyError = await assertDeputyReferencesExist([deputy, headedDeputy]);
-    if (deputyError) return deputyError;
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await User.create({
-      personnelNumber,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      nationalId,
-      email,
-      gender,
-      role,
-      deputy,
-      headedDeputy,
-      status: 'VERIFIED',
+    const safeUser = await createUser({
+      session,
+      fields,
+      signatureFile,
+      signatureFileId,
     });
 
-    if (signatureFile) {
-      try {
-        await uploadUserSignature(newUser, signatureFile);
-      } catch (uploadError) {
-        await User.findByIdAndDelete(newUser._id);
-        return NextResponse.json(
-          { error: uploadError.message || 'Failed to upload signature.' },
-          { status: uploadError.status || 500 }
-        );
-      }
-    } else if (signatureFileId) {
-      const fileRecord = await File.findById(signatureFileId);
-      if (!fileRecord) {
-        await User.findByIdAndDelete(newUser._id);
-        return NextResponse.json({ error: 'Selected signature media not found' }, { status: 404 });
-      }
-      newUser.signatureImage = fileRecord._id;
-      await newUser.save();
-    }
-
-    const safeUser = newUser.toObject();
-    delete safeUser.password;
     await recordAuditEvent({
       request,
       session,
       action: AUDIT_ACTIONS.USER_CREATE,
       resourceType: AUDIT_RESOURCE_TYPES.USER,
-      resourceId: newUser._id,
+      resourceId: safeUser._id,
       metadata: {
-        name: `${newUser.firstName} ${newUser.lastName}`.trim(),
-        role: newUser.role,
-        personnelNumber: newUser.personnelNumber,
+        name: `${safeUser.firstName} ${safeUser.lastName}`.trim(),
+        role: safeUser.role,
+        personnelNumber: safeUser.personnelNumber,
       },
     });
     return NextResponse.json(safeUser, { status: 201 });
   } catch (error) {
+    if (error instanceof UserServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     if (error?.code === 11000) {
       return NextResponse.json({ error: 'User already exists (duplicate personnel number, national ID or email)' }, { status: 409 });
     }
@@ -280,43 +152,24 @@ export async function DELETE(request) {
 
   try {
     const { userIds } = await request.json();
-    if (!Array.isArray(userIds) || userIds.length === 0) {
-      return NextResponse.json({ error: 'User IDs are required' }, { status: 400 });
-    }
 
     await dbConnect();
 
-    if (userIds.includes(session.user.id)) {
-      return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 });
-    }
-
-    const targets = await User.find({ _id: { $in: userIds } }).select('role');
-    for (const target of targets) {
-      if (!canManageUser(session.user.role, target.role)) {
-        return NextResponse.json({ error: 'You cannot delete this user' }, { status: 403 });
-      }
-    }
-
-    if (isSuperAdmin(session.user.role)) {
-      const superAdminCount = await User.countDocuments({ role: ROLES.SUPERADMIN });
-      const deletingSuperAdmins = targets.filter((target) => target.role === ROLES.SUPERADMIN).length;
-      if (superAdminCount - deletingSuperAdmins < 1) {
-        return NextResponse.json({ error: 'Cannot delete the last superadmin' }, { status: 400 });
-      }
-    }
-
-    await User.deleteMany({ _id: { $in: userIds } });
+    const { count, ids } = await deleteUsers({ session, userIds });
 
     await recordAuditEvent({
       request,
       session,
       action: AUDIT_ACTIONS.USER_DELETE,
       resourceType: AUDIT_RESOURCE_TYPES.USER,
-      metadata: { count: userIds.length, ids: userIds.slice(0, 100) },
+      metadata: { count, ids },
     });
 
     return NextResponse.json({ message: 'Users deleted successfully' });
   } catch (error) {
+    if (error instanceof UserServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: 'Failed to delete users' }, { status: 500 });
   }
 }

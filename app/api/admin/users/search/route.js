@@ -2,11 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/models/User';
 import { requireStaffOrDeputyHead } from '@/lib/authGuard';
-
-// Escape user input so it is treated literally inside $regex
-function escapeRegex(str) {
-  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+import { escapeRegex } from '@/lib/utils';
 
 // GET: Search users by name (staff + deputy heads, for signatory pickers)
 export async function GET(request) {
