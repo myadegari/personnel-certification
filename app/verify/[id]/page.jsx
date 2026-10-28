@@ -1,12 +1,10 @@
 'use client';
 
 import { useState, useEffect, use, useCallback } from 'react';
-import { CheckCircle as BadgeCheck, FileDown, Share as Share2, AlertTriangle, Refresh as RefreshCw } from "reicon-react";
+import { CheckCircle as BadgeCheck, FileDown, AlertTriangle, Refresh as RefreshCw } from "reicon-react";
 import { Button } from '@/components/ui/button';
-
-function toPersianDigits(value) {
-  return String(value ?? '').replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
-}
+import { CopyButton } from '@/components/ui/copy-button';
+import { toPersianDigits } from '@/lib/persian-date';
 
 const LoadingSpinner = () => (
   <div role="status" aria-live="polite" className="text-center">
@@ -46,7 +44,6 @@ export default function VerifyCertificatePage({ params }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null); // null | 'not_found' | 'server' | 'network'
   const [reloadKey, setReloadKey] = useState(0);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     // This variable will hold the generated blob URL.
@@ -115,21 +112,6 @@ export default function VerifyCertificatePage({ params }) {
     };
   }, [id, reloadKey]);
 
-  const shareLink = useCallback(async () => {
-    const url = window.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'گواهینامه گواهیار', url });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // user cancelled the native share sheet or clipboard was blocked
-    }
-  }, []);
-
   const retry = useCallback(() => {
     setPdfUrl('');
     setMeta(null);
@@ -176,10 +158,16 @@ export default function VerifyCertificatePage({ params }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="cursor-pointer" onClick={shareLink}>
-                <Share2 className="size-4" />
-                {copied ? 'کپی شد' : 'اشتراک‌گذاری'}
-              </Button>
+              <CopyButton
+                text={() => window.location.href}
+                label="اشتراک‌گذاری"
+                variant="outline"
+                size="sm"
+                side="bottom"
+                className="gap-2 cursor-pointer"
+              >
+                اشتراک‌گذاری
+              </CopyButton>
               <a href={`/api/verify/${id}`} download>
                 <Button variant="outline" size="sm" className="cursor-pointer">
                   <FileDown className="size-4" /> دانلود
